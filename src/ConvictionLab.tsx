@@ -11,8 +11,8 @@ function nyToday(){
  return x.year+'-'+x.month+'-'+x.day;
 }
 const readVersions=():ThesisVersion[]=>{try{const value=localStorage.getItem(KEY);const list=value?JSON.parse(value):[];return Array.isArray(list)?list.filter(x=>x&&typeof x.ticker==='string'&&typeof x.thesis==='string').slice(-100):[]}catch{return []}};
-export default function ConvictionLab(){
- const [ticker,setTicker]=useState('BLK');
+export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:string}){
+ const [ticker,setTicker]=useState(initialTicker);
  const [company,setCompany]=useState<SecCompany|null>(null);
  const [assessment,setAssessment]=useState<ConvictionAssessment|null>(null);
  const [marketIssue,setMarketIssue]=useState('');
