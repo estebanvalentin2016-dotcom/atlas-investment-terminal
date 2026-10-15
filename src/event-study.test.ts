@@ -39,6 +39,29 @@ describe('event-to-session alignment',()=>{
   expect(result.returns.day3).toBeCloseTo((110/104-1)*100);
   expect(result.returns.day5).toBeNull();
  });
+ it('measures highest high and lowest low across completed sessions',()=>{
+  const sample=[
+   {date:'2026-10-09',close:100,high:101,low:99},
+   {date:'2026-10-12',close:105,high:110,low:97},
+   {date:'2026-10-13',close:103,high:108,low:95},
+   {date:'2026-10-14',close:107,high:112,low:102}
+  ];
+  const result=eventStudy('2026-10-09T20:30:00Z',sample);
+  expect(result.excursions.day1.highPct).toBeCloseTo(10);
+  expect(result.excursions.day1.lowPct).toBeCloseTo(-3);
+  expect(result.excursions.day3.highPct).toBeCloseTo(12);
+  expect(result.excursions.day3.lowPct).toBeCloseTo(-5);
+  expect(result.excursions.day5).toBeNull();
+ });
+ it('does not fabricate high-low ranges from closing-only data',()=>{
+  const result=eventStudy('2026-10-12T20:10:00Z',bars);
+  expect(result.excursions.day1).toBeNull();
+  expect(result.returns.day1).not.toBeNull();
+ });
+ it('rejects invalid high-low bars rather than treating them as measured ranges',()=>{
+  const sample=[{date:'2026-10-09',close:100,high:101,low:99},{date:'2026-10-12',close:102,high:99,low:104}];
+  expect(eventStudy('2026-10-09T20:30:00Z',sample).excursions.day1).toBeNull();
+ });
  it('does not fabricate returns for insufficient data',()=>{
   expect(eventStudy('2026-10-16T22:00:00Z',bars).returns.day1).toBeNull();
  });
