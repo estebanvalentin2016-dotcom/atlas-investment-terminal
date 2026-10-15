@@ -54,3 +54,10 @@
 - [x] Manual price-return and relative-volume calculation
 - [ ] Licensed or free actual market data and validated event-to-price alignment
 - [ ] Measured multi-day continuation and exit conditions
+
+## In development — v0.7
+- [x] Free-tier IEX daily market bars (requires free Alpaca keys)
+- [x] 1-day, 3-day, 5-day returns, RVOL and distance from 20-day high
+- [x] Open stock chart on Yahoo Finance for independent visual review
+- [ ] Automatically associate filing catalysts to market sessions
+- [ ] Paper-trade historical entry/exit rules with realistic friction
