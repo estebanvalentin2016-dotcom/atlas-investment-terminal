@@ -3,6 +3,7 @@ import {assessConvictionReadiness,type ConvictionAssessment} from './conviction-
 import SurvivalEvidencePanel from './SurvivalEvidencePanel';
 import MarketCapEvidencePanel from './MarketCapEvidencePanel';
 import FinancingAutomationPanel from './FinancingAutomationPanel';
+import OperatingScenariosPanel from './OperatingScenariosPanel';
 import {draftIssuerThesis} from './automatic-thesis';
 import type {MarketValuationClose,SecCompany} from './ranking-model';
 type ThesisVersion={ticker:string;createdAt:string;thesis:string;invalidation:string;verdict:'INSUFFICIENT EVIDENCE'};
@@ -88,11 +89,12 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
     <p>{assessment.fundingRisk.detail}</p>
     {assessment.fundingRisk.status!=='nonnegative_fcf'&&<p><strong>Research priority:</strong> Explain where the cash went, whether growth investment is productive, what funding is available, and how future share issuance could affect your ownership.</p>}
    </section>}
+   <OperatingScenariosPanel company={company} asOf={nyToday()}/>
    <MarketCapEvidencePanel company={company} quote={marketQuote} asOf={nyToday()}/>
    <FinancingAutomationPanel company={company} asOf={nyToday()}/>
-   <SurvivalEvidencePanel company={company} asOf={assessment.observed.asOfDate??nyToday()}/>
+   <details className="atlas-details"><summary>Historical annual cash and dilution audit</summary><SurvivalEvidencePanel company={company} asOf={assessment.observed.asOfDate??nyToday()}/></details>
    <p className="chart-note"><strong>Source:</strong> <a href={company.source} target="_blank" rel="noopener noreferrer">SEC company financial facts ↗</a>. Missing or delayed figures remain unknown. An attractive reported metric is not evidence of mispricing.</p>
-   <details className="atlas-details" open><summary>What ATLAS verified — and what automation is still missing</summary>
+   <details className="atlas-details"><summary>What ATLAS verified — and what automation is still missing</summary>
     <p className="atlas-gates-explainer"><strong>These gaps are ATLAS development tasks, not homework for you.</strong> Verified means a source has passed the current evidence check; partial means some SEC observations are available but the full analysis is missing. Pending means the automated analysis is not connected yet.</p>
     <div className="atlas-conviction-gates">{assessment.requirements.map(item=><div key={item.key}><div className="atlas-gate-heading"><strong>{item.status==='verified'?'✓':'○'} {item.label}</strong><span className={'atlas-gate-progress atlas-progress-'+item.progress}>{item.progress==='verified'?'Source checked':item.progress==='partially_sourced'?'Partial evidence':item.progress==='engine_pending'?'Automation pending':'Source unavailable'}</span></div><p>{item.detail}</p></div>)}</div>
    </details>
