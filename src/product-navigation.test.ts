@@ -9,7 +9,7 @@ describe('Conviction-first navigation without deleting legacy capabilities',()=>
   const markup=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{}}));
   for(const step of ['Discover','Investigate','Value','Decide','Monitor'])expect(markup).toContain('>'+step+'</h3>');
   expect(markup).toContain('Open Conviction Lab');
-  expect(markup).toContain('Find investment candidates');
+  expect(markup).toContain('Discover Opportunities');
  });
  it('starts the conviction investigation without manufacturing a live score',()=>{
   const markup=renderToStaticMarkup(createElement(ConvictionLab));
