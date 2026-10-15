@@ -14,10 +14,9 @@ export function annualValues(fact,unit='USD'){
  const entries=fact?.units?.[unit]||[];
  const byYear=new Map();
  for(const v of entries){
-  if(v.form!=='10-K'||v.fp!=='FY'||!v.start||!v.end||!v.filed||!Number.isFinite(v.val))continue;
-  const duration=(Date.parse(v.end)-Date.parse(v.start))/86400000;
-  if(duration<300||duration>400)continue;
-  const year=Number(v.fy);
+  if(v.form!=='10-K'||v.fp!=='FY'||!v.end||!v.filed||!Number.isFinite(v.val))continue;
+  if(v.start){const duration=(Date.parse(v.end)-Date.parse(v.start))/86400000;if(duration<300||duration>400)continue;}
+  const year=Number(v.end.slice(0,4));
   if(!Number.isInteger(year))continue;
   const prior=byYear.get(year);
   if(!prior||v.filed>prior.filed)byYear.set(year,{year,end:v.end,filed:v.filed,value:v.val,form:v.form,accession:v.accn});
