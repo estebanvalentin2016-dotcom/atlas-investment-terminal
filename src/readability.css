@@ -1,0 +1,78 @@
+
+/* ATLAS Readability v0.12 — large targets, clear hierarchy, progressive detail.
+   Keep evidence neutral: color is NOT a prediction or trading signal. */
+:root{font-size:16px;line-height:1.55}
+body{font-size:16px}
+.navitem{font-size:15px;min-height:48px;height:auto;line-height:1.3;padding-top:10px;padding-bottom:10px}
+.brand small,.side-label,.eyebrow,.overline{font-size:12px;letter-spacing:.5px}
+.helpbox p,.disclaimer,.pageheading p,.description,.panel-head h3,.button,.tag,.data-status{font-size:15px}
+.pageheading h1{font-size:clamp(29px,3vw,36px)}
+.pageheading p{line-height:1.6}
+.panel-head h3{font-size:21px}
+.button{min-height:46px;padding:11px 16px;font-weight:800;white-space:normal;text-align:center;line-height:1.25}
+.tag{line-height:1.3;white-space:normal}
+.disclaimer{line-height:1.6;padding:14px 16px;color:#f4d9ad}
+.description{line-height:1.7;color:#c7d7e7}
+.chart-note,.panel-foot{font-size:14px;line-height:1.65;color:#b7c9dc}
+.sidebar .side-label{font-size:12px}
+.stat .sub,.metric-row,.scenario-line,.pillar p,.range-field small,.company-title small{font-size:13px}
+th{font-size:12px}td{font-size:14px}
+.top-left,.top-right,.top-left b{font-size:14px}
+.opportunity-radar{font-size:17px;line-height:1.6}
+.opportunity-radar .panel-head h3{font-size:clamp(23px,2.2vw,29px)}
+.opportunity-radar>.description{font-size:16px;line-height:1.6}
+.opportunity-radar .opportunity-toolbar{padding:16px 18px;gap:14px}
+.opportunity-radar .opportunity-toolbar strong{font-size:19px}
+.opportunity-radar .opportunity-toolbar span{font-size:15px}
+.opportunity-radar .opportunity-results-head strong{font-size:23px}
+.opportunity-radar .opportunity-results-head p{font-size:16px}
+.opportunity-radar .opportunity-filters>label,.opportunity-radar .opportunity-checkbox{font-size:16px}
+.opportunity-radar .opportunity-filters input[type="search"],.opportunity-radar .opportunity-filters select{min-height:46px;font-size:16px}
+.opportunity-radar .opportunity-list{grid-template-columns:minmax(0,1fr);max-width:1050px;gap:18px}
+.opportunity-radar .opportunity-candidate{padding:22px;gap:14px;border-radius:15px}
+.opportunity-radar .opportunity-top strong{font-size:30px}
+.opportunity-radar .opportunity-top span{font-size:15px}
+.opportunity-radar .opportunity-candidate h4{font-size:22px}
+.opportunity-radar .opportunity-candidate p{font-size:16px;line-height:1.55}
+.opportunity-radar .opportunity-candidate .opportunity-uncertainty{font-size:15px;line-height:1.5}
+.opportunity-radar .opportunity-candidate a{font-size:16px;text-decoration-thickness:1.5px;text-underline-offset:3px}
+.opportunity-radar .opportunity-candidate .chart-note{font-size:14px;padding:8px 0;border:0}
+.opportunity-radar details>summary{cursor:pointer;font-size:16px;font-weight:800;line-height:1.5;padding:8px 0;color:#b4e2ff}
+.opportunity-radar details>summary:hover{text-decoration:underline;text-underline-offset:3px}
+.opportunity-radar .opportunity-diagnostic{font-size:15px}
+.opportunity-radar .filing-evidence-body,.opportunity-radar .filing-price-body{padding:16px;gap:14px}
+.opportunity-radar .filing-evidence-body>strong,.opportunity-radar .filing-price-body>strong,.opportunity-radar .filing-acceptance-context>strong{font-size:20px}
+.opportunity-radar .filing-evidence-excerpt{padding:14px}
+.opportunity-radar .filing-evidence-excerpt strong{font-size:17px}
+.opportunity-radar .filing-evidence-excerpt p,.opportunity-radar .filing-price-leg p{font-size:15px;line-height:1.6}
+.opportunity-radar .filing-evidence-sources p,.opportunity-radar .filing-price-body>p,.opportunity-radar .filing-acceptance-context>p{font-size:15px}
+.opportunity-radar .filing-price-leg>strong{font-size:16px}
+.opportunity-radar .filing-price-leg{padding:16px}
+.opportunity-radar .filing-evidence-metrics{padding:16px;gap:12px}
+.opportunity-radar .filing-evidence-metrics>strong{font-size:20px}
+.opportunity-radar button:focus-visible,.opportunity-radar a:focus-visible,.opportunity-radar summary:focus-visible{outline:3px solid #8edaff;outline-offset:4px}
+/* The first thing readers see is a small number of real metrics. */
+.atlas-glance{display:grid;gap:12px;padding:16px;border:1px solid #3e6685;border-radius:12px;background:#12263a}
+.atlas-glance-title{font-size:20px!important;font-weight:800;color:#f0f8ff}
+.atlas-glance-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.atlas-glance-card{display:grid;align-content:start;gap:5px;min-width:0;border:1px solid #44647e;border-radius:10px;background:#1a344b;padding:15px}
+.atlas-glance-label{font-size:14px;font-weight:700;color:#bdd2e5;line-height:1.4}
+.atlas-glance-value{font-size:clamp(20px,2.2vw,28px);font-weight:800;color:#f8fbff;line-height:1.23;overflow-wrap:anywhere}
+.atlas-glance-link{font-size:14px!important;font-weight:700}
+.atlas-summary-line{font-size:17px!important;line-height:1.55!important;color:#e7f1fb!important}
+.atlas-summary-line strong{color:#fff}
+.atlas-details{border:1px solid #45617c;border-radius:10px;padding:12px 16px;background:#162c41}
+.atlas-details>summary{font-size:17px!important}
+.atlas-details[open]>summary{margin-bottom:12px}
+.atlas-details p{overflow-wrap:anywhere}
+.atlas-key-return{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.atlas-key-return>div{display:grid;gap:6px;padding:16px;border-radius:10px;background:#1b354e;border:1px solid #486985;min-width:0}
+.atlas-key-return .atlas-glance-value{font-size:clamp(24px,2.6vw,34px)}
+.atlas-key-return .atlas-glance-label{font-size:15px}
+.atlas-technical-meta{display:grid;gap:9px}
+.atlas-technical-meta p{font-size:15px!important}
+@media(max-width:680px){
+ .opportunity-radar .opportunity-candidate{padding:16px}
+ .atlas-glance-cards,.atlas-key-return{grid-template-columns:minmax(0,1fr)}
+ .opportunity-radar .opportunity-top strong{font-size:27px}
+}
