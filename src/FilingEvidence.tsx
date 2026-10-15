@@ -1,3 +1,4 @@
+import {toneForReportedMetric} from './filing-metric-tone';
 type Statement={label:string;excerpt:string;sourceName?:string;sourceUrl?:string};
 type Metric=Statement&{reportedValue:string};
 export type FilingEvidenceResult={
@@ -27,11 +28,12 @@ export default function FilingEvidence({data,loading,onReview}:{data?:FilingEvid
      <strong className="atlas-glance-title">What stands out</strong>
      {topics.length>0&&<p className="atlas-summary-line"><strong>Filing type:</strong> {topics.slice(0,2).map(t=>t.label).join(' + ')}{topics.length>2?' and more':''}</p>}
      {metrics.length>0?<div className="atlas-glance-cards">
-      {metrics.slice(0,6).map((metric,i)=><div className="atlas-glance-card" key={metric.label+'-'+i}>
+      {metrics.slice(0,6).map((metric,i)=>{const tone=toneForReportedMetric(metric.label,metric.reportedValue);return <div className="atlas-glance-card" key={metric.label+'-'+i}>
        <span className="atlas-glance-label">{metric.label}</span>
-       <strong className="atlas-glance-value">{metric.reportedValue}</strong>
+       <strong className={'atlas-glance-value atlas-tone-'+tone.tone}>{tone.headline}</strong>
+       {tone.headline!==metric.reportedValue&&<span className="atlas-metric-detail">{metric.reportedValue}</span>}
        {metric.sourceUrl&&<a className="atlas-glance-link" href={metric.sourceUrl} target="_blank" rel="noopener noreferrer">Check SEC source ↗</a>}
-      </div>)}
+      </div>})}
      </div>:<p className="atlas-summary-line"><strong>No standard operating figures detected.</strong> The document could still contain significant news.</p>}
      {potential.length>0&&<p className="atlas-summary-line"><strong>{potential.length} phrase{potential.length===1?'':'s'} to investigate.</strong> These are unverified text matches, not buy signals.</p>}
      {cautions.length>0&&<p className="atlas-summary-line"><strong>{cautions.length} caution phrase{cautions.length===1?'':'s'} detected.</strong> Read the supporting passage before interpreting it.</p>}
