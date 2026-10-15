@@ -28,13 +28,18 @@ export async function verifyValueActCase({refresh=false}={}){
   retrieve13FCoverage(c.latest,c.cik,headers)
  ]);
  const rows=compare13FHoldings(current.holdings,prior.holdings);
+ const latestIncludedValue=current.holdings.reduce((sum,x)=>sum+x.valueDollars,0);
+ const previousIncludedValue=prior.holdings.reduce((sum,x)=>sum+x.valueDollars,0);
+ const two=(n)=>Math.round(n*100)/100;
  const checks=c.expected.map(x=>{
   const row=rows.find(r=>r.key===x.key);
   const ok=!!row&&row.shares===x.later&&row.previousShares===x.earlier&&row.issuer===x.issuer;
   return {ticker:x.ticker,issuer:x.issuer,cusip:x.key.split('|')[0],className:x.key.split('|')[1],
    priorReported:x.earlier,latestReported:x.later,
    delta:x.later-x.earlier,checked:ok,observedPrior:row?.previousShares??null,observedLatest:row?.shares??null,
-   latestReportedValueDollars:row?.valueDollars??null,percentChange:x.earlier>0?Math.round((x.later/x.earlier-1)*10000)/100:null};
+   latestReportedValueDollars:row?.valueDollars??null,percentChange:x.earlier>0?Math.round((x.later/x.earlier-1)*10000)/100:null,
+   latestIncludedPortfolioPct:latestIncludedValue>0&&row?two(row.valueDollars/latestIncludedValue*100):null,
+   previousIncludedPortfolioPct:previousIncludedValue>0?two((prior.holdings.find(h=>h.key===x.key)?.valueDollars??0)/previousIncludedValue*100):null};
  });
  const other=cover.otherIncludedManagers.find(x=>x.cik==='1351069');
  const validCover=cover.reportType==='13F COMBINATION REPORT'&&!!other;
@@ -43,7 +48,7 @@ export async function verifyValueActCase({refresh=false}={}){
   sources:{latest:{...c.latest,informationTableUrl:current.tableUrl},previous:{...c.previous,informationTableUrl:prior.tableUrl},coverUrl:cover.sourceUrl},
   checks,managerAffiliation:{reportType:cover.reportType,otherIncludedManager:other||null,verifiedFromCover:validCover,
     inference:'ValueAct Capital Management is identified inside this ValueAct filing. Do NOT double-count these related managers as independently convicted buyers.'},
-  coverage:{latestRows:current.rows,previousRows:prior.rows,excludedLatest:current.excluded,excludedPrevious:prior.excluded},
+  coverage:{latestRows:current.rows,previousRows:prior.rows,excludedLatest:current.excluded,excludedPrevious:prior.excluded,latestIncludedValue,previousIncludedValue,weightScope:'Shares of comparable included ordinary-share 13F table value, NOT total AUM or complete manager portfolio'},
   timing:'Two quarter-end holdings snapshots, filed May 15 and August 14, 2026. Exact transaction dates and investor motives are not established.',
   interpretation:'A share-count increase is NOT proof of an actual purchase date or attractive investment. Split and corporate-action checks, current fundamentals and valuation remain separate.',
   inspectedAt:new Date().toISOString()};
