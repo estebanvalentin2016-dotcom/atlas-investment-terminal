@@ -12,6 +12,6 @@ import {handleCatalystRequest} from './server/catalyst-api.mjs';
 export default defineConfig(({mode})=>{
  const env=loadEnv(mode,process.cwd(),'SEC_');
  process.env.SEC_USER_AGENT=env.SEC_USER_AGENT||process.env.SEC_USER_AGENT;
- const secPlugin:Plugin={name:'atlas-sec-proxy',configureServer(server){server.middlewares.use((req,res,next)=>{Promise.resolve(handleSecRequest(req,res)).then(handled=>handled?true:handleDiscoveryRequest(req,res)).then(handled=>handled?true:handleCatalystRequest(req,res)).then(handled=>{if(!handled)next()}).catch(next)})},configurePreviewServer(server){server.middlewares.use((req,res,next)=>{Promise.resolve(handleSecRequest(req,res)).then(handled=>handled?true:handleCatalystRequest(req,res)).then(handled=>{if(!handled)next()}).catch(next)})}};
+ const secPlugin:Plugin={name:'atlas-sec-proxy',configureServer(server){server.middlewares.use((req,res,next)=>{Promise.resolve(handleSecRequest(req,res)).then(handled=>handled?true:handleDiscoveryRequest(req,res)).then(handled=>handled?true:handleCatalystRequest(req,res)).then(handled=>{if(!handled)next()}).catch(next)})},configurePreviewServer(server){server.middlewares.use((req,res,next)=>{Promise.resolve(handleSecRequest(req,res)).then(handled=>handled?true:handleDiscoveryRequest(req,res)).then(handled=>handled?true:handleCatalystRequest(req,res)).then(handled=>{if(!handled)next()}).catch(next)})}};
  return {plugins:[react(),secPlugin],test:{environment:'node'}};
 });
