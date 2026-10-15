@@ -31,3 +31,6 @@ These values describe the price range following a filing; they are **not** a bac
 
 ### Post-initial-reaction continuation
 The UI separates two questions: (1) **cumulative reaction** from the pre-event close to session 1/3/5 closes; and (2) **continuation** from the first eligible session's close to the session 3 and 5 closes. Continuation uses `laterClose / firstSessionClose - 1`, not subtraction or addition of percentages. This distinction helps identify whether a large initial gap was sustained; it does **not** establish a realistically executable entry, after-hours access, trading friction or causality. A complete horizon is required, otherwise N/A.
+
+### Historical event comparison (experimental)
+Catalyst Radar adds a user-triggered comparison for up to three latest SEC 8-K filings with explicit acceptance times in the last 175 days. Historical requests are sequential. The table includes each event's initial close-to-close reaction and continuation from the first eligible closing price through sessions 3 and 5. Provider errors and insufficient horizons are displayed instead of fabricated returns. **Do not infer win rates or predictive efficacy from three selectively sampled events.** This is not a market-neutral study and does not disentangle other news.
