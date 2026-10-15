@@ -384,3 +384,13 @@ th{font-size:12px}td{font-size:14px}
 .atlas-conviction-funding.atlas-funding-alert>strong{color:#ffb5b8}
 .atlas-conviction-funding.atlas-funding-neutral>strong{color:#deecf7}
 @media(max-width:640px){.atlas-gate-heading{display:grid;gap:7px}.atlas-gate-progress{justify-self:start}}
+
+/* Dated stock-price context in tickerless discovery. */
+.atlas-price-history-panel{margin-top:16px}
+.atlas-price-chart{margin:10px 0 18px}
+.atlas-price-chart-controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.atlas-price-range{min-height:34px;padding:6px 11px;font-size:13px;line-height:1.15}
+.atlas-price-range[aria-pressed="true"]{border-color:#65bbfa;background:#133954;color:#eaf5ff}
+.atlas-price-line{width:100%;height:180px;display:block;background:rgba(12,25,39,.3);border:1px solid #2b4058;border-radius:8px}
+.atlas-price-chart-caption{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px;color:#b6c8df;font-size:12px}
+.atlas-price-chart-caption strong{color:#ecf1fa}
