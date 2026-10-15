@@ -12,11 +12,18 @@
 - [x] CSV export of screener results
 - [x] Automated valuation tests
 
-## Next milestone — v0.2
-- [ ] Real financial statements using documented, licensed sources
-- [ ] Financial statement period normalization and data validation
+## Implemented — v0.2
+- [x] SEC annual financial facts with explicit source and filing dates
+- [x] Real SEC company ticker lookup and proxy
+- [x] YoY growth, 3-year revenue CAGR and financial margin calculations
+- [x] Historical reported data charts
+- [x] SEC and financial-analysis tests
+
+## In development — v0.3
+- [x] Two-company comparison using reported SEC annual financial statements
+- [ ] Improved fiscal period normalization and peer comparability
 - [ ] Source/date badge for every reported number
-- [ ] Company search for real tickers
+- [x] Company search for real tickers
 - [ ] User-controlled assumption presets
 - [ ] Import/export and backup for watchlist and notes
 
