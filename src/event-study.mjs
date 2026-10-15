@@ -27,7 +27,10 @@ export function eventStudy(acceptedAt,bars) {
   if (aligned.status !== 'aligned') return {...aligned, returns:{day1:null,day3:null,day5:null}};
   const i=aligned.index, baseline=bars[i-1]?.close;
   const valid=x=>Number.isFinite(x)&&x>0;
-  const result={}, excursions={};
+  const result={}, excursions={}, continuation={day3:null,day5:null};
+  // Post-reaction changes have a different baseline: the first eligible session CLOSE.
+  // They describe moves *after* the initial close, not the event-day jump.
+  const firstClose=bars[i]?.close;
   for(const n of [1,3,5]){
     const close=bars[i+n-1]?.close;
     result['day'+n]=valid(baseline)&&valid(close)?(close/baseline-1)*100:null;
@@ -39,5 +42,9 @@ export function eventStudy(acceptedAt,bars) {
       lowPct:(Math.min(...window.map(b=>b.low))/baseline-1)*100
     }:null;
   }
-  return {...aligned, baselineSession:bars[i-1].date, returns:result, excursions, completeHorizons:[1,3,5].filter(n=>result['day'+n]!==null)};
+  for(const n of [3,5]){
+    const laterClose=bars[i+n-1]?.close;
+    continuation['day'+n]=valid(firstClose)&&valid(laterClose)?(laterClose/firstClose-1)*100:null;
+  }
+  return {...aligned, baselineSession:bars[i-1].date, firstSessionClose:valid(firstClose)?firstClose:null, returns:result, continuation, excursions, completeHorizons:[1,3,5].filter(n=>result['day'+n]!==null)};
 }
