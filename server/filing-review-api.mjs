@@ -33,15 +33,42 @@ export function extractFilingText(raw){
    return entities[lower]||' ';
   }).replace(/\s+/g,' ').trim().slice(0,1400000);
 }
+// Reported metrics and filing subjects are factual research leads, not signs
+// that shares are undervalued or that results exceeded consensus estimates.
+const metricsPatterns=[
+ {label:'Reported revenue growth',re:/\b\d{1,3}(?:\.\d+)?\s*%\s+(?:increase|growth)\s+in\s+revenue\b/gi},
+ {label:'Reported EPS growth',re:/\b\d{1,3}(?:\.\d+)?\s*%\s+(?:increase|growth)\s+in\s+(?:(?:year[- ]over[- ]year|as adjusted|adjusted|gaap|diluted|net)\s+){0,6}(?:eps|earnings\s+per\s+share)\b/gi},
+ {label:'Reported net inflows',re:/\$\s*\d+(?:\.\d+)?\s*(?:trillion|billion|million)\s+(?:of\s+)?(?:net\s+|client\s+|net client\s+)?inflows\b/gi},
+ {label:'Reported assets under management',re:/\$\s*\d+(?:\.\d+)?\s*(?:trillion|billion)\s+(?:in\s+)?(?:aum|assets\s+under\s+management)\b/gi}
+];
+const filingTopics=[
+ {code:'2.02',label:'Results of operations / earnings'},
+ {code:'1.01',label:'Material agreement'},
+ {code:'7.01',label:'Regulation FD disclosure'},
+ {code:'5.02',label:'Leadership or director change'},
+ {code:'9.01',label:'Financial statements / exhibits'}
+];
+export function researchFilingContext(sourceText){
+ const text=extractFilingText(sourceText),metrics=[],topics=[];
+ for(const entry of metricsPatterns){
+  const match=entry.re.exec(text);entry.re.lastIndex=0;
+  if(match)metrics.push({label:entry.label,reportedValue:match[0],excerpt:text.slice(Math.max(0,match.index-80),Math.min(text.length,match.index+match[0].length+160)).trim()});
+ }
+ for(const item of filingTopics){
+  if(new RegExp('\\bItem\\s+'+item.code.replace('.','\\.')+'\\b','i').test(text))topics.push(item);
+ }
+ return {metrics,topics};
+}
 export function assessFilingEvidence(sourceText){
  const text=extractFilingText(sourceText),potential=[],cautions=[];
+ const context=researchFilingContext(sourceText);
  for(const entry of patterns){
   const match=entry.re.exec(text);entry.re.lastIndex=0;
   if(!match)continue;
   const evidence={label:entry.label,excerpt:text.slice(Math.max(0,match.index-100),Math.min(text.length,match.index+match[0].length+180)).trim()};
   if(entry.kind==='potential')potential.push(evidence);else cautions.push(evidence);
  }
- return {status:potential.length&&cautions.length?'mixed_claims':potential.length?'potential_language':'no_positive_phrase_detected',potential:potential.slice(0,4),cautions:cautions.slice(0,3),textCharacters:text.length,limitations:'Rule-based text matching only. Phrases are not verified for context, novelty, size, timing, or sign; no bullish conclusion, valuation, upside estimate or trade recommendation.'};
+ return {status:potential.length&&cautions.length?'mixed_claims':potential.length?'potential_language':'no_positive_phrase_detected',potential:potential.slice(0,4),cautions:cautions.slice(0,3),metrics:context.metrics,topics:context.topics,textCharacters:text.length,limitations:'Rule-based text matching only. Phrases are not verified for context, novelty, size, timing, or sign; no bullish conclusion, valuation, upside estimate or trade recommendation.'};
 }
 // SEC full-submission files can contain large exhibits. Inspect a strictly
 // bounded prefix instead of rejecting an otherwise reachable filing by size.
@@ -160,8 +187,10 @@ export async function handleFilingReview(req,res){
      status:checked.some(d=>d.evidence.potential.length)&&checked.some(d=>d.evidence.cautions.length)?'mixed_claims':checked.some(d=>d.evidence.potential.length)?'potential_language':'no_positive_phrase_detected',
      potential:checked.flatMap(d=>d.evidence.potential.map(item=>({...item,sourceUrl:d.url,sourceName:d.name}))).slice(0,8),
      cautions:checked.flatMap(d=>d.evidence.cautions.map(item=>({...item,sourceUrl:d.url,sourceName:d.name}))).slice(0,6),
+     metrics:checked.flatMap(d=>(d.evidence.metrics||[]).map(item=>({...item,sourceUrl:d.url,sourceName:d.name}))).slice(0,12),
+     topics:[...new Map(checked.flatMap(d=>(d.evidence.topics||[]).map(item=>[item.code,item]))).values()],
      textCharacters:checked.reduce((n,d)=>n+d.evidence.textCharacters,0),
-     limitations:'Selected primary/exhibit documents only. A non-match cannot rule out material disclosures in skipped documents. Phrases are not verified or ranked.'
+     limitations:'Selected primary/exhibit documents only. Operating metrics are company-reported figures, not verified beats or upside. Phrases are not verified or ranked.'
     };
     const data={url,sourceStatus:'partial_text',reviewMethod:'selected_documents',evidence,documents:targeted.documents,selection:targeted.selection,sourceProblems:targeted.problems,retrievedAt:new Date().toISOString(),note:'Reviewed '+checked.length+' selected SEC document(s). This is not a complete filing review or a verified bullish catalyst.'};
     if(cache.size>30)cache.clear();
