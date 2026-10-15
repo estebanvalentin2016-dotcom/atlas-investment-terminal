@@ -33,7 +33,9 @@ export async function handleMarketRequest(req,res){
   if(!r.ok)throw new Error('Alpaca market data returned HTTP '+r.status);
   const body=await r.json();const allBars=normalizeBars(body);
   // No incomplete current-day session enters event results, even if the provider returns it.
-  const easternToday=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const todayParts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+  const dayPart=Object.fromEntries(todayParts.filter(p=>p.type!=='literal').map(p=>[p.type,p.value]));
+  const easternToday=dayPart.year+'-'+dayPart.month+'-'+dayPart.day;
   const bars=eventMode?allBars.filter(b=>b.date<easternToday):allBars;
   json(res,200,{ticker,provider:'Alpaca',feed:'IEX',adjustment:eventMode?'split':'raw',retrievedAt:new Date().toISOString(),bars,summary:eventMode?null:dailyMomentum(bars),partialHistory:Boolean(body.next_page_token),completedSessionsOnly:eventMode});
  }catch(e){json(res,502,{error:e instanceof Error?e.message:'Market data unavailable'})}
