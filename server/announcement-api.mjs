@@ -9,9 +9,10 @@ export function parseAnnouncementFeed(xml,day){
   const link=tag(m[1],'link').trim();
   const pub=tag(m[1],'pubDate');
   const source=tag(m[1],'source').replace(/<[^>]*>/g,'').trim();
+  const hasExplicitTime=/\\b\\d{1,2}:\\d{2}(?::\\d{2})?\\b/.test(pub);
   const date=Date.parse(pub);
   let valid=false;try{const url=new URL(link);valid=url.protocol==='https:'&&url.hostname.endsWith('google.com')}catch{}
-  return {title,link:valid?link:null,source,feedPublishedAt:Number.isFinite(date)?new Date(date).toISOString():null};
+  return {title,link:valid?link:null,source,feedPublishedAt:hasExplicitTime&&Number.isFinite(date)?new Date(date).toISOString():null,feedDateOnly:!hasExplicitTime&&Number.isFinite(date)?new Date(date).toISOString().slice(0,10):null,feedDateRaw:pub,feedTimeSource:'Google News RSS (aggregation clock; not original publisher verification)'};
  }).filter(x=>x.title&&x.link);
  return items.filter(x=>{if(!x.feedPublishedAt)return true;return Math.abs(Date.parse(x.feedPublishedAt)-Date.parse(day+'T12:00:00Z'))<=4*86400000}).slice(0,10);
 }
@@ -31,7 +32,7 @@ export async function handleAnnouncementRequest(req,res){
   if(!r.ok)throw Error('Public news feed HTTP '+r.status);
   const xml=await r.text();
   const candidates=parseAnnouncementFeed(xml,day);
-  send(res,200,{ticker,date:day,provider:'Google News RSS',retrievedAt:new Date().toISOString(),candidates,verifiedOriginalPublicationTimes:false,note:'Candidate news links only. Feed timestamps may represent aggregation rather than original issuer publication; no automatic timestamp eligibility is inferred.'});
+  send(res,200,{ticker,date:day,provider:'Google News RSS',retrievedAt:new Date().toISOString(),candidates,verifiedOriginalPublicationTimes:false,note:'Google RSS publication clocks can differ from the source article first-public timestamp, and repeated 3 AM ET feed clocks may reflect aggregation. Exact publisher time requires source-site verification. Date-only records cannot be shown as a clock time.'});
  }catch(e){send(res,502,{error:e instanceof Error?e.message:'News discovery unavailable'})}
  return true;
 }
