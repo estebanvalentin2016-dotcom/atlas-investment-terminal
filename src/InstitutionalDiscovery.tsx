@@ -8,7 +8,7 @@ const labels:Record<Change,string>={newly_reported:'Newly reported',reported_inc
 const money=(n:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',notation:'compact',maximumFractionDigits:1}).format(n);
 const shares=(n:number)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(n);
 const limit=70;
-export default function InstitutionalDiscovery({onResearch}:{onResearch?:(ticker:string)=>void}){
+export default function InstitutionalDiscovery(){
  const [managerCik,setManagerCik]=useState('1743937');
  const [loaded,setLoaded]=useState<Record<string,ManagerData>>({});
  const [errors,setErrors]=useState<Record<string,string>>({});
