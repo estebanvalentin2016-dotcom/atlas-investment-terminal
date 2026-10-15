@@ -1,3 +1,6 @@
+## 0.5.0 — in development
+Discovery Feed searches Crossref publication metadata, with live DOI source links and retrieval timestamps. Manual research review required; no automatic breakthroughs or public-company attribution. Pending user build/test.
+
 # Changelog
 
 ## 0.3.0 — in development
