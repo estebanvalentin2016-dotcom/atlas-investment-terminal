@@ -1,7 +1,8 @@
 # ATLAS v0.9 Event Study Foundation
 
-This initial increment only adds a **pure calculation module and tests**, not a live event-study dashboard or a production trading strategy.
+This increment adds a **pure calculation module, tests, and SEC acceptance timestamp display**, not a live event-study dashboard or a production trading strategy.
 
+- SEC 8-K results now carry `acceptedAt` when the submissions feed supplies an explicit timezone-aware timestamp; otherwise they explicitly carry `null`. The Catalyst Radar screen displays this field with clear provenance.
 - `easternClock`: Converts SEC acceptance timestamps with an explicit timezone into America/New_York local date and time, accounting for daylight saving time.
 - `alignEvent`: Associates an accepted event with a subsequent available daily market bar using a 4 p.m. ET cutoff. A filing at/after 4 p.m. uses the next available daily session. This is a **simplifying convention**; it does not establish actual public dissemination time or an executable price.
 - `eventStudy`: Calculates descriptive price changes for the first, third and fifth event-window daily closes compared with the preceding available close, when all relevant sessions exist.
