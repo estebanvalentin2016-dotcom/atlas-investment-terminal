@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {assessConvictionReadiness,type ConvictionAssessment} from './conviction-readiness';
 import type {MarketValuationClose,SecCompany} from './ranking-model';
-type Check={ticker:string;issuer:string;cusip:string;className:string;priorReported:number;latestReported:number;delta:number;checked:boolean;percentChange:number;latestReportedValueDollars:number|null};
+type Check={ticker:string;issuer:string;cusip:string;className:string;priorReported:number;latestReported:number;delta:number;checked:boolean;percentChange:number;latestReportedValueDollars:number|null;latestIncludedPortfolioPct:number|null;previousIncludedPortfolioPct:number|null};
 type Result={status:string;manager:string;checks:Check[];sources:{latest:{period:string;filed:string;informationTableUrl:string};previous:{period:string;filed:string;informationTableUrl:string};coverUrl:string};managerAffiliation:{reportType:string;otherIncludedManager:{cik:string;name:string}|null;verifiedFromCover:boolean};timing:string;interpretation:string;error?:string};
 const num=(n:number)=>new Intl.NumberFormat('en-US').format(n);
 const pct=(n:number|null)=>n===null?'N/A':(n>0?'+':'')+n.toFixed(2)+'%';
@@ -52,7 +52,9 @@ export default function InstitutionalHistoricalCase({onResearch}:{onResearch?:(t
     <strong className={record.delta>=0?'atlas-tone-positive':'atlas-tone-negative'}>{record.delta>=0?'+':''}{num(record.delta)} shares</strong>
     <span>{num(record.priorReported)} → {num(record.latestReported)} · {pct(record.percentChange)}</span>
     <span>Latest reported position: {money(record.latestReportedValueDollars)}</span>
+    <span>Share of disclosed ordinary-share book: {record.previousIncludedPortfolioPct===null?'N/A':pct(record.previousIncludedPortfolioPct)} → {record.latestIncludedPortfolioPct===null?'N/A':pct(record.latestIncludedPortfolioPct)}</span>
    </article>)}</div>
+   <p className="chart-note"><strong>Portfolio weight:</strong> calculated only from ordinary-share positions within these complete downloaded information tables. ValueAct filed a combination report, so these percentages are not the manager's total assets or a complete picture of all affiliated holdings.</p>
    <p className="opportunity-uncertainty"><strong>Affiliation check:</strong> This was a {evidence.managerAffiliation.reportType}. {evidence.managerAffiliation.otherIncludedManager?.name} (CIK {evidence.managerAffiliation.otherIncludedManager?.cik}) appears in the SEC cover page. <a href={evidence.sources.coverUrl} target="_blank" rel="noopener noreferrer">Inspect affiliation ↗</a> Do not count that included entity as an independent investor.</p>
    <p className="chart-note"><strong>Investor-stated thesis:</strong> not established. <strong>Independent active-manager convergence:</strong> not established. These share changes cannot alone support buying RKT.</p>
    <div className="atlas-ranking-controls"><button type="button" className="button secondary" disabled={financialLoading} onClick={()=>void investigate()}>{financialLoading?'Reading RKT SEC financials…':'Check RKT fundamentals and conviction readiness'}</button>{onResearch&&<button type="button" className="button secondary" onClick={()=>onResearch('RKT')}>Open RKT Company Research →</button>}</div>
