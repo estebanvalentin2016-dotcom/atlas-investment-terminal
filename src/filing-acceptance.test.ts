@@ -20,6 +20,9 @@ describe('EDGAR raw-header acceptance clock',()=>{
   expect(extractSecAcceptanceHeader(accepted('20261014246000'),'0001193125-26-420979')).toBeNull();
   expect(extractSecAcceptanceHeader(accepted('20261014166099'),'0001193125-26-420979')).toBeNull();
  });
+ it('rejects headers without an explicit matching accession identifier',()=>{
+  expect(extractSecAcceptanceHeader('<SEC-HEADER>\\n<ACCEPTANCE-DATETIME>20261014163005\\n</SEC-HEADER>','0001193125-26-420979')).toBeNull();
+ });
  it('does not accept a mismatched accession header',()=>{
   expect(extractSecAcceptanceHeader(accepted('20261014160000','0001193125-26-000010'),'0001193125-26-420979')).toBeNull();
  });
