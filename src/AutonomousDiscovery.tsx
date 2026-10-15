@@ -4,9 +4,11 @@ import {initialAutonomousScreen,scanCounts,type ScreenResult} from './autonomous
 import {flagIndicativeFyValuation} from './valuation-triage';
 import SurvivalEvidencePanel from './SurvivalEvidencePanel';
 import MarketCapEvidencePanel from './MarketCapEvidencePanel';
+import PriceHistoryPanel from './PriceHistoryPanel';
+import {assessPriceHistory,combineResearchPriority,type HistoricalPriceResponse,type PriceHistoryAssessment} from './price-history-model';
 type Listed={ticker:string;name:string;cik:number};
 type UniversePage={total:number;start:number;nextCursor:number;completedCycle:boolean;rows:Listed[];indexUrl:string;retrievedAt:string;error?:string;seedTickersUsed:boolean;scope:string};
-type Candidate={company:SecCompany;screen:ScreenResult;valuation:AnnualPe|null;quote:MarketValuationClose|null;priceIssue:string|null};
+type Candidate={company:SecCompany;screen:ScreenResult;valuation:AnnualPe|null;quote:MarketValuationClose|null;priceIssue:string|null;history:HistoricalPriceResponse|null;trend:PriceHistoryAssessment;historyIssue:string|null;priority:{score:number|null;priceWeighted:boolean}};
 const BATCH=24,CURSOR_KEY='atlas.autonomous.sec.cursor.v1';
 const initialCursor=()=>{try{const n=Number(localStorage.getItem(CURSOR_KEY)||0);return Number.isSafeInteger(n)&&n>=0?n:0}catch{return 0}};
 const money=(n:number|null)=>n===null?'N/A':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',notation:'compact',maximumFractionDigits:2}).format(n);
@@ -80,14 +82,30 @@ export default function AutonomousDiscovery({onResearch,onConviction}:{onResearc
      quote=body;
      valuation=annualPeFromSec(row.company,body);
     }catch(e){priceIssue=e instanceof Error?e.message:'Completed-price data unavailable'}
-    research.push({...row,quote,valuation,priceIssue});
+    let history:HistoricalPriceResponse|null=null,historyIssue:string|null=null;
+    try{
+     const h=await fetch('/api/market/long-history?ticker='+encodeURIComponent(row.company.ticker));
+     const body=await h.json() as HistoricalPriceResponse&{error?:string};
+     if(!h.ok||body.ticker!==row.company.ticker||!Array.isArray(body.bars))throw Error(body.error||'Split-adjusted weekly prices unavailable');
+     history=body;
+    }catch(e){historyIssue=e instanceof Error?e.message:'Historical price source unavailable'}
+    const trend=assessPriceHistory(history,today);
+    research.push({...row,quote,valuation,priceIssue,history,trend,historyIssue,priority:{score:null,priceWeighted:false}});
     setQuotesChecked(i+1);
    }
    const valuationMap=Object.fromEntries(research.map(x=>[x.company.ticker,x.valuation?.pe??null]));
-   const sorted=rankCompanies(research.map(x=>x.company),defaultRankWeights,valuationMap);
-   research.sort((a,b)=>flagIndicativeFyValuation(a.valuation).rank-flagIndicativeFyValuation(b.valuation).rank||sorted.findIndex(x=>x.ticker===a.company.ticker)-sorted.findIndex(x=>x.ticker===b.company.ticker));
+   const fundamental=rankCompanies(research.map(x=>x.company),defaultRankWeights,valuationMap);
+   const fundamentals=new Map(fundamental.map(x=>[x.ticker,x.score]));
+   for(const item of research)item.priority=combineResearchPriority(fundamentals.get(item.company.ticker)??null,item.trend);
+   // P/E cautions come first. A 20% stock-price trend is used only for
+   // successfully fetched, dated, 1Y+3Y split-adjusted history in this small
+   // top-eight research sample. Missing history never becomes a bullish signal.
+   research.sort((a,b)=>flagIndicativeFyValuation(a.valuation).rank-flagIndicativeFyValuation(b.valuation).rank||
+    (b.priority.score??-1)-(a.priority.score??-1)||
+    (b.priority.priceWeighted?1:0)-(a.priority.priceWeighted?1:0)||
+    a.company.ticker.localeCompare(b.company.ticker));
    setCandidates(research);
-   setProgress('Completed this SEC-index run. Only preliminary SEC facts are screened; unsupported valuation claims and suspicious accounting remain gated.');
+   setProgress('Completed provisional SEC screening and price research. Price history is weighted at 20% only when comparable 1Y and 3Y observations exist; valuations remain unverified.');
    setDone(true);
    setCursor(nextCursor);
    try{localStorage.setItem(CURSOR_KEY,String(nextCursor))}catch{}
@@ -116,7 +134,7 @@ export default function AutonomousDiscovery({onResearch,onConviction}:{onResearc
    {done&&<div className="atlas-autonomous-funnel">
     <strong>Screening audit · this run only</strong>
     <p><strong>{summary.enumerated}</strong> enumerated → <strong>{summary.financialRecordsChecked}</strong> annual SEC records checked → <strong>{summary.preliminary}</strong> preliminary financial passes → <strong>{quotesChecked}</strong> completed-price lookups attempted → <strong>0</strong> fully verified high-conviction investments.</p>
-    <p className="chart-note">Other financial-screen outcomes: {summary.failed} below provisional thresholds, {summary.incomplete} missing required accounting values, {summary.stale} stale annual financials, {summary.accountingReview} accounting-review flags, {summary.sourceFailures} blocked/failed SEC sources. Up to eight preliminarily eligible companies receive price follow-up.</p>
+    <p className="chart-note">Other financial-screen outcomes: {summary.failed} below provisional thresholds, {summary.incomplete} missing required accounting values, {summary.stale} stale annual financials, {summary.accountingReview} accounting-review flags, {summary.sourceFailures} blocked/failed SEC sources. Up to eight preliminarily eligible companies receive valuation and split-adjusted long-term price research. Price signals affect only this provisional subset.</p>
    </div>}
    {done&&<div className="atlas-autonomous-leads">
     <h4>Research priorities from this independently discovered run</h4>
@@ -130,6 +148,9 @@ export default function AutonomousDiscovery({onResearch,onConviction}:{onResearc
       <div><span className="atlas-glance-label">Latest completed IEX close</span><strong className="atlas-glance-value">{money(item.quote?.price??null)}</strong><small>{item.quote?.sessionDate??'Price unavailable'}</small></div>
      </div>
      <div className={'atlas-autonomous-valuation '+(flagIndicativeFyValuation(item.valuation).level==='high_multiple'?'atlas-valuation-red':flagIndicativeFyValuation(item.valuation).level==='elevated_multiple'?'atlas-valuation-amber':'')}><strong>{flagIndicativeFyValuation(item.valuation).headline}</strong><p>{flagIndicativeFyValuation(item.valuation).explanation}</p></div>
+     <p className="chart-note"><strong>Combined research priority:</strong> {item.priority.score===null?'Unscored':item.priority.score.toFixed(0)+'/100'} · {item.priority.priceWeighted?'80% SEC fundamentals and indicative valuation + 20% historical price trend':'Fundamentals-only provisional score; comparable historical price data missing'}. This is a sorting heuristic among up to eight preliminary candidates, not a predicted return or buy verdict.</p>
+     <PriceHistoryPanel ticker={item.company.ticker} history={item.history} assessment={item.trend} asOf={easternDate()}/>
+     {item.historyIssue&&<p className="chart-note"><strong>Historical source limitation:</strong> {item.historyIssue}</p>}
      <MarketCapEvidencePanel company={item.company} quote={item.quote} asOf={easternDate()}/>
      <SurvivalEvidencePanel company={item.company} asOf={item.quote?.sessionDate??easternDate()}/>
      <details className="atlas-details"><summary>Verify SEC revenue, cash flow and calculated margins</summary>{(()=>{const m=deriveRankingMetrics(item.company);const tag=item.company.metrics.find(x=>x.name==='Revenue');const annual=tag?.values.find(x=>x.year===m.year);const prior=tag?.values.find(x=>x.year===(m.year??0)-1);return <><p><strong>Selected revenue field:</strong> {tag?.tag??'Not identified'} · {tag?.selectionNote??'Original SEC source must be checked'}</p><p><strong>Same-tag consolidated-scale revenue:</strong> current FY {dollars(m.revenue)} · prior FY {dollars(prior?.value??null)} · period end {annual?.end??'unknown'}.</p><p><strong>Operating cash flow:</strong> {dollars(item.company.metrics.find(x=>x.name==='Operating cash flow')?.values.find(x=>x.end===annual?.end)?.value??null)} · <strong>Capex:</strong> {dollars(m.capex)} · <strong>FCF after capex:</strong> {dollars(m.fcf)}.</p><p><strong>Calculation:</strong> revenue growth = current annual revenue / prior annual revenue − 1; FCF margin = (operating cash flow − capex) / revenue. Values are SEC facts, not independently normalized recurring earnings.</p><p><a href={item.company.source} target="_blank" rel="noopener noreferrer">Inspect original SEC tagged financial facts ↗</a></p></>})()}</details>
