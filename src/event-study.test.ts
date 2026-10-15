@@ -14,6 +14,9 @@ describe('event-to-session alignment',()=>{
   expect(formatSecAcceptedEastern('2026-12-01T21:15:00Z')).toContain('EST');
   expect(formatSecAcceptedEastern(null)).toBe('Time unavailable');
  });
+ it('uses the acceptance calendar date rather than a potentially different filing date',()=>{
+  expect(easternClock('2026-04-21T01:53:18Z').date).toBe('2026-04-20');
+ });
  it('rejects date-only timestamps rather than guessing an announcement time',()=>{
   expect(easternClock('2026-10-12')).toBeNull();
   expect(alignEvent(undefined,bars).status).toBe('timestamp-unavailable');
