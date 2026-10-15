@@ -1,10 +1,10 @@
 import {useMemo,useState} from 'react';
-import {defaultRankWeights,rankCompanies,type RankWeights,type SecCompany} from './ranking-model';
+import {annualPeFromSec,defaultRankWeights,rankCompanies,type RankWeights,type SecCompany,type AnnualPe,type MarketValuationClose} from './ranking-model';
 const factors:{key:keyof RankWeights;label:string;help:string}[]=[
  {key:'growth',label:'Revenue growth',help:'Latest reported FY versus the preceding FY'},
  {key:'fcf',label:'Free cash flow margin',help:'(Operating cash flow − capital expenditure) ÷ sales'},
  {key:'profit',label:'Net profit margin',help:'Annual net income ÷ annual sales'},
- {key:'pe',label:'P/E valuation',help:'Enter a current, trustworthy P/E manually until ATLAS has an aligned valuation source'}
+ {key:'pe',label:'P/E valuation',help:'Automatic price / SEC annual diluted EPS; N/A for missing, stale or nonpositive EPS'}
 ];
 const displayPct=(n:number|null)=>n===null?'N/A':(n>0?'+':'')+n.toFixed(1)+'%';
 const fmt=(n:number|null)=>n===null?'N/A':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',notation:'compact',maximumFractionDigits:1}).format(n);
@@ -12,18 +12,18 @@ export default function InvestmentRankings(){
  const [universe,setUniverse]=useState('BLK, NVDA, CRWD, RKLB, MS');
  const [weights,setWeights]=useState<RankWeights>(defaultRankWeights);
  const [data,setData]=useState<SecCompany[]>([]);
- const [inputPe,setInputPe]=useState<Record<string,string>>({});
+ const [annualPe,setAnnualPe]=useState<Record<string,AnnualPe>>({});
  const [errors,setErrors]=useState<{ticker:string;reason:string}[]>([]);
  const [progress,setProgress]=useState('');
  const [busy,setBusy]=useState(false);
  const [loaded,setLoaded]=useState(false);
- const pe=useMemo(()=>Object.fromEntries(Object.entries(inputPe).map(([t,v])=>[t,v.trim()&&Number(v)>0?Number(v):null])),[inputPe]);
+ const pe=useMemo(()=>Object.fromEntries(Object.entries(annualPe).map(([t,v])=>[t,v.pe])),[annualPe]);
  const scores=useMemo(()=>rankCompanies(data,weights,pe),[data,weights,pe]);
  const ranked=scores.filter(x=>x.score!==null);
  const total=Object.values(weights).reduce((a,b)=>a+b,0);
  async function run(){
   if(busy)return;
-  setBusy(true);setLoaded(false);setData([]);setErrors([]);
+  setBusy(true);setLoaded(false);setData([]);setErrors([]);setAnnualPe({});
   const tickers=[...new Set(universe.toUpperCase().split(/[\s,;]+/).filter(Boolean))];
   if(!tickers.length||tickers.length>8||tickers.some(x=>!/^[A-Z0-9.-]{1,12}$/.test(x))){setProgress('Enter 1–8 valid tickers, separated by commas.');setBusy(false);return}
   const found:SecCompany[]=[],failed:{ticker:string;reason:string}[]=[];
@@ -35,6 +35,14 @@ export default function InvestmentRankings(){
     if(!response.ok)throw Error(body.error||'No SEC company data returned');
     if(!body.source?.startsWith('https://data.sec.gov/')||!Array.isArray(body.metrics))throw Error('Unexpected SEC source response');
     found.push(body);
+    // No manual P/E and no made-up fallback valuation.
+    try{
+     const valuation=await fetch('/api/market/valuation-close?ticker='+encodeURIComponent(ticker));
+     const quote=await valuation.json() as MarketValuationClose&{error?:string};
+     if(!valuation.ok)throw Error(quote.error||'Completed stock close unavailable');
+     setAnnualPe(previous=>({...previous,[ticker]:annualPeFromSec(body,quote)}));
+    }catch(e){setAnnualPe(previous=>({...previous,[ticker]:{pe:null,eps:null,epsEnd:null,priceDate:null,reason:e instanceof Error?e.message:'IEX valuation close unavailable'}}))}
+
    }catch(e){failed.push({ticker,reason:e instanceof Error?e.message:'Data unavailable'})}
   }
   setData(found);setErrors(failed);setLoaded(true);setBusy(false);
@@ -62,17 +70,18 @@ export default function InvestmentRankings(){
      <div><span>Revenue growth</span><strong className={entry.metrics.growth!==null?(entry.metrics.growth>=0?'atlas-tone-positive':'atlas-tone-negative'):''}>{displayPct(entry.metrics.growth)}</strong></div>
      <div><span>FCF margin</span><strong className={entry.metrics.fcfMargin!==null?(entry.metrics.fcfMargin>=0?'atlas-tone-positive':'atlas-tone-negative'):''}>{displayPct(entry.metrics.fcfMargin)}</strong></div>
      <div><span>Net margin</span><strong>{displayPct(entry.metrics.profitMargin)}</strong></div>
-     <label><span>P/E (you supply)</span><input type="number" min="0.01" max="1000" step="0.1" placeholder="Unknown" value={inputPe[entry.ticker]||''} onChange={e=>setInputPe(previous=>({...previous,[entry.ticker]:e.target.value}))}/></label>
+     <div><span>Auto FY P/E</span><strong>{annualPe[entry.ticker]?.pe!==null&&annualPe[entry.ticker]?.pe!==undefined?annualPe[entry.ticker].pe!.toFixed(1)+'×':'N/A'}</strong><small>{annualPe[entry.ticker]?.priceDate||'No price session'} · {annualPe[entry.ticker]?.epsEnd?'EPS FY ended '+annualPe[entry.ticker].epsEnd:'EPS unavailable'}</small></div>
     </div>
     <p><strong>Free cash flow:</strong> {fmt(entry.metrics.fcf)} · <strong>FY revenue:</strong> {fmt(entry.metrics.revenue)}</p>
+    {annualPe[entry.ticker]?.reason&&<p className="chart-note"><strong>FY P/E check:</strong> {annualPe[entry.ticker].reason}</p>}
     {entry.missing.length>0&&<p className="atlas-rank-missing"><strong>Missing:</strong> {entry.missing.join(', ')}</p>}
     <details className="atlas-details"><summary>Why this score? Show data and caveats</summary>
      {entry.reasons.map((reason,j)=><p key={j}>{reason}</p>)}
-     <p><strong>Heuristic only.</strong> This score measures selected accounting ratios against simple absolute cutoffs. P/E is unverified user input; companies in different sectors can be incomparable; reported annual metrics may lag the market.</p>
+     <p><strong>Heuristic only.</strong> This score measures selected accounting ratios against simple absolute cutoffs. Automatic P/E uses completed IEX close divided by matching SEC FY diluted EPS, NOT TTM/forward earnings. Split adjustments, sector comparability, and publication timing require verification. Reported annual metrics may lag the market.</p>
      <a href={entry.source} target="_blank" rel="noopener noreferrer">Open SEC company facts ↗</a>
     </details>
    </article>)}
-   <p className="chart-note"><strong>What this list is:</strong> a weighted fundamentals research queue. <strong>What it is not:</strong> a tested investment strategy, analyst-consensus surprise, valuation conclusion, or proof of future upside. Debt, share dilution, company-specific risks, cash-flow quality, and catalyst timing require further analysis.</p>
+   <p className="chart-note"><strong>What this list is:</strong> a weighted fundamentals research queue. <strong>What it is not:</strong> a tested investment strategy, analyst-consensus surprise, valuation conclusion, or proof of future upside. Debt, share dilution, stock splits, company-specific risks, cash-flow quality, and catalyst timing require further analysis.</p>
   </div>}
  </section>;
 }
