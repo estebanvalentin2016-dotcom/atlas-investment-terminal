@@ -1,12 +1,18 @@
 import {describe,it,expect} from 'vitest';
 // @ts-ignore JavaScript-only research helper tested directly by Vitest.
-import {easternClock,alignEvent,eventStudy} from './event-study.mjs';
+import {easternClock,alignEvent,eventStudy,formatSecAcceptedEastern} from './event-study.mjs';
 const dates=['2026-10-08','2026-10-09','2026-10-12','2026-10-13','2026-10-14','2026-10-15','2026-10-16'];
 const bars=dates.map((date,i)=>({date,close:100+i*2}));
 describe('event-to-session alignment',()=>{
  it('converts acceptance time to Eastern with daylight saving',()=>{
   expect(easternClock('2026-10-12T19:30:00Z')).toEqual({date:'2026-10-12',minute:930});
   expect(easternClock('2026-12-01T21:15:00Z')).toEqual({date:'2026-12-01',minute:975});
+ });
+ it('renders SEC acceptance consistently in Eastern time',()=>{
+  expect(formatSecAcceptedEastern('2026-08-26T23:07:02Z')).toContain('EDT');
+  expect(formatSecAcceptedEastern('2026-08-26T23:07:02Z')).toContain('7:07:02');
+  expect(formatSecAcceptedEastern('2026-12-01T21:15:00Z')).toContain('EST');
+  expect(formatSecAcceptedEastern(null)).toBe('Time unavailable');
  });
  it('rejects date-only timestamps rather than guessing an announcement time',()=>{
   expect(easternClock('2026-10-12')).toBeNull();
