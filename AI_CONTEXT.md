@@ -7,3 +7,5 @@ Current main app is ATLAS v0.2, a Vite/React/TypeScript app with a local Node mi
 Do not overwrite or break functioning screens. Preserve the investment model's correct treatment of share dilution, distinguish market cap from share price, and maintain tests. Do not disclose third-party API secrets in browser code. Build/test whenever dependencies/environment allow, and note precisely what was or was not tested. Record meaningful changes in CHANGELOG and FEATURES. Use Git to checkpoint work.
 
 Suggested next tasks: test and finalize the v0.3 two-company SEC comparison, improve SEC fiscal period correctness and comparability, then evaluate licensed historical market price feeds. Keep secrets server-side. Do not represent SEC filing data as live stock quotations.
+
+The v0.4 branch adds a manual Breakthrough Radar research log with local browser persistence, evidence categories and source URLs. It does not independently verify claims or forecast returns; see BREAKTHROUGH_RESEARCH.md. Run build and tests before merging.
