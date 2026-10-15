@@ -2,6 +2,7 @@ import {describe,it,expect,vi} from 'vitest';
 // @ts-ignore Node-only SEC enumeration endpoint
 import {enumerateTickerUniverse,handleSecRequest} from '../server/sec-api.mjs';
 import {initialAutonomousScreen,scanCounts} from './autonomous-screen';
+import {flagIndicativeFyValuation} from './valuation-triage';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import AutonomousDiscovery from './AutonomousDiscovery';
@@ -86,10 +87,29 @@ describe('Autonomous first-stage evidence screening',()=>{
   expect(scanCounts(records,2,4)).toEqual({enumerated:4,financialRecordsChecked:2,sourceFailures:2,preliminary:1,incomplete:1,failed:0,stale:0});
  });
 });
+describe('Preliminary valuation evidence warnings',()=>{
+ it('warns conspicuously on independently discovered 207.3x FY P/E without labeling it a bad investment',()=>{
+  const valuation=flagIndicativeFyValuation({pe:207.3,eps:0.86,epsEnd:'2025-12-31',priceDate:'2026-10-14',reason:'Indicative FY P/E'});
+  expect(valuation.level).toBe('high_multiple');
+  expect(valuation.headline).toContain('207.3×');
+  expect(valuation.explanation).toContain('No fair value');
+ });
+ it('does not interpret missing earnings multiple as a cheap stock',()=>{
+  expect(flagIndicativeFyValuation(null).level).toBe('unverified');
+  expect(flagIndicativeFyValuation(null).explanation).toContain('not inexpensive');
+ });
+ it('preserves ordinary valuations as unverified research, not a buy label',()=>{
+  const assessment=flagIndicativeFyValuation({pe:19.2,eps:5,epsEnd:'2025-12-31',priceDate:'2026-10-14',reason:''});
+  expect(assessment.level).toBe('no_automatic_flag');
+  expect(assessment.explanation).toContain('does not demonstrate undervaluation');
+ });
+});
 describe('Independent discovery user journey',()=>{
  it('requires no ticker input before showing a discover action',()=>{
   const html=renderToStaticMarkup(createElement(AutonomousDiscovery));
   expect(html).toContain('Discover Opportunities');
+  expect(html).toContain('Up to 72 companies · 3 batches');
+  expect(html).toContain('Restart universe cursor');
   expect(html).toContain('without entering a ticker');
   expect(html).not.toContain('Ticker shortlist');
   expect(html).not.toContain('BLK, NVDA');
