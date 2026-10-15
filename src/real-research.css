@@ -1,1 +1,11 @@
 .real-panel{max-width:1100px}.real-search{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin:22px 0}.real-search label{display:block;color:#a0b1c7;font-size:12px;font-weight:700}.real-search input{display:block;margin-top:6px;border:1px solid #354864;background:#111e30;border-radius:7px;color:white;padding:12px;width:150px}.real-search button:disabled{opacity:.55;cursor:wait}.real-error{padding:15px;border:1px solid #975055;color:#ffc0c2;background:#3e2026;border-radius:9px}.real-company{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:18px 0;border-top:1px solid #2b3a50}.real-company span{font-size:12px;color:#9bacc2}.real-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.real-metric{border:1px solid #2b3b51;padding:17px;border-radius:10px;background:#101d2d;display:flex;flex-direction:column;gap:7px}.real-metric>strong{font-size:24px}.real-metric small,.real-metric p{color:#9badc1}.real-history{padding-top:8px;margin-top:5px;border-top:1px solid #304057}.real-history div{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;color:#aebfd2}.real-history b{color:#e3eafa}.real-panel a{color:#88c5fa}@media(max-width:650px){.real-grid{grid-template-columns:1fr}}
+.real-insights{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0 22px}
+.real-insight{background:#14263b;border:1px solid #2a415b;border-radius:11px;padding:16px;display:flex;flex-direction:column;gap:9px}
+.real-insight strong{font-size:25px;color:#eaf5ff}.real-insight small{font-size:11px;color:#9caec4}
+.real-chart-panel{padding:18px;background:#111f30;border:1px solid #304259;border-radius:12px;margin-bottom:22px}
+.real-chart-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.real-chart-heading h3{margin:0}.real-chart-heading label{color:#a3b4ca;font-size:12px}
+.real-chart-heading select{background:#172c43;color:#eff7ff;border:1px solid #39526c;border-radius:6px;padding:8px;margin-left:7px}
+.real-trend svg{width:100%;height:auto;display:block;margin-top:16px;overflow:visible}
+@media(max-width:950px){.real-insights{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.real-insights{grid-template-columns:1fr}}
