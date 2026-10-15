@@ -252,3 +252,34 @@ th{font-size:12px}td{font-size:14px}
 .atlas-institution-results>.atlas-summary-line{font-size:16px;padding:0;margin:0}
 @media(max-width:930px){.atlas-institution-stats,.atlas-institution-values{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.atlas-investor-tabs,.atlas-institution-controls,.atlas-institution-results{margin:0 10px}.atlas-institution-stats,.atlas-institution-values{grid-template-columns:minmax(0,1fr)}.atlas-institution-row{padding:13px}}
+
+/* Independent active-manager overlap is shown separately from SEC 13F co-reporting. */
+.atlas-consensus{display:grid;gap:17px}
+.atlas-consensus .description{font-size:17px}
+.atlas-consensus-controls,.atlas-consensus>.chart-note,.atlas-consensus>.atlas-summary-line,.atlas-consensus>.atlas-details,.atlas-consensus>.atlas-consensus-funds,.atlas-consensus>.atlas-consensus-results{margin:0 22px}
+.atlas-consensus-controls{align-items:end}
+.atlas-consensus-funds,.atlas-consensus-results{padding:17px;border:1px solid #486781;border-radius:12px;background:#132b40;display:grid;gap:16px}
+.atlas-consensus-funds>strong,.atlas-consensus-results>strong{font-size:22px}
+.atlas-consensus-fundcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.atlas-consensus-fundcards>div{display:grid;align-content:start;gap:8px;padding:15px;border:1px solid #546f84;border-radius:10px;background:#1c354a}
+.atlas-consensus-fundcards strong{font-size:18px}
+.atlas-consensus-fundcards span{font-size:15px;color:#f1cc9e;font-weight:750}
+.atlas-consensus-fundcards small{font-size:14px;line-height:1.55;color:#c6d9e8}
+.atlas-consensus-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.atlas-consensus-metrics>div{display:grid;gap:6px;padding:17px;border-radius:11px;background:#19344a;border:1px solid #486a83}
+.atlas-consensus-metrics span{font-size:15px;color:#c1d8e9}
+.atlas-consensus-metrics strong{font-size:clamp(28px,3vw,38px);color:#f5fbff}
+.atlas-consensus-filters{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.atlas-consensus-filters>label{display:grid;gap:7px;font-size:16px;font-weight:750;flex:1 1 280px}
+.atlas-consensus-filters input:not([type="checkbox"]){min-height:46px;padding:10px 13px;background:#172f46;color:#f3f9ff;border:1px solid #69859c;border-radius:9px;font:inherit}
+.atlas-consensus-filters .atlas-consensus-check{display:flex;flex:1 1 220px;gap:9px;align-items:center;font-weight:650}
+.atlas-consensus-check input{width:22px;height:22px;accent-color:#78b9e9}
+.atlas-consensus-security{display:grid;gap:12px;background:#1a354b;border:1px solid #4c6e89;border-radius:11px;padding:17px}
+.atlas-consensus-header{display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:13px}
+.atlas-consensus-header>div{display:grid;gap:5px}
+.atlas-consensus-header>div:last-child{text-align:right}
+.atlas-consensus-header strong{font-size:22px}
+.atlas-consensus-header small{font-size:14px;color:#bed4e6}
+.atlas-consensus-security .atlas-summary-line{margin:0}
+.atlas-consensus-security a{color:#9bd9ff}
+@media(max-width:780px){.atlas-consensus-fundcards,.atlas-consensus-metrics{grid-template-columns:1fr}.atlas-consensus-controls,.atlas-consensus>.chart-note,.atlas-consensus>.atlas-summary-line,.atlas-consensus>.atlas-details,.atlas-consensus>.atlas-consensus-funds,.atlas-consensus>.atlas-consensus-results{margin:0 10px}.atlas-consensus-header>div:last-child{text-align:left}}
