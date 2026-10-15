@@ -60,6 +60,22 @@ export function parse13FInformationTable(xml){
  if(!holdings.size)throw Error('13F table has no ordinary share positions eligible for comparison');
  return {holdings:[...holdings.values()],rows:matches.length,excluded,aggregationNote:'Grouped by exact CUSIP and reported share class, not by ticker. Options and principal amounts excluded; shared managers may overlap.'};
 }
+export function parse13FCoverage(xml){
+ if(typeof xml!=='string'||!/\x3cedgarSubmission\b/i.test(xml))throw Error('13F cover XML unavailable');
+ const reportType=tag(xml,'reportType');
+ const affiliates=[];
+ const re=/<(?:[A-Za-z_][\w.-]*:)?otherManager(?:\s[^>]*)?>([\s\S]*?)<\/(?:[A-Za-z_][\w.-]*:)?otherManager\s*>/gi;
+ for(const item of xml.matchAll(re)){
+  const cik=tag(item[1],'cik'),name=tag(item[1],'name');
+  if(/^\d{1,10}$/.test(cik))affiliates.push({cik:String(Number(cik)),name});
+ }
+ return {reportType:reportType||'Unspecified 13F report type',otherIncludedManagers:[...new Map(affiliates.map(x=>[x.cik,x])).values()],reportCompleteness:reportType==='13F COMBINATION REPORT'?'COMBINATION: another manager reports additional securities; do not claim the table contains the entire firm's positions.':reportType==='13F HOLDINGS REPORT'?'HOLDINGS: report-level holdings only; private or unreported securities excluded.':'Cover type could not confirm the complete manager portfolio.'};
+}
+export async function retrieve13FCoverage(report,cik,headers){
+ const base=archive(cik,report.accession),url=base+'primary_doc.xml';
+ const xml=await secGet(url,headers,320000);
+ return {...parse13FCoverage(xml),sourceUrl:url};
+}
 export function compare13FHoldings(latest,previous){
  const prior=new Map(previous.map(x=>[x.key,x])),current=new Set();
  const results=[];
