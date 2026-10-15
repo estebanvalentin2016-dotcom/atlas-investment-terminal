@@ -41,8 +41,43 @@ export function selectFact(facts,tags,unit='USD'){
  return {tag:values.length?values[0].tag:null,values};
 }
 function json(res,status,data){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));}
+// Stable, broad ticker enumeration. No seed list or ticker inputs. The
+// multiplicative CIK+symbol sort scatters batch order rather than exclusively
+// scanning the alphabetically first slice of the SEC index.
+export function enumerateTickerUniverse(index,cursor=0,limit=24){
+ const seen=new Set();
+ const rows=Object.values(index||{}).filter(row=>{
+  const ticker=String(row?.ticker||'').trim().toUpperCase();
+  const cik=Number(row?.cik_str);
+  if(!/^[A-Z0-9.-]{1,12}$/.test(ticker)||!Number.isSafeInteger(cik)||cik<=0||!String(row?.title||'').trim()||seen.has(ticker))return false;
+  seen.add(ticker);
+  return true;
+ }).map(row=>{
+  const ticker=String(row.ticker).trim().toUpperCase();
+  const cik=Number(row.cik_str);
+  let hash=cik>>>0;
+  for(const ch of ticker)hash=Math.imul(hash^ch.charCodeAt(0),16777619)>>>0;
+  return {ticker,name:row.title,cik,order:hash>>>0};
+ }).sort((a,b)=>a.order-b.order||a.ticker.localeCompare(b.ticker));
+ const total=rows.length;
+ const start=total?Math.min(Math.max(0,cursor),total-1):0;
+ const selected=rows.slice(start,start+limit).map(({ticker,name,cik})=>({ticker,name,cik}));
+ return {total,start,nextCursor:total?((start+selected.length)%total):0,completedCycle:total>0&&start+selected.length>=total,rows:selected};
+}
 export async function handleSecRequest(req,res){
  const url=new URL(req.url,'http://localhost');
+ if(url.pathname==='/api/autonomous/universe'){
+  if(req.method!=='GET'){json(res,405,{error:'Method not allowed'});return true}
+  const cursorRaw=url.searchParams.get('cursor')||'0';
+  const limitRaw=url.searchParams.get('limit')||'24';
+  if(!/^\d{1,7}$/.test(cursorRaw)||!/^\d{1,2}$/.test(limitRaw)||Number(limitRaw)<1||Number(limitRaw)>30){json(res,400,{error:'Invalid scanner cursor or batch limit'});return true}
+  try{
+   const index=await cached('tickers',()=>secJson(TICKERS));
+   const page=enumerateTickerUniverse(index,Number(cursorRaw),Number(limitRaw));
+   json(res,200,{...page,provider:'SEC public ticker index',indexUrl:TICKERS,retrievedAt:new Date().toISOString(),scope:'SEC-indexed ticker universe, not verified exchange/sector eligibility; batch scanning is incomplete until all index rows are examined',seedTickersUsed:false});
+  }catch(e){json(res,503,{error:e instanceof Error?e.message:'SEC ticker universe unavailable',coverage:'No universe scan performed'})}
+  return true;
+ }
  if(url.pathname==='/api/sec/search'){
   if(req.method!=='GET'){json(res,405,{error:'Method not allowed'});return true}
   const query=(url.searchParams.get('q')||'').trim().toLowerCase();
