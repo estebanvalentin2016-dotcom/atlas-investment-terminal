@@ -36,8 +36,9 @@ export function extractFilingText(raw){
 // Reported metrics and filing subjects are factual research leads, not signs
 // that shares are undervalued or that results exceeded consensus estimates.
 const metricsPatterns=[
- {label:'Reported revenue growth',re:/\b\d{1,3}(?:\.\d+)?\s*%\s+(?:increase|growth)\s+in\s+revenue\b/gi},
- {label:'Reported EPS growth',re:/\b\d{1,3}(?:\.\d+)?\s*%\s+(?:increase|growth)\s+in\s+(?:(?:year[- ]over[- ]year|as adjusted|adjusted|gaap|diluted|net)\s+){0,6}(?:eps|earnings\s+per\s+share)\b/gi},
+ {label:'Reported revenue growth',re:/\b\d{1,3}(?:\.\d+)?\s*%\s+(?:increase|growth|decrease|decline|drop|reduction)\s+in\s+revenue\b/gi},
+ {label:'Reported EPS growth',re:/\b\d{1,3}(?:\.\d+)?\s*%\s+(?:increase|growth|decrease|decline|drop|reduction)\s+in\s+(?:(?:year[- ]over[- ]year|as adjusted|adjusted|gaap|diluted|net)\s+){0,6}(?:eps|earnings\s+per\s+share)\b/gi},
+ {label:'Reported net outflows',re:/\$\s*\d+(?:\.\d+)?\s*(?:trillion|billion|million)\s+(?:of\s+)?(?:net\s+|client\s+|net client\s+)?outflows\b/gi},
  {label:'Reported net inflows',re:/\$\s*\d+(?:\.\d+)?\s*(?:trillion|billion|million)\s+(?:of\s+)?(?:net\s+|client\s+|net client\s+)?inflows\b/gi},
  {label:'Reported assets under management',re:/\$\s*\d+(?:\.\d+)?\s*(?:trillion|billion)\s+(?:in\s+)?(?:aum|assets\s+under\s+management)\b/gi}
 ];
