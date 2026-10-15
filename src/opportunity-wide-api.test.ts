@@ -1,6 +1,6 @@
 import {describe,it,expect,vi} from 'vitest';
 // @ts-ignore Node-only SEC index parser
-import {parseMasterIndex,rankFreshFilings,handleWideDiscovery,recentSubmissions,summarizeSubmissions,decodeIndexBytes,diagnoseMasterIndex} from '../server/opportunity-wide-api.mjs';
+import {parseMasterIndex,rankFreshFilings,handleWideDiscovery,recentSubmissions,summarizeSubmissions,decodeIndexBytes,diagnoseMasterIndex,normalizeSecDate} from '../server/opportunity-wide-api.mjs';
 describe('market-wide SEC filing discovery',()=>{
  const tickers=[{cik_str:1535527,ticker:'CRWD',title:'CrowdStrike Holdings'}];
  const line='1535527|CrowdStrike Holdings|8-K|2026-10-14|edgar/data/1535527/0001535527-26-000029.txt';
@@ -26,6 +26,23 @@ describe('market-wide SEC filing discovery',()=>{
   expect(audit.eightKRows).toBe(1);
   expect(audit.validEightKPaths).toBe(0);
   expect(audit.tickerMatchedEightK).toBe(1);
+ });
+ it('normalizes actual SEC YYYYMMDD dates and validates impossible calendar dates',()=>{
+  expect(normalizeSecDate('20261014')).toBe('2026-10-14');
+  expect(normalizeSecDate('2026-10-14')).toBe('2026-10-14');
+  expect(normalizeSecDate('20260230')).toBeNull();
+  expect(normalizeSecDate('2026-13-14')).toBeNull();
+ });
+ it('preserves real dates and reduces unmatched-date diagnostics on compact SEC records',()=>{
+  const compact='1535527|CrowdStrike|8-K|20261014|edgar/data/1535527/0001535527-26-000029.txt';
+  const parsed=parseMasterIndex(index(compact),'2026-10-14',tickers);
+  expect(parsed[0].filed).toBe('2026-10-14');
+  expect(diagnoseMasterIndex(index(compact),tickers).undatedEightK).toBe(0);
+ });
+ it('returns more than 40 unique indexed filing candidates when requested',()=>{
+  const many=Array.from({length:50},(_,i)=>({ticker:'T'+i,url:'https://www.sec.gov/Archives/edgar/data/1535527/'+i+'.txt',filed:'2026-10-14',discoveredOn:'2026-10-14'}));
+  expect(rankFreshFilings(many,1200)).toHaveLength(50);
+  expect(rankFreshFilings(many)).toHaveLength(40);
  });
  it('keeps ticker-matched 8-Ks when raw filing dates are not ISO formatted',()=>{
   const odd='1535527|CrowdStrike|8-K|10/14/2026|edgar/data/1535527/0001535527-26-000029.txt';
