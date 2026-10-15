@@ -1,17 +1,15 @@
 import {useState} from 'react';
-import {assessPriceHistory,type HistoricalBar,type HistoricalPriceResponse,type PriceHistoryAssessment} from './price-history-model';
+import {assessPriceHistory,trailingPriceWindow,type HistoricalBar,type HistoricalPriceResponse,type PriceHistoryAssessment} from './price-history-model';
 
 const percent=(n:number|null)=>n===null?'Unknown':(n>0?'+':'')+n.toFixed(1)+'%';
 const dollar=(n:number)=>'$'+n.toFixed(2);
 const day=(s:string)=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s+'T00:00:00Z'));
-const elapsed=(a:string,b:string)=>(Date.parse(a+'T00:00:00Z')-Date.parse(b+'T00:00:00Z'))/86400000;
 
 function TrendChart({bars,asOf}:{bars:HistoricalBar[];asOf:string}){
  const [windowYears,setWindowYears]=useState(5);
  const valid=bars.filter(b=>day(b.date)&&b.date<asOf&&Number.isFinite(b.close)&&b.close>0).sort((a,b)=>a.date.localeCompare(b.date));
- const recent=valid.at(-1);
- const selected=windowYears===0||!recent?valid:valid.filter(b=>elapsed(recent.date,b.date)<=windowYears*365.25);
- if(selected.length<2)return <p className="chart-note">Too little completed weekly price history to chart this time window.</p>;
+ const selected=windowYears===0?valid:trailingPriceWindow(valid,asOf,windowYears)??[];
+ if(selected.length<2)return <p className="chart-note">Insufficient completed weekly price observations to establish this full window.</p>;
  const W=660,H=194,left=8,right=8,top=12,bottom=14;
  const high=Math.max(...selected.map(x=>x.close)),low=Math.min(...selected.map(x=>x.close));
  const range=high-low||high*0.1||1;
@@ -40,9 +38,9 @@ export default function PriceHistoryPanel({ticker,history,assessment,asOf}:{tick
   <div className="atlas-survival-panel-head"><strong>Historical share-price performance</strong><span>Completed IEX weekly prices · not a return forecast</span></div>
   {usable&&history?<TrendChart bars={history.bars} asOf={asOf}/>:<p className="opportunity-uncertainty"><strong>Price history unavailable for ranking:</strong> {e.assessment}. {e.coverageNote}</p>}
   <div className="atlas-survival-metrics">
-   <div><span>1-year price change</span><strong>{percent(usable?e.returns.year1:null)}</strong></div>
-   <div><span>3-year price change</span><strong>{percent(usable?e.returns.year3:null)}</strong><small>Annualized: {percent(usable?e.threeYearAnnualized:null)}</small></div>
-   <div><span>5-year price change</span><strong>{percent(usable?e.returns.year5:null)}</strong></div>
+   <div><span>1-year price change</span><strong>{percent(usable?e.returns.year1:null)}</strong><small>{e.returnStartDates.year1??'Start unavailable'} to {e.latestDate??'unknown'}</small></div>
+   <div><span>3-year price change</span><strong>{percent(usable?e.returns.year3:null)}</strong><small>{e.returnStartDates.year3??'Start unavailable'} to {e.latestDate??'unknown'} · Annualized: {percent(usable?e.threeYearAnnualized:null)}</small></div>
+   <div><span>5-year price change</span><strong>{percent(usable?e.returns.year5:null)}</strong><small>{e.returnStartDates.year5??'Start unavailable'} to {e.latestDate??'unknown'}</small></div>
    <div><span>Since first available price</span><strong>{percent(usable?e.returns.sinceAvailable:null)}</strong><small>Not verified IPO-to-date return</small></div>
   </div>
   <p className="chart-note"><strong>Research signal:</strong> {usable?e.assessment:'Unavailable'}. {usable&&e.trendScore!==null?'Price-trend research score: '+e.trendScore.toFixed(1)+'/100.':''} Source: {history?.provider??'Alpaca unavailable'} {history?.feed??''} · split-adjusted, excluding dividends. {e.coverageNote}</p>
