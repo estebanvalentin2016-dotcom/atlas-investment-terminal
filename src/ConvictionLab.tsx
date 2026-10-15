@@ -2,6 +2,7 @@ import {useState,type FormEvent} from 'react';
 import {assessConvictionReadiness,type ConvictionAssessment} from './conviction-readiness';
 import SurvivalEvidencePanel from './SurvivalEvidencePanel';
 import MarketCapEvidencePanel from './MarketCapEvidencePanel';
+import FinancingAutomationPanel from './FinancingAutomationPanel';
 import type {MarketValuationClose,SecCompany} from './ranking-model';
 type ThesisVersion={ticker:string;createdAt:string;thesis:string;invalidation:string;verdict:'INSUFFICIENT EVIDENCE'};
 const KEY='atlas.conviction.theses.v1';
@@ -81,6 +82,7 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
     {assessment.fundingRisk.status!=='nonnegative_fcf'&&<p><strong>Research priority:</strong> Explain where the cash went, whether growth investment is productive, what funding is available, and how future share issuance could affect your ownership.</p>}
    </section>}
    <MarketCapEvidencePanel company={company} quote={marketQuote} asOf={nyToday()}/>
+   <FinancingAutomationPanel company={company} asOf={nyToday()}/>
    <SurvivalEvidencePanel company={company} asOf={assessment.observed.asOfDate??nyToday()}/>
    <p className="chart-note"><strong>Source:</strong> <a href={company.source} target="_blank" rel="noopener noreferrer">SEC company financial facts ↗</a>. Missing or delayed figures remain unknown. An attractive reported metric is not evidence of mispricing.</p>
    <details className="atlas-details" open><summary>What ATLAS verified — and what automation is still missing</summary>
