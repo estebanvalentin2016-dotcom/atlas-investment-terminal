@@ -67,11 +67,16 @@ export default function OpportunityRadar(){
 
  return <section className="panel real-panel opportunity-radar">
   <div className="panel-head"><div><span className="eyebrow">ATLAS / OPPORTUNITY DISCOVERY</span><h3>SEC catalyst discovery</h3></div><span className="tag">Research leads · not buy signals</span></div>
-  <p className="description">Discover ticker-linked SEC 8-K filings across accessible daily indexes. Search by company, filter by index date, and review source filings. This stage verifies filing discovery, not bullish fundamentals, remaining upside, liquidity, or trade eligibility.</p>
+  <p className="description"><strong>Find the filing. See the important numbers. Then check the stock.</strong> SEC filings are research leads — not automatic buy signals.</p>
   <div className="opportunity-toolbar"><strong>{loading?'Retrieving SEC filing indexes…':error?'Scan failed':result?'SEC index retrieval finished':'Waiting for scan'}</strong>{result&&<span>{result.matchedFilings.toLocaleString()} raw 8-K matches · {result.successfulDays} valid daily indexes{result.fallbackChecked>0?' · '+result.fallbackChecked+' fallback companies checked':''}</span>}<button type="button" className="button" onClick={()=>void scan()} disabled={loading}>{loading?'Scanning…':'Refresh research queue'}</button></div>
+  {result&&<div className="atlas-scan-grid" aria-label="SEC scan at a glance">
+   <div><span>Filings found</span><strong>{result.rows.length.toLocaleString()}</strong><small>Not all are opportunities</small></div>
+   <div><span>SEC index days accessible</span><strong>{result.successfulDays}</strong><small>Public filing sources</small></div>
+   <div><span>Dates blocked</span><strong>{result.errorDays.length}</strong><small>Coverage is incomplete</small></div>
+  </div>}
   {error&&<p className="real-error" role="alert">{error}</p>}
   {result&&result.errorDays.length>0&&<details className="opportunity-errors"><summary>Partial coverage: {result.errorDays.length} SEC retrieval issue(s)</summary>{result.errorDays.map(e=><p key={e}>{e}</p>)}</details>}
-  {result&&<p className="chart-note">Source coverage: <strong>{result.coverageStatus}</strong>. A 403 means a blocked request, not an empty filing day. {result.fallbackChecked>0&&('Fallback: '+result.fallbackChecked+' companies checked; '+result.fallbackFailed+' failed. Not market-wide coverage.')}</p>}
+  {result&&<p className="atlas-summary-line"><strong>Coverage:</strong> {result.coverageStatus}. <strong>Blocked SEC dates are missing information</strong>, not proof of zero filings. {result.fallbackChecked>0&&('Fallback covered '+result.fallbackChecked+' companies, with '+result.fallbackFailed+' failures — not the entire market.')}</p>}
   {result&&<details className="opportunity-errors"><summary>Daily index diagnostics ({result.diagnostics?.length??0} requests)</summary>{result.diagnostics?.map(x=><div className="opportunity-diagnostic" key={x.date}><strong>{x.date}</strong>: HTTP {x.status} · {x.bytes.toLocaleString()} bytes · {x.contentType||'no content type'} · {x.encoding||'unknown encoding'} · {x.valid?'Valid SEC index':'No usable index'} · {x.matched} matched{x.audit&&<div className="chart-note">Index records: {x.audit.records} · Raw 8-K rows: {x.audit.eightKRows} · Valid 8-K paths: {x.audit.validEightKPaths} · Ticker matches: {x.audit.tickerMatchedEightK} · Unrecognized filing dates: {x.audit.undatedEightK}{x.audit.samples.map((sample,i)=><p key={i}>Sample {i+1}: CIK {sample.cik}, raw date {sample.filedRaw??'n/a'}, ticker {sample.mappedTicker||'unmapped'}, path {sample.path}</p>)}</div>}</div>)}</details>}
   {result&&result.fallbackChecked>0&&<details className="opportunity-errors"><summary>Company fallback audit ({result.fallbackChecked} companies)</summary>{result.fallbackDiagnostics?.map(x=><p key={x.ticker}><strong>{x.ticker}</strong>: {x.error||('latest filing '+(x.latestFiling||'unknown')+' · latest 8-K '+(x.latest8K||'none')+' · '+(x.matchingRecent8K??0)+' recent 8-Ks among '+(x.returnedRows??0)+' submissions')}</p>)}</details>}
   {result&&<div className="opportunity-results">
@@ -82,19 +87,19 @@ export default function OpportunityRadar(){
     <label className="opportunity-checkbox"><input type="checkbox" checked={onePerCompany} onChange={e=>{setOnePerCompany(e.target.checked);setPage(1)}}/> One filing per ticker</label>
     <button type="button" className="button secondary" onClick={resetFilters}>Clear filters</button>
    </div>
-   <p className="chart-note">Sorted by indexed day, then filing date and ticker. SEC daily master indexes do not provide intraday public-release timestamps. Collapsing by ticker hides additional filings until unchecked.</p>
-   <div className="opportunity-toolbar"><strong>Source evidence review</strong><span>Optional: inspect up to five visible filings sequentially. This is a convenience sample, NOT a ranking of best opportunities.</span><button type="button" className="button secondary" disabled={bulkReviewing||loading||!shown.length} onClick={()=>void reviewPageSample()}>{bulkReviewing?'Reviewing sample…':'Review first 5 visible'}</button></div>
+   <p className="chart-note"><strong>Newest filings first.</strong> Select a company to inspect actual evidence. The filing date does not tell us when the news first broke.</p>
+   <div className="opportunity-toolbar"><strong>Source evidence review</strong><span>Review five visible SEC filings. This is a sample, <strong>not</strong> a ranking.</span><button type="button" className="button secondary" disabled={bulkReviewing||loading||!shown.length} onClick={()=>void reviewPageSample()}>{bulkReviewing?'Reviewing sample…':'Review first 5 visible'}</button></div>
    {shown.length>0?<div className="opportunity-list">{shown.map(r=><article className="opportunity-candidate" key={r.url}>
     <div className="opportunity-top"><strong>{r.ticker}</strong><span>{r.form} · Needs review</span></div>
     <h4>{r.name}</h4>
     <p>{r.discoveredOn?'Index day '+r.discoveredOn+' · Filing date '+(r.filed||'unverified'):'Filing date '+(r.filed||'unverified')+' · company submissions'}</p>
-    <p className="opportunity-uncertainty">Fundamental bullishness: <strong>Not assessed</strong> · Remaining upside: <strong>Unknown</strong> · Robinhood eligibility: <strong>Unverified</strong></p>
+    <p className="opportunity-uncertainty"><strong>What we know:</strong> An SEC disclosure exists. <strong>What we don't know yet:</strong> Whether it's bullish, priced in, or available to trade.</p>
     <a href={r.url} target="_blank" rel="noopener noreferrer">Inspect SEC source ↗</a>
     <FilingEvidence data={reviews[r.url]} loading={reviewing.includes(r.url)} onReview={()=>void reviewSource(r.url)}/>
     <FilingPriceContext key={r.url} ticker={r.ticker} eventDate={r.filed} sourceUrl={r.url}/>
    </article>)}</div>:<p className="chart-note">No filings match these filters. Try clearing the search or changing the date.</p>}
    {filtered.length>PAGE_SIZE&&<div className="opportunity-pagination"><span>Showing {(currentPage-1)*PAGE_SIZE+1}–{Math.min(currentPage*PAGE_SIZE,filtered.length)} of {filtered.length}</span><button type="button" className="button secondary" disabled={currentPage<=1} onClick={()=>setPage(p=>Math.max(1,p-1))}>Previous</button><strong>Page {currentPage} / {pages}</strong><button type="button" className="button secondary" disabled={currentPage>=pages} onClick={()=>setPage(p=>Math.min(pages,p+1))}>Next</button></div>}
   </div>}
-  <p className="chart-note">Discovery uses SEC 8-K/8-K/A filing references. On-demand source review uses limited phrase-matching; its findings are not verified bullish catalysts, and price context is available on demand using completed Alpaca IEX bars, without verified release timing. This queue updates on opening or manual refresh, not in the background; two SEC index days may remain blocked. The next milestone is evidence-based catalyst qualification.</p>
+  <p className="chart-note"><strong>Remember:</strong> Filings are leads, not recommendations. ATLAS cannot yet verify first-public news timing, an earnings surprise, or remaining upside. Refresh manually for new data.</p>
  </section>;
 }
