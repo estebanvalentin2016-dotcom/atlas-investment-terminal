@@ -1,0 +1,6 @@
+# ATLAS v0.4 Emerging Technology Research Log (draft)
+This feature is a **manual, source-aware research journal** for tracking a technological hypothesis, technical evidence, commercial milestones, counterevidence, and possible publicly traded-company exposure. It does **not** automatically discover breakthroughs, verify source accuracy, forecast returns, or assign speculative scores.
+
+Go to **Breakthrough Radar** in the sidebar. Enter a technology name, sector, optional ticker, observation, evidence type, and source URL. Evidence categories (other than unverified hypothesis) require a link. Dates are user supplied, not fetched. Saved entries are in local browser storage only, not synchronized or backed up. Do not enter secrets.
+
+Before merging, run `npm.cmd run build`, `npm.cmd run test`, and check manually that creation, link validation, deletion, and reload persistence work. Future improvements: source verification, scientific/patent metadata, independent corroboration, counterevidence workflows, and investment-specific valuation/dilution research.
