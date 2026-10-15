@@ -86,7 +86,7 @@ describe('Annual balance sheet and share-count evidence, without false valuation
  it('displays real-source cash and dilution facts while keeping the technical audit collapsed',()=>{
   const html=renderToStaticMarkup(createElement(SurvivalEvidencePanel,{company:sample(),asOf:'2026-10-14'}));
   expect(html).toContain('Capital &amp; dilution evidence');
-  expect(html).toContain('$21.00M');
+  expect(html).toMatch(/\$21(?:\.0+)?M/); // Intl compact USD varies between $21M and $21.00M by ICU runtime
   expect(html).toContain('20.00%');
   expect(html).toContain('Not current shares outstanding');
   expect(html).toContain('Verify SEC cash, debt, share history');
