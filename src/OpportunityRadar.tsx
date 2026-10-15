@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
-type Lead={ticker:string;name:string;form:string;filed:string;url:string;kind:string};
-type IndexDiagnostic={date:string;bytes:number;matched:number;status:number;contentType?:string;valid:boolean};
+type Lead={ticker:string;name:string;form:string;filed:string;discoveredOn?:string;url:string;kind:string};
+type IndexDiagnostic={date:string;bytes:number;matched:number;status:number;contentType?:string;valid:boolean;encoding?:string;firstChars?:string};
 type FallbackDiagnostic={ticker:string;error?:string;latestFiling?:string|null;latest8K?:string|null;returnedRows?:number;matchingRecent8K?:number};
 type Response={rows:Lead[];matchedFilings:number;successfulDays:number;coverageStatus:string;source:string;fallbackChecked:number;fallbackFailed:number;diagnostics:IndexDiagnostic[];fallbackDiagnostics:FallbackDiagnostic[];errorDays:string[];retrievedAt:string;note:string;error?:string};
 export default function OpportunityRadar(){
@@ -25,14 +25,14 @@ export default function OpportunityRadar(){
   {error&&<p className="real-error" role="alert">{error}</p>}
   {result&&result.errorDays.length>0&&<details className="opportunity-errors"><summary>Partial coverage: {result.errorDays.length} SEC retrieval issue(s)</summary>{result.errorDays.map(e=><p key={e}>{e}</p>)}</details>}
   {result&&<p className="chart-note">Source coverage: <strong>{result.coverageStatus}</strong>. SEC 403 means access is restricted, not zero filings. {result.fallbackChecked>0&&('Fallback: '+result.fallbackChecked+' companies checked; '+result.fallbackFailed+' failed. This is NOT market-wide coverage.')}</p>}
-  {result&&<details className="opportunity-errors"><summary>Daily index diagnostics ({result.diagnostics?.length??0} attempted requests)</summary>{result.diagnostics?.map(x=><p key={x.date}>{x.date}: HTTP {x.status} · {x.bytes.toLocaleString()} characters · {x.contentType||'no content type'} · {x.valid?'Valid SEC index':'No usable index'} · {x.matched} matched</p>)}</details>}
+  {result&&<details className="opportunity-errors"><summary>Daily index diagnostics ({result.diagnostics?.length??0} attempted requests)</summary>{result.diagnostics?.map(x=><p key={x.date}>{x.date}: HTTP {x.status} · {x.bytes.toLocaleString()} bytes · {x.contentType||'no content type'} · {x.encoding||'unknown encoding'} · {x.valid?'Valid SEC index':'No usable index'} · {x.matched} matched{x.firstChars&&<span> · First characters: {x.firstChars}</span>}</p>)}</details>}
   {result&&result.fallbackChecked>0&&<details className="opportunity-errors"><summary>Company fallback audit ({result.fallbackChecked} companies; verify source freshness)</summary>{result.fallbackDiagnostics?.map(x=><p key={x.ticker}><strong>{x.ticker}</strong>: {x.error||('latest filing '+(x.latestFiling||'unknown')+' · latest 8-K '+(x.latest8K||'none returned')+' · '+(x.matchingRecent8K??0)+' recent 8-Ks among '+(x.returnedRows??0)+' submission rows')}</p>)}</details>}
   {result&&result.rows.length>0&&<div className="opportunity-list">{result.rows.map(r=><article className="opportunity-candidate" key={r.url}>
    <div className="opportunity-top"><strong>{r.ticker}</strong><span>{r.form} · Awaiting substance review</span></div>
    <h4>{r.name}</h4>
-   <p>Filed {r.filed} · Indexed 8-K disclosure</p>
+   <p>{r.discoveredOn?'Indexed '+r.discoveredOn+' · Filed '+r.filed:'Filed '+r.filed+' · Company-submissions source'} · 8-K disclosure</p>
    <p className="opportunity-uncertainty">Bullish catalyst: <strong>Unverified</strong> · Remaining upside: <strong>Unknown</strong> · Entry viability: <strong>Unknown</strong></p>
-   <a href={r.url} target="_blank" rel="noopener noreferrer">Read indexed SEC filing ↗</a>
+   <a href={r.url} target="_blank" rel="noopener noreferrer">Read SEC filing ↗</a>
   </article>)}</div>}
   {result&&!result.rows.length&&<p className="chart-note">No recent 8-K leads could be confirmed from the accessible SEC sources. Review the index diagnostics and fallback dates: missing coverage or stale histories can produce an empty list.</p>}
   <p className="chart-note">Displays up to 40 filing leads, sorted by filing date—not expected profit. An empty or partial source feed must not be read as evidence of no opportunities. Daily filings do not contain reliable announcement minutes. There is no live-price check, profitability assessment, background monitoring or Robinhood execution verification in this phase.</p>
