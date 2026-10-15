@@ -36,3 +36,20 @@ ATLAS can surface an institutionally interesting **research lead**. It cannot up
 - Unverified investor reasoning and investment mandate independence.
 - Provider-specific fund holdings URLs/data formats, publication metadata and licensing.
 - No market-cap/FCF/valuation or risk-gating integration yet for institutional consensus output.
+
+## Stage 1.5 — reproducible historical case and initial fund CSV import
+
+**Real historical reporting evidence independently checked against SEC complete-submission text:**
+- Reporting manager **ValueAct Holdings, L.P.**, CIK **1418814**. SEC 13F-HR periods **2026-03-31** and **2026-06-30**, publicly filed **2026-05-15** and **2026-08-14**. Original complete submissions: [previous](https://www.sec.gov/Archives/edgar/data/1418814/000141881426000002/0001418814-26-000002.txt) and [latest](https://www.sec.gov/Archives/edgar/data/1418814/000141881426000003/0001418814-26-000003.txt).
+- Exact CUSIP/class values from source table XML: Rocket Companies Class A (CUSIP 77311W101) **28,214,724 → 41,668,774** (+13,454,050 shares); BlackRock common (09290D101) **546,100 → 581,700** (+35,600); MongoDB Class A (60937P106) **1,037,800 → 165,700** (−872,100); Roblox Class A (771049103) **5,848,621 → 3,147,421** (−2,701,200). These are changes in **reported positions**, not confirmed purchases/sales at specified times.
+- The Q2 13F cover explicitly identifies the report as a **13F COMBINATION REPORT** and includes **ValueAct Capital Management, L.P., CIK 1351069**. Treat these as **related reporting entities**, not independent endorsements. The true total manager portfolio extends beyond this one information table.
+- `/api/institutions/historical-case` fetches both SEC directories and complete original information-table XML files plus the latest primary cover. It **checks** each expected source value, quarter dates and included manager relationship. A mismatch, unavailable SEC document, or missing affiliate metadata prevents a verified result. It is refreshable; tests include a tampered holding.
+- `InstitutionalHistoricalCase` renders an on-demand verified audit inside Consensus, reported-share changes, position-value and share-of-comparable-information-table changes, filing/publication dates and original links. A separate on-demand `RKT` research action uses the existing SEC company facts, indicative FY P/E and Conviction Lab evidence gates. It is **not a new buy rating**.
+- **Important financial interpretation:** Rocket's changed reported share count is interesting but does NOT establish ValueAct's investment thesis, actual trade dates, independent active-manager convergence, price-sensitive mispricing, or remaining 3x–5x upside. These must be established separately.
+
+**Fund-level adapter groundwork, not automated live feeds:**
+- `src/fund-csv-adapters.ts` and `FundCSVImport.tsx` accept a locally selected, user-downloaded **provider-style CSV** from Vanguard, BlackRock/iShares or State Street/SPDR. They parse source-reported ticker, issuer, exact CUSIP (or U.S. ISIN mapping), shares, fund weight and market value when provided, and a holdings as-of date if present.
+- Enforce a limited size and an **official provider HTTPS URL**; do not fetch arbitrary user URLs or treat entered URLs as authenticated provenance. Original **publication date remains unknown** unless verifiably available. Input is **user-supplied/unverified** and **does not contribute to active institutional consensus**.
+- Official **automatic** fund-level downloads, robust provider-specific current endpoints, disclosure-frequency timestamps, manager/fund-family verification and point-in-time backtesting remain pending. An uploaded holdings CSV is not equivalent to a tested daily/monthly issuer adapter.
+
+**Validation before release:** run local `npm.cmd run build`, `npm.cmd run test`, and `npm.cmd run dev`. On the Institutional Consensus page click **Verify two real SEC reporting periods**, confirm the live source match or note SEC availability errors, then **Check RKT fundamentals and conviction readiness**. No real-source results may be claimed verified solely because an offline synthetic test passes.
