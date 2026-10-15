@@ -15,11 +15,13 @@ import {handleMarketRequest} from './server/market-api.mjs';
 import {handleIntradayRequest} from './server/intraday-api.mjs';
 // @ts-ignore Node-only news discovery adapter
 import {handleAnnouncementRequest} from './server/announcement-api.mjs';
+// @ts-ignore Node-only overnight research adapter
+import {handleOvernightRequest} from './server/overnight-api.mjs';
 export default defineConfig(({mode})=>{
  const env=loadEnv(mode,process.cwd(),'');
  process.env.SEC_USER_AGENT=env.SEC_USER_AGENT||process.env.SEC_USER_AGENT;
  process.env.ALPACA_API_KEY_ID=env.ALPACA_API_KEY_ID||process.env.ALPACA_API_KEY_ID;
  process.env.ALPACA_API_SECRET_KEY=env.ALPACA_API_SECRET_KEY||process.env.ALPACA_API_SECRET_KEY;
- const secPlugin:Plugin={name:'atlas-sec-proxy',configureServer(server){server.middlewares.use((req,res,next)=>{Promise.resolve(handleSecRequest(req,res)).then(handled=>handled?true:handleDiscoveryRequest(req,res)).then(handled=>handled?true:handleCatalystRequest(req,res)).then(handled=>handled?true:handleMarketRequest(req,res)).then(handled=>handled?true:handleIntradayRequest(req,res)).then(handled=>handled?true:handleAnnouncementRequest(req,res)).then(handled=>{if(!handled)next()}).catch(next)})},configurePreviewServer(server){server.middlewares.use((req,res,next)=>{Promise.resolve(handleSecRequest(req,res)).then(handled=>handled?true:handleDiscoveryRequest(req,res)).then(handled=>handled?true:handleCatalystRequest(req,res)).then(handled=>handled?true:handleMarketRequest(req,res)).then(handled=>handled?true:handleIntradayRequest(req,res)).then(handled=>handled?true:handleAnnouncementRequest(req,res)).then(handled=>{if(!handled)next()}).catch(next)})}};
+ const secPlugin:Plugin={name:'atlas-sec-proxy',configureServer(server){server.middlewares.use((req,res,next)=>{Promise.resolve(handleSecRequest(req,res)).then(handled=>handled?true:handleDiscoveryRequest(req,res)).then(handled=>handled?true:handleCatalystRequest(req,res)).then(handled=>handled?true:handleMarketRequest(req,res)).then(handled=>handled?true:handleIntradayRequest(req,res)).then(handled=>handled?true:handleAnnouncementRequest(req,res)).then(handled=>handled?true:handleOvernightRequest(req,res)).then(handled=>{if(!handled)next()}).catch(next)})},configurePreviewServer(server){server.middlewares.use((req,res,next)=>{Promise.resolve(handleSecRequest(req,res)).then(handled=>handled?true:handleDiscoveryRequest(req,res)).then(handled=>handled?true:handleCatalystRequest(req,res)).then(handled=>handled?true:handleMarketRequest(req,res)).then(handled=>handled?true:handleIntradayRequest(req,res)).then(handled=>handled?true:handleAnnouncementRequest(req,res)).then(handled=>handled?true:handleOvernightRequest(req,res)).then(handled=>{if(!handled)next()}).catch(next)})}};
  return {plugins:[react(),secPlugin],test:{environment:'node'}};
 });
