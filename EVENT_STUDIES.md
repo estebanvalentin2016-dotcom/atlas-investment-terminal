@@ -34,3 +34,6 @@ The UI separates two questions: (1) **cumulative reaction** from the pre-event c
 
 ### Historical event comparison (experimental)
 Catalyst Radar adds a user-triggered comparison for up to three latest SEC 8-K filings with explicit acceptance times in the last 175 days. Historical requests are sequential. The table includes each event's initial close-to-close reaction and continuation from the first eligible closing price through sessions 3 and 5. Provider errors and insufficient horizons are displayed instead of fabricated returns. **Do not infer win rates or predictive efficacy from three selectively sampled events.** This is not a market-neutral study and does not disentangle other news.
+
+### SPY-relative event performance
+The individual filing analysis now additionally fetches split-adjusted completed-session **SPY IEX** bars for the same event window, after the stock request. It calculates the **arithmetic difference in simple returns, in percentage points**, over exact matching trading dates. Missing benchmark dates produce N/A, never a nearest-date substitution. Benchmark errors do not discard otherwise valid stock event results. This is **not** market-model alpha, risk adjustment, or a trade recommendation. SPY is a broad market proxy; sector-specific benchmarks remain a future improvement. These prices still require independent verification.
