@@ -141,7 +141,14 @@ export async function handleSecRequest(req,res){
    ['Operating cash flow',['NetCashProvidedByUsedInOperatingActivities']],
    ['Capital expenditures',['PaymentsToAcquirePropertyPlantAndEquipment']],
    ['Total assets',['Assets']],
-  ].map(([name,tags])=>{const unit=name==='Diluted EPS'?'USD/shares':'USD';const result=name==='Revenue'?revenueSelection:selectFact(facts.facts,tags,unit);return {name,unit,...result};});
+   // Survival research: annual fiscal-period-aligned facts only. Debt
+   // components are individually sourced; missing parts are NOT zero.
+   ['Cash and cash equivalents',['CashAndCashEquivalentsAtCarryingValue']],
+   ['Current portion of long-term debt',['LongTermDebtCurrent']],
+   ['Long-term debt noncurrent',['LongTermDebtNoncurrent']],
+   ['Short-term borrowings',['ShortTermBorrowings']],
+   ['Weighted-average diluted shares',['WeightedAverageNumberOfDilutedSharesOutstanding']],
+  ].map(([name,tags])=>{const unit=name==='Diluted EPS'?'USD/shares':name==='Weighted-average diluted shares'?'shares':'USD';const result=name==='Revenue'?revenueSelection:selectFact(facts.facts,tags,unit);return {name,unit,...result};});
   json(res,200,{ticker,name:facts.entityName||match.title,cik,source,retrievedAt:new Date().toISOString(),metrics});
  }catch(e){json(res,503,{error:e instanceof Error?e.message:'SEC data temporarily unavailable'});}
  return true;
