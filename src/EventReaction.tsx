@@ -5,6 +5,8 @@ type Bar={date:string;close:number;volume:number};
 type Response={bars:Bar[];adjustment:string;feed:string;partialHistory:boolean;completedSessionsOnly:boolean;error?:string};
 type Study={status:string;reason:string;firstSession?:string;baselineSession?:string;returns:{day1:number|null;day3:number|null;day5:number|null}};
 const pct=(n:number|null)=>n===null?'N/A':(n>=0?'+':'')+n.toFixed(2)+'%';
+const tone=(n:number|null)=>n===null?'unavailable':n>0?'positive':n<0?'negative':'flat';
+const horizons=[['day1','First session'],['day3','Third session'],['day5','Fifth session']] as const;
 export default function EventReaction({ticker,acceptedAt}:{ticker:string;acceptedAt:string|null}){
  const [study,setStudy]=useState<Study|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
  async function analyze(){
@@ -25,9 +27,9 @@ export default function EventReaction({ticker,acceptedAt}:{ticker:string;accepte
   <button type="button" className="button" disabled={busy||!acceptedAt} onClick={analyze}>{busy?'Checking historical prices…':'Analyze price reaction'}</button>
   {!acceptedAt&&<small>SEC acceptance time unavailable; analysis disabled.</small>}
   {error&&<p className="real-error" role="alert">{error}</p>}
-  {study&&<div className="chart-note">
+  {study&&<div className="chart-note event-reaction-panel">
     {study.status==='aligned'?<><strong>Historical price reaction · IEX daily closes</strong><p>Reference close: {study.baselineSession} · First eligible session: {study.firstSession}</p>
-     <p>First-session close: {pct(study.returns.day1)} · Third-session close: {pct(study.returns.day3)} · Fifth-session close: {pct(study.returns.day5)}</p></>:<p>{study.reason}</p>}
+     <div className="event-reaction-grid">{horizons.map(([key,label])=><div className={`event-reaction-card event-reaction-${tone(study.returns[key])}`} key={key}><span>{label}</span><strong>{pct(study.returns[key])}</strong></div>)}</div></>:<p>{study.reason}</p>}
     <p>Split-adjusted single-exchange prices; completed sessions only. Results are descriptive, not executable trade returns or evidence the filing caused the price move. A filing may have been announced elsewhere first.</p>
    </div>}
  </div>;
