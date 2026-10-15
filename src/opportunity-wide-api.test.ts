@@ -12,8 +12,7 @@ describe('market-wide SEC filing discovery',()=>{
  it('rejects responses lacking a recognizable SEC index header',()=>expect(()=>parseMasterIndex('<html>Access denied</html>','2026-10-14',tickers)).toThrow('Unrecognized SEC master index header'));
  it('extracts recent 8-K fallback rows without inventing bullishness',()=>{const rows=recentSubmissions({cik:1535527,name:'CrowdStrike',filings:{recent:{form:['8-K','10-Q'],filingDate:['2026-10-14','2026-10-14'],accessionNumber:['0001535527-26-000029','0001535527-26-000030']}}},'CRWD',Date.parse('2026-10-15T12:00:00Z'));expect(rows).toHaveLength(1);expect(rows[0].url).toContain('000153552726000029')});
  it('returns diagnostics and fallback results without a runtime error',async()=>{
-  const oldAgent=process.env.SEC_USER_AGENT;
-  process.env.SEC_USER_AGENT='Atlas test atlas-test@example.com';
+  vi.stubEnv('SEC_USER_AGENT','Atlas test atlas-test@example.com');
   const day=new Date().toISOString().slice(0,10);
   vi.stubGlobal('fetch',vi.fn(async (url:string|URL)=>{
    const target=String(url);
@@ -34,7 +33,7 @@ describe('market-wide SEC filing discovery',()=>{
    expect(data.rows[0].ticker).toBe('CRWD');
   }finally{
    vi.unstubAllGlobals();
-   if(oldAgent===undefined)delete process.env.SEC_USER_AGENT;else process.env.SEC_USER_AGENT=oldAgent;
+   vi.unstubAllEnvs();
   }
  });
  it('ignores unrelated routes',async()=>expect(await handleWideDiscovery({url:'/api/other'},{})).toBe(false));
