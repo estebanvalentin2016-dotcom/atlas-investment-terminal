@@ -5,7 +5,7 @@ export type SecMetric={name:string;values:Annual[]};
 export type SecCompany={ticker:string;name:string;source:string;retrievedAt:string;metrics:SecMetric[]};
 export type RankWeights={growth:number;fcf:number;profit:number;pe:number};
 export type RankMetrics={year:number|null;growth:number|null;fcfMargin:number|null;profitMargin:number|null;pe:number|null;fcf:number|null;revenue:number|null;capex:number|null};
-export type Ranked={ticker:string;name:string;year:number|null;source:string;metrics:RankMetrics;score:number|null;coverage:number;count:number;reasons:string[];missing:string[]};
+export type Ranked={ticker:string;name:string;year:number|null;source:string;metrics:RankMetrics;score:number|null;coverage:number;count:number;reasons:string[];missing:string[];annualFiled:string|null};
 export const defaultRankWeights:RankWeights={growth:30,fcf:35,profit:20,pe:15};
 const finite=(n:number)=>Number.isFinite(n);
 const percent=(n:number)=>Math.round(n*100)/100;
@@ -35,6 +35,9 @@ export function deriveRankingMetrics(company:SecCompany,pe:number|null=null):Ran
 function validPe(pe:number|null):number|null{return pe!==null&&finite(pe)&&pe>0&&pe<=1000?pe:null}
 export function scoreCompany(company:SecCompany,weights:RankWeights,manualPe:number|null=null):Ranked{
  const metrics=deriveRankingMetrics(company,manualPe);
+ const annualFiled=company.metrics.find(m=>m.name==='Revenue')?.values.find(v=>v.year===metrics.year)?.filed??null;
+ const age=annualFiled?Date.now()-Date.parse(annualFiled+'T00:00:00Z'):NaN;
+ const stale=!Number.isFinite(age)||age>550*86400000||age<0;
  const total=Object.values(weights).reduce((sum,n)=>sum+(finite(n)&&n>0?n:0),0);
  const points:{key:keyof RankWeights;value:number|null;grade:number}[]=[
   {key:'growth',value:metrics.growth,grade:metrics.growth===null?0:normalized(metrics.growth,-10,35)},
@@ -49,11 +52,12 @@ export function scoreCompany(company:SecCompany,weights:RankWeights,manualPe:num
  const missing=active.filter(p=>p.value===null).map(p=>p.key==='growth'?'Revenue growth':p.key==='fcf'?'FCF margin':p.key==='profit'?'Net margin':'P/E (manual)');
  const reasons=observed.map(p=>(p.key==='growth'?'Revenue growth':p.key==='fcf'?'Free cash flow margin':p.key==='profit'?'Net margin':'Manually supplied P/E')+': '+(p.value===null?'unknown':p.value.toFixed(2))+(p.key==='pe'?'x':'%'));
  if(metrics.year===null)missing.push('SEC fiscal-year revenue');
+ if(stale)missing.push('Fresh SEC fiscal financials');
  const hasCore=observed.filter(p=>p.key!=='pe').length>=2;
- const eligible=total>0&&coverage>=60&&hasCore&&metrics.year!==null;
+ const eligible=total>0&&coverage>=60&&hasCore&&metrics.year!==null&&!stale;
  // Missing factors get ZERO weighted credit, not a perfect score.
  const score=eligible?Math.round(observed.reduce((sum,p)=>sum+p.grade*weights[p.key],0)/total):null;
- return {ticker:company.ticker,name:company.name,year:metrics.year,source:company.source,metrics,score,coverage,count:observed.length,reasons,missing};
+ return {ticker:company.ticker,name:company.name,year:metrics.year,source:company.source,metrics,score,coverage,count:observed.length,reasons,missing,annualFiled};
 }
 export function rankCompanies(data:SecCompany[],weights:RankWeights,pe:Record<string,number|null>={}):Ranked[]{
  return data.map(c=>scoreCompany(c,weights,pe[c.ticker]??null)).sort((a,b)=>(b.score??-1)-(a.score??-1)||b.coverage-a.coverage||a.ticker.localeCompare(b.ticker));
