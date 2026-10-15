@@ -1,3 +1,6 @@
+## 0.6.0 — in development
+SEC 8-K catalyst discovery by ticker and manual price/volume continuation worksheet. No real-time market data, alerts or trade signals; still needs local tests.
+
 ## 0.5.0 — in development
 Discovery Feed searches Crossref publication metadata, with live DOI source links and retrieval timestamps. Manual research review required; no automatic breakthroughs or public-company attribution. Pending user build/test.
 

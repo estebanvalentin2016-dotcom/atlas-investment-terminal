@@ -48,3 +48,9 @@
 - [x] Include DOI links and retrieval metadata; never invent results
 - [ ] Validate publication relevance and technical maturity
 - [ ] Link research to companies using independently supported evidence
+
+## In development — v0.6
+- [x] SEC 8-K event lookup with source links and categorized item codes
+- [x] Manual price-return and relative-volume calculation
+- [ ] Licensed or free actual market data and validated event-to-price alignment
+- [ ] Measured multi-day continuation and exit conditions
