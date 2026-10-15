@@ -9,7 +9,7 @@ export function parseAnnouncementFeed(xml,day){
   const link=tag(m[1],'link').trim();
   const pub=tag(m[1],'pubDate');
   const source=tag(m[1],'source').replace(/<[^>]*>/g,'').trim();
-  const hasExplicitTime=/\\b\\d{1,2}:\\d{2}(?::\\d{2})?\\b/.test(pub);
+  const hasExplicitTime=/\b\d{1,2}:\d{2}(?::\d{2})?\b/.test(pub);
   const date=Date.parse(pub);
   let valid=false;try{const url=new URL(link);valid=url.protocol==='https:'&&url.hostname.endsWith('google.com')}catch{}
   return {title,link:valid?link:null,source,feedPublishedAt:hasExplicitTime&&Number.isFinite(date)?new Date(date).toISOString():null,feedDateOnly:!hasExplicitTime&&Number.isFinite(date)?new Date(date).toISOString().slice(0,10):null,feedDateRaw:pub,feedTimeSource:'Google News RSS (aggregation clock; not original publisher verification)'};
