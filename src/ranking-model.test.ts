@@ -70,6 +70,18 @@ describe('SEC annual fundamental ranking model',()=>{
   expect(ranks.map(x=>x.ticker)).toEqual(['HIGH','LOW']);
   expect(ranks[0].score).toBeGreaterThan(ranks[1].score!);
  });
+ it('will not combine cash-flow figures from mismatched fiscal period ends',()=>{
+  const sample=company('MISMATCH');
+  sample.metrics.find(m=>m.name==='Capital expenditures')!.values=[{...annual(2025,8),end:'2025-09-30'}];
+  expect(deriveRankingMetrics(sample).fcf).toBeNull();
+ });
+ it('refuses to rank stale historical annual figures as fresh opportunities',()=>{
+  const sample=company('STALE');
+  for(const m of sample.metrics)m.values=m.values.map(v=>({...v,filed:'2023-01-01'}));
+  const result=scoreCompany(sample,defaultRankWeights);
+  expect(result.score).toBeNull();
+  expect(result.missing).toContain('Fresh SEC fiscal financials');
+ });
  it('rejects invented negative-capex accounting instead of boosting FCF',()=>{
   const sample=company('BAD');
   sample.metrics.find(m=>m.name==='Capital expenditures')!.values=[annual(2025,-100)];
