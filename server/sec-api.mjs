@@ -57,10 +57,11 @@ export async function handleSecRequest(req,res){
   const metrics=[
    ['Revenue',['RevenueFromContractWithCustomerExcludingAssessedTax','RevenueFromContractWithCustomerIncludingAssessedTax','RevenueFromContractWithCustomer','Revenues','SalesRevenueNet']],
    ['Net income',['NetIncomeLoss']],
+   ['Diluted EPS',['EarningsPerShareDiluted','EarningsPerShareBasicAndDiluted']],
    ['Operating cash flow',['NetCashProvidedByUsedInOperatingActivities']],
    ['Capital expenditures',['PaymentsToAcquirePropertyPlantAndEquipment']],
    ['Total assets',['Assets']],
-  ].map(([name,tags])=>{const result=selectFact(facts.facts,tags);return {name,unit:'USD',...result};});
+  ].map(([name,tags])=>{const unit=name==='Diluted EPS'?'USD/shares':'USD';const result=selectFact(facts.facts,tags,unit);return {name,unit,...result};});
   json(res,200,{ticker,name:facts.entityName||match.title,cik,source,retrievedAt:new Date().toISOString(),metrics});
  }catch(e){json(res,503,{error:e instanceof Error?e.message:'SEC data temporarily unavailable'});}
  return true;
