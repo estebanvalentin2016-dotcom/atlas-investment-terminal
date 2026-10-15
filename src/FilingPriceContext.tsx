@@ -17,7 +17,7 @@ async function getBars(ticker:string,eventDate:string):Promise<MarketResult>{
 function Leg({heading,value}:{heading:string;value:PriceLeg|null}){
  return <div className="filing-price-leg">
   <strong>{heading}</strong>
-  {value?<><p>{value.date} · Close {fmtPrice(value.close)}</p><p>BLK/stock vs baseline: {fmtPct(value.returnPct)}</p><p>SPY over matching sessions: {fmtPct(value.spyReturnPct)}</p><p>Difference from SPY: {fmtPoints(value.vsSpyPercentagePoints)}</p></>:<p>Completed matching session unavailable</p>}
+  {value?<><p>{value.date} · Close {fmtPrice(value.close)}</p><p>Stock vs baseline: {fmtPct(value.returnPct)}</p><p>SPY over matching sessions: {fmtPct(value.spyReturnPct)}</p><p>Difference from SPY: {fmtPoints(value.vsSpyPercentagePoints)}</p></>:<p>Completed matching session unavailable</p>}
  </div>;
 }
 export default function FilingPriceContext({ticker,eventDate}:{ticker:string;eventDate:string|null}){
