@@ -42,3 +42,9 @@
 - [x] Optional public ticker and browser-local persistence
 - [ ] Independently verify source content and provenance
 - [ ] Research workflows for technology-to-company economic exposure
+
+## In development — v0.5
+- [x] Search public academic publication metadata via Crossref
+- [x] Include DOI links and retrieval metadata; never invent results
+- [ ] Validate publication relevance and technical maturity
+- [ ] Link research to companies using independently supported evidence
