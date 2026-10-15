@@ -69,7 +69,7 @@ export function parse13FCoverage(xml){
   const cik=tag(item[1],'cik'),name=tag(item[1],'name');
   if(/^\d{1,10}$/.test(cik))affiliates.push({cik:String(Number(cik)),name});
  }
- return {reportType:reportType||'Unspecified 13F report type',otherIncludedManagers:[...new Map(affiliates.map(x=>[x.cik,x])).values()],reportCompleteness:reportType==='13F COMBINATION REPORT'?'COMBINATION: another manager reports additional securities; do not claim the table contains the entire firm's positions.':reportType==='13F HOLDINGS REPORT'?'HOLDINGS: report-level holdings only; private or unreported securities excluded.':'Cover type could not confirm the complete manager portfolio.'};
+ return {reportType:reportType||'Unspecified 13F report type',otherIncludedManagers:[...new Map(affiliates.map(x=>[x.cik,x])).values()],reportCompleteness:reportType==='13F COMBINATION REPORT'?'COMBINATION: another manager reports additional securities; do not claim this table contains every position held across related managers.':reportType==='13F HOLDINGS REPORT'?'HOLDINGS: report-level holdings only; private or unreported securities excluded.':'Cover type could not confirm the complete manager portfolio.'};
 }
 export async function retrieve13FCoverage(report,cik,headers){
  const base=archive(cik,report.accession),url=base+'primary_doc.xml';
