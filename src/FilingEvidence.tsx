@@ -8,7 +8,7 @@ export default function FilingEvidence({data,loading,onReview}:{data?:FilingEvid
     <p className="chart-note">This is literal phrase detection, not a verified bullish catalyst. Context, materiality, prior publication, valuation and observed price reaction remain unknown.</p>
     {data.evidence?.potential.map((item,i)=><div key={'p'+i} className="filing-evidence-excerpt"><strong>Review: {item.label}</strong><p>{item.excerpt}</p></div>)}
     {data.evidence?.cautions.map((item,i)=><div key={'c'+i} className="filing-evidence-excerpt"><strong>Caution: {item.label}</strong><p>{item.excerpt}</p></div>)}
-    {!data.evidence?.potential.length&&<p className="chart-note">No positive pattern detected. This does not prove the disclosure is immaterial or bearish.</p>}
+    {!data.evidence?.potential.length&&<p className="chart-note">{data.sourceStatus==='partial_text'?'No positive pattern in the reviewed portion. Unread later sections may contain material news.':'No positive pattern detected. This does not prove the disclosure is immaterial or bearish.'}</p>}
    </>}
   </div>}
  </div>;
