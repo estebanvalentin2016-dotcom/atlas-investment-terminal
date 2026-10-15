@@ -2,8 +2,8 @@
 
 The owner wants to build a Bloomberg-inspired investment research terminal designed to identify and evaluate high-upside publicly traded companies. The owner is not highly technical. Speak plainly, give exact commands and practical deliverables. The product should prioritize financial research quality over decorative data.
 
-Current app is ATLAS v0.1, a Vite/React/TypeScript SPA with no backend. The eight example companies, every price and every financial metric are **fictional**. Do not describe any output as real or live. Read README, ARCHITECTURE, FEATURES, CHANGELOG, and current code before changing it.
+Current main app is ATLAS v0.2, a Vite/React/TypeScript app with a local Node middleware SEC API. SEC Research fetches actual public SEC annual financial facts with dates and calculates growth/margins; the eight companies and all prices/metrics in the original demo screens remain **fictional**. No live stock prices. The v0.3 feature branch adds a side-by-side company comparison within SEC Research. Read README, ARCHITECTURE, FEATURES, CHANGELOG, and current code before changing it.
 
 Do not overwrite or break functioning screens. Preserve the investment model's correct treatment of share dilution, distinguish market cap from share price, and maintain tests. Do not disclose third-party API secrets in browser code. Build/test whenever dependencies/environment allow, and note precisely what was or was not tested. Record meaningful changes in CHANGELOG and FEATURES. Use Git to checkpoint work.
 
-Suggested next task: introduce a secure API backend for licensed live company financial statements and historical pricing, with visible source/time metadata, a robust unavailable-data state, and test coverage. Real-data API integration should be configured only once the owner chooses a provider.
+Suggested next tasks: test and finalize the v0.3 two-company SEC comparison, improve SEC fiscal period correctness and comparability, then evaluate licensed historical market price feeds. Keep secrets server-side. Do not represent SEC filing data as live stock quotations.

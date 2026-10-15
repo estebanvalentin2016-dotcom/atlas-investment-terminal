@@ -2,7 +2,7 @@
 
 A working, browser-based investment research prototype built with React, TypeScript, and Vite.
 
-**Current stable release: v0.1.0 — DEMO ONLY.** The v0.2 feature branch adds a separate SEC Research preview, documented in [SEC_RESEARCH.md](SEC_RESEARCH.md). Every company, price series, financial metric, market cap, and ticker is fictional. It has no live market data. This is deliberate: the app should never confuse invented inputs with actual investment information.
+**Current stable release: v0.2 SEC Research preview.** The original Overview, Screener, Company Research, Valuation Lab, and Watchlist screens still use entirely fictional demo companies and prices. Only SEC Research loads genuine SEC-reported annual financial facts. There are no live stock quotes. See [SEC_RESEARCH.md](SEC_RESEARCH.md). The v0.3 branch introduces two-company comparison.
 
 ## Quick start
 
@@ -21,7 +21,8 @@ A working, browser-based investment research prototype built with React, TypeScr
 - **Watchlist:** save/remove companies and revisit your research.
 - **Local persistence:** investment notes, watchlist, and valuation assumptions use browser `localStorage`.
 - **Responsive layout:** desktop and mobile screens.
-- **Automated tests:** core financial model with Vitest.
+- **SEC Research:** real annual financial statements and calculated financial trends with SEC source links (requires a local `.env` SEC contact identifier).
+- **Automated tests:** core financial model, SEC parser, and financial insights with Vitest.
 
 ## Commands
 
