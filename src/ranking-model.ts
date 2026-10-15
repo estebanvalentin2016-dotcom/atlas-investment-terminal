@@ -1,7 +1,7 @@
 // Transparent first-stage SEC research ranking. Not a statistically validated
 // return model. Missing inputs never earn points and are ALWAYS disclosed.
 export type Annual={year:number;end:string;filed:string;value:number;form:string;accession:string;tag?:string};
-export type SecMetric={name:string;values:Annual[]};
+export type SecMetric={name:string;values:Annual[];tag?:string|null;quality?:string;selectionNote?:string;alternativeTags?:string[]};
 export type SecCompany={ticker:string;name:string;source:string;retrievedAt:string;metrics:SecMetric[]};
 export type RankWeights={growth:number;fcf:number;profit:number;pe:number};
 export type RankMetrics={year:number|null;growth:number|null;fcfMargin:number|null;profitMargin:number|null;pe:number|null;fcf:number|null;revenue:number|null;capex:number|null};
@@ -69,7 +69,9 @@ export function scoreCompany(company:SecCompany,weights:RankWeights,manualPe:num
  if(metrics.year===null)missing.push('SEC fiscal-year revenue');
  if(stale)missing.push('Fresh SEC fiscal financials');
  const hasCore=observed.filter(p=>p.key!=='pe').length>=2;
- const eligible=total>0&&coverage>=60&&hasCore&&metrics.year!==null&&!stale;
+ const suspicious=metrics.fcfMargin!==null&&metrics.fcfMargin>100;
+ if(suspicious)missing.push('FCF exceeds annual revenue — verify issuer accounting concepts and one-off cash flows');
+ const eligible=total>0&&coverage>=60&&hasCore&&metrics.year!==null&&!stale&&!suspicious;
  // Missing factors get ZERO weighted credit, not a perfect score.
  const score=eligible?Math.round(observed.reduce((sum,p)=>sum+p.grade*weights[p.key],0)/total):null;
  return {ticker:company.ticker,name:company.name,year:metrics.year,source:company.source,metrics,score,coverage,count:observed.length,reasons,missing,annualFiled};
