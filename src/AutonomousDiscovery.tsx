@@ -4,6 +4,7 @@ import {initialAutonomousScreen,scanCounts,type ScreenResult} from './autonomous
 import {flagIndicativeFyValuation} from './valuation-triage';
 import SurvivalEvidencePanel from './SurvivalEvidencePanel';
 import MarketCapEvidencePanel from './MarketCapEvidencePanel';
+import FinancingAutomationPanel from './FinancingAutomationPanel';
 import PriceHistoryPanel from './PriceHistoryPanel';
 import {assessPriceHistory,combineResearchPriority,type HistoricalPriceResponse,type PriceHistoryAssessment} from './price-history-model';
 type Listed={ticker:string;name:string;cik:number};
@@ -152,6 +153,7 @@ export default function AutonomousDiscovery({onResearch,onConviction}:{onResearc
      <PriceHistoryPanel ticker={item.company.ticker} history={item.history} assessment={item.trend} asOf={easternDate()}/>
      {item.historyIssue&&<p className="chart-note"><strong>Historical source limitation:</strong> {item.historyIssue}</p>}
      <MarketCapEvidencePanel company={item.company} quote={item.quote} asOf={easternDate()}/>
+     <FinancingAutomationPanel company={item.company} asOf={easternDate()}/>
      <SurvivalEvidencePanel company={item.company} asOf={item.quote?.sessionDate??easternDate()}/>
      <details className="atlas-details"><summary>Verify SEC revenue, cash flow and calculated margins</summary>{(()=>{const m=deriveRankingMetrics(item.company);const tag=item.company.metrics.find(x=>x.name==='Revenue');const annual=tag?.values.find(x=>x.year===m.year);const prior=tag?.values.find(x=>x.year===(m.year??0)-1);return <><p><strong>Selected revenue field:</strong> {tag?.tag??'Not identified'} · {tag?.selectionNote??'Original SEC source must be checked'}</p><p><strong>Same-tag consolidated-scale revenue:</strong> current FY {dollars(m.revenue)} · prior FY {dollars(prior?.value??null)} · period end {annual?.end??'unknown'}.</p><p><strong>Operating cash flow:</strong> {dollars(item.company.metrics.find(x=>x.name==='Operating cash flow')?.values.find(x=>x.end===annual?.end)?.value??null)} · <strong>Capex:</strong> {dollars(m.capex)} · <strong>FCF after capex:</strong> {dollars(m.fcf)}.</p><p><strong>Calculation:</strong> revenue growth = current annual revenue / prior annual revenue − 1; FCF margin = (operating cash flow − capex) / revenue. Values are SEC facts, not independently normalized recurring earnings.</p><p><a href={item.company.source} target="_blank" rel="noopener noreferrer">Inspect original SEC tagged financial facts ↗</a></p></>})()}</details>
      <p className="chart-note"><strong>FY filing:</strong> {item.screen.filed??'Unknown'}. <strong>Reason surfaced:</strong> {item.screen.reasons.join('; ')}. {item.priceIssue||item.valuation?.reason||'Price-sensitive earnings valuation incomplete.'}</p>
