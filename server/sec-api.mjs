@@ -58,6 +58,7 @@ export async function handleSecRequest(req,res){
    ['Revenue',['RevenueFromContractWithCustomerExcludingAssessedTax','RevenueFromContractWithCustomerIncludingAssessedTax','RevenueFromContractWithCustomer','Revenues','SalesRevenueNet']],
    ['Net income',['NetIncomeLoss']],
    ['Operating cash flow',['NetCashProvidedByUsedInOperatingActivities']],
+   ['Capital expenditures',['PaymentsToAcquirePropertyPlantAndEquipment']],
    ['Total assets',['Assets']],
   ].map(([name,tags])=>{const result=selectFact(facts.facts,tags);return {name,unit:'USD',...result};});
   json(res,200,{ticker,name:facts.entityName||match.title,cik,source,retrievedAt:new Date().toISOString(),metrics});
