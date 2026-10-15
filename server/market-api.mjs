@@ -31,7 +31,9 @@ export async function handleValuationPriceRequest(req,res){
  if(prior&&Date.now()-prior.at<10*60000){json(res,200,prior.body);return true}
  try{
   const now=Date.now();
-  const easternToday=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(now));
+  const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(now));
+  const dateParts=Object.fromEntries(parts.filter(p=>p.type!=='literal').map(p=>[p.type,p.value]));
+  const easternToday=dateParts.year+'-'+dateParts.month+'-'+dateParts.day;
   const start=new Date(now-25*86400000).toISOString();
   const end=new Date(now-20*60000).toISOString();
   const target=new URL(HOST+encodeURIComponent(ticker)+'/bars');
