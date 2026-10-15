@@ -367,3 +367,20 @@ th{font-size:12px}td{font-size:14px}
 .atlas-survival-panel .atlas-details a{color:#a9deff}
 .atlas-survival-warning{background:#392921;border:1px solid #9d674c;border-radius:9px;padding:12px;font-size:15px;line-height:1.6}
 @media(max-width:600px){.atlas-survival-metrics{grid-template-columns:minmax(0,1fr)}.atlas-survival-panel{padding:12px}}
+
+/* Conviction gaps explain product automation status, not user homework. */
+.atlas-gates-explainer{font-size:16px;line-height:1.6;padding:13px 15px;border-left:3px solid #7bb9de;background:#1b384b;color:#d7e9f4}
+.atlas-gate-heading{display:flex;align-items:start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.atlas-gate-heading>strong{font-size:17px;line-height:1.45}
+.atlas-gate-progress{display:inline-block;font-size:13px;font-weight:850;letter-spacing:.1px;padding:4px 9px;border:1px solid;border-radius:7px;white-space:nowrap}
+.atlas-progress-verified{background:#1b4033;border-color:#6fae8d;color:#aeefc7}
+.atlas-progress-partially_sourced{background:#342c20;border-color:#ad9161;color:#ffdeac}
+.atlas-progress-engine_pending{background:#26374b;border-color:#6c92ab;color:#c0e3ff}
+.atlas-progress-source_unavailable{background:#442729;border-color:#aa676d;color:#ffc5c7}
+.atlas-conviction-funding{padding:18px;border-radius:11px;display:grid;gap:10px;border:1px solid #577a92;background:#19334a}
+.atlas-conviction-funding>strong{font-size:clamp(21px,2.4vw,27px);line-height:1.3}
+.atlas-conviction-funding p{font-size:16px;line-height:1.6;margin:0}
+.atlas-conviction-funding.atlas-funding-alert{border:2px solid #df777b;background:#3d252c}
+.atlas-conviction-funding.atlas-funding-alert>strong{color:#ffb5b8}
+.atlas-conviction-funding.atlas-funding-neutral>strong{color:#deecf7}
+@media(max-width:640px){.atlas-gate-heading{display:grid;gap:7px}.atlas-gate-progress{justify-self:start}}
