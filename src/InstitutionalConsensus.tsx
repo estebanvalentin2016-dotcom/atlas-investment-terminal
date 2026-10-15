@@ -4,7 +4,7 @@ type Report={period:string;filed:string;sourceUrl:string};
 type Position={key:string;cusip:string;issuer:string;className:string;shares:number;previousShares:number|null;portfolioPct:number|null;change:InstitutionRecord['change']};
 type ManagerResponse={cik:string;manager:string;latest:Report;previous:Report;rows:Position[];error?:string};
 const count=(n:number)=>n.toLocaleString('en-US',{maximumFractionDigits:0});
-export default function InstitutionalConsensus(){
+export default function InstitutionalConsensus({onInvestigate}:{onInvestigate?:(issuer:string)=>void}={}){
  const [ciks,setCiks]=useState('1743937, 1418814');
  const [managers,setManagers]=useState<ManagerResponse[]>([]);
  const [errors,setErrors]=useState<string[]>([]);
@@ -60,6 +60,7 @@ export default function InstitutionalConsensus(){
    <strong>{filtered.length} issuer/security groups match your filters</strong>
    {shown.map(group=><article className="atlas-consensus-security" key={group.asOfDate+'|'+group.key}>
     <div className="atlas-consensus-header"><div><strong>{group.issuer}</strong><small>{group.className} · CUSIP {group.cusip} · as of {group.asOfDate}</small></div><div><strong>{group.reportedManagers} reporting manager{group.reportedManagers===1?'':'s'}</strong><small>{group.provisionalInterest} new/increased position signal{group.provisionalInterest===1?'':'s'}</small></div></div>
+    {onInvestigate&&<button className="button secondary" type="button" onClick={()=>onInvestigate(group.issuer)}>Research issuer name → verify ticker</button>}
     <p className="atlas-summary-line"><strong>Confirmed independent active buyers:</strong> {group.signal==='verified_active_convergence'?group.verifiedActiveFamilies+' verified families':'Not established'}. <strong>Passive/index and affiliation checks:</strong> not verified by 13F alone.</p>
     <details className="atlas-details"><summary>Inspect manager filings and dates ({group.reporters.length})</summary>
      {group.reporters.map(row=><p key={row.managerCik+'|'+row.key}><strong>{row.managerName}</strong> · {row.change.replaceAll('_',' ')} · current shares {count(row.shares)} · prior shares {row.priorShares===null?'not reported':count(row.priorShares)} · filed {row.publishedDate} · <a href={row.sourceUrl} target="_blank" rel="noopener noreferrer">Original SEC 13F ↗</a></p>)}
