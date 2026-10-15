@@ -116,3 +116,22 @@ Next priority: learn from this failure—expand comparable-concept validation ac
 - Regression tests protect missing data, mismatched fiscal periods, future-only filings, negative operating FCF, share-trend interpretation and no unsupported buy ratings.
 
 **Next stage:** obtain validated as-of shares outstanding (including multiple classes/splits), current market capitalization, net debt/lease/convertible obligations, near-term maturities, quarter-over-quarter cash-burn data, and dilution-aware five-year per-share scenario modeling. A visually impressive annual cash balance is not proof of survival.
+
+## Side validation case — AAOI / Conviction Lab growth versus financing risk (not a change of P0 priority)
+
+User supplied the current local **Conviction Lab** output for **Applied Optoelectronics (AAOI)**, from ATLAS SEC companyfacts for CIK **0001158114**, FY2025 filed **2026-02-26** and IEX close **2026-10-14**. The *local display* reports:
+- Revenue growth **+82.8%** (high expansion).
+- Operating free cash flow after capex **−$353,576,000**; margin **−77.6%** (material capital consumption; not independently reconciled to the 10-K yet).
+- P/E **not computable**, IEX close **$86.22** at 2026-10-14.
+- **4/11 verification gates** backed by the available SEC/price evidence; the app correctly returns **INSUFFICIENT EVIDENCE**. This count measures availability of evidence, **not** financial quality or a 4/11 investment rating.
+- The screenshot's survival gate still says "Balance-sheet and financing risk engine not yet connected." The latest branch now has an annual SEC cash/debt/dilution evidence panel. Check whether the user's local pull includes that update; it does not establish complete survival or solvency even once visible.
+
+**Concrete questions to validate for AAOI (keep alongside main autonomous-discovery pipeline):**
+1. Reconcile FY2025 **consolidated revenue, operating cash flow and capex** to AAOI's original 10-K and identify why free cash flow is so negative (growth capex, working-capital build, recurring operating losses, or unusual investing activities). Differentiate capital-intensive expansion from permanent operating impairment; do not presume the explanation.
+2. Source balance-sheet cash and cash equivalents at exact period-end, subsequent quarterly changes, borrowings and commitments, maturity schedule, pledged securities, purchase obligations, convertibles and refinancing needs. Calculate funding gap scenarios (not just simplistic cash / annual FCF).
+3. Verify basic and diluted shares currently outstanding at price date, issued shares, historical dilution, equity-linked securities, warrants and future fund-raise needs. A historical weighted-average diluted share count must not be treated as current outstanding shares.
+4. Quantify what **$86.22 stock price** implies using dated current market cap/enterprise value, normalized margins and actual cash flow. Run five-year **bear/base/bull/moonshot per-share** scenarios with explicit capital investment, growth, dilution and terminal-multiple assumptions. No valuation conclusion without reconciled shares and liabilities.
+5. Test durability of optical-connectivity demand, customer concentration, order conversion, capacity buildout and competitive threats using issuer filings and independently sourced material. High reported revenue growth does not imply a defensible moat.
+6. Display **negative cash flow in red** and a visible "Growth versus funding" risk warning directly on the Conviction Lab summary even when other evidence gates are verified. Keep **INSUFFICIENT EVIDENCE** until risk/valuation gates actually pass.
+
+AAOI is a useful **high-growth, capital-consuming stress test**, not a recommendation, and should help tune screening for investable high-upside suppliers without incorrectly rejecting *all* negative-FCF technology businesses. **P0 remains zero-ticker Autonomous Discovery**, with AAOI as a named test fixture for the broader survival/dilution work.
