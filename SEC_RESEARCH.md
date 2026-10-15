@@ -26,3 +26,7 @@ The Node/Vite development server calls the SEC. Your browser calls only your loc
 - `SEC_USER_AGENT` stays on the server; never use `VITE_` for confidential settings.
 
 Run `npm.cmd run build` and `npm.cmd run test` to validate on your machine.
+
+## Automated insights
+
+The SEC Research tab now calculates year-over-year revenue growth, three-year revenue CAGR, net income margin, and operating cash flow divided by revenue. Missing or unmatched fiscal periods display N/A. It also charts reported values by fiscal year. These are calculated analytics rather than SEC-reported ratios, and operating cash flow is not free cash flow.
