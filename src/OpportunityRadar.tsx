@@ -1,46 +1,35 @@
 import {useEffect,useState} from 'react';
-// @ts-ignore JavaScript-only transparent research triage.
-import {STARTER_UNIVERSE,triageFilings} from './opportunity-triage.mjs';
-type Filing={acceptedAt:string|null;items:string;accession:string;url:string};
-type SecResult={ticker:string;name:string;filings:Filing[]};
-type Candidate={ticker:string;name:string;acceptedAt:string;accession:string;url:string;kind:string;daysOld:number};
+type Lead={ticker:string;name:string;form:string;filed:string;url:string;kind:string};
+type Response={rows:Lead[];matchedFilings:number;successfulDays:number;errorDays:string[];retrievedAt:string;scope:string;note:string;error?:string};
 export default function OpportunityRadar(){
- const [rows,setRows]=useState<Candidate[]>([]);
- const [scanned,setScanned]=useState(0);
- const [errors,setErrors]=useState<string[]>([]);
+ const [result,setResult]=useState<Response|null>(null);
+ const [error,setError]=useState('');
  const [loading,setLoading]=useState(false);
- const [completed,setCompleted]=useState(false);
- const [started,setStarted]=useState(false);
  async function scan(){
-  setStarted(true);setLoading(true);setCompleted(false);setScanned(0);setRows([]);setErrors([]);
-  const fetched:SecResult[]=[];const failures:string[]=[];
-  // Sequential requests keep traffic modest under SEC rate limits.
-  for(const ticker of STARTER_UNIVERSE as string[]){
-   try{
-    const r=await fetch('/api/catalyst/sec?ticker='+encodeURIComponent(ticker));
-    const data=await r.json() as SecResult&{error?:string};
-    if(!r.ok)throw Error(data.error||'Source unavailable');
-    fetched.push(data);
-   }catch(e){failures.push(ticker+': '+(e instanceof Error?e.message:'Request failed'))}
-   setScanned(fetched.length+failures.length);
-   setRows(triageFilings(fetched) as Candidate[]);
-   setErrors([...failures]);
-  }
-  setCompleted(true);setLoading(false);
+  setLoading(true);setError('');
+  try{
+   const r=await fetch('/api/opportunities/sec-wide');
+   const data=await r.json() as Response;
+   if(!r.ok)throw Error(data.error||'Market-wide SEC feed unavailable');
+   setResult(data);
+  }catch(e){setResult(null);setError(e instanceof Error?e.message:'SEC-wide discovery failed')}
+  finally{setLoading(false)}
  }
  useEffect(()=>{void scan()},[]);
  return <section className="panel real-panel opportunity-radar">
-  <div className="panel-head"><div><span className="eyebrow">ATLAS / OPPORTUNITY DISCOVERY</span><h3>Automatic catalyst queue</h3></div><span className="tag">SEC evidence · not buy signals</span></div>
-  <p className="description">ATLAS automatically checks eight publicly traded companies for SEC earnings disclosures and material agreements from the past 14 days. Recent earnings appear first for review. Filing categories are NOT evidence of positive earnings, attractive valuation or remaining upside.</p>
-  <div className="opportunity-toolbar"><strong>{loading?'Scanning public filings…':completed?'Scan complete':started?'Starting scan…':'Preparing scan'}</strong><span>{scanned} / {STARTER_UNIVERSE.length} companies checked</span><button type="button" className="button" onClick={()=>void scan()} disabled={loading}>{loading?'Scanning…':'Refresh research queue'}</button></div>
-  {errors.length>0&&<details className="opportunity-errors"><summary>{errors.length} source error(s) — affected tickers were excluded</summary>{errors.map(e=><p key={e}>{e}</p>)}</details>}
-  {rows.length>0?<div className="opportunity-list">{rows.map(r=><article className="opportunity-candidate" key={r.ticker+r.accession}>
-   <div className="opportunity-top"><strong>{r.ticker}</strong><span>{r.kind}</span></div>
+  <div className="panel-head"><div><span className="eyebrow">ATLAS / OPPORTUNITY DISCOVERY</span><h3>Market-wide SEC catalyst feed</h3></div><span className="tag">Fresh filing leads · not buy signals</span></div>
+  <p className="description">Automatically discover recent 8-K disclosures across companies in the SEC ticker index. Scans the previous seven calendar days of SEC daily filing indexes, not just eight hand-picked companies. These are event leads; the filings have not yet been evaluated for bullish fundamentals or remaining upside.</p>
+  <div className="opportunity-toolbar"><strong>{loading?'Retrieving SEC filing indexes…':result?'Market-wide scan complete':'Waiting for scan'}</strong>{result&&<span>{result.matchedFilings} indexed 8-K filings · {result.successfulDays} daily indexes retrieved</span>}<button type="button" className="button" onClick={()=>void scan()} disabled={loading}>{loading?'Scanning…':'Refresh research queue'}</button></div>
+  {error&&<p className="real-error" role="alert">{error}</p>}
+  {result&&result.errorDays.length>0&&<details className="opportunity-errors"><summary>Partial coverage: {result.errorDays.length} SEC retrieval issue(s)</summary>{result.errorDays.map(e=><p key={e}>{e}</p>)}</details>}
+  {result&&result.rows.length>0&&<div className="opportunity-list">{result.rows.map(r=><article className="opportunity-candidate" key={r.url}>
+   <div className="opportunity-top"><strong>{r.ticker}</strong><span>{r.form} · Awaiting substance review</span></div>
    <h4>{r.name}</h4>
-   <p>SEC accepted {new Date(r.acceptedAt).toLocaleString('en-US',{timeZone:'America/New_York',timeZoneName:'short'})} · {r.daysOld.toFixed(1)} days ago</p>
-   <p className="opportunity-uncertainty">Bullishness: <strong>Not assessed</strong> · Remaining upside: <strong>Unknown</strong> · Robinhood entry: <strong>Unverified</strong></p>
-   <a href={r.url} target="_blank" rel="noopener noreferrer">Inspect original SEC filing ↗</a>
-  </article>)}</div>:<p className="chart-note">{completed?'No qualifying recent filings in the checked universe. This is not evidence that no opportunities exist.':'Results will appear as sources respond.'}</p>}
-  <p className="chart-note">Discovery universe is a starter set, not the whole market. Results are SEC filing events, not assessed bullish opportunities. The scan runs when you open this screen and on manual refresh; it does not run when ATLAS is closed. No prices, news sentiment, execution checks or real-time alerts are incorporated in this first queue.</p>
+   <p>Filed {r.filed} · Indexed 8-K disclosure</p>
+   <p className="opportunity-uncertainty">Bullish catalyst: <strong>Unverified</strong> · Remaining upside: <strong>Unknown</strong> · Entry viability: <strong>Unknown</strong></p>
+   <a href={r.url} target="_blank" rel="noopener noreferrer">Read indexed SEC filing ↗</a>
+  </article>)}</div>}
+  {result&&!result.rows.length&&<p className="chart-note">No matched 8-K filings in retrieved SEC indexes. This does not imply that no market opportunities exist.</p>}
+  <p className="chart-note">Displays up to 40 newest matching filings, sorted by filing date—not by forecast profit. Excludes non-indexed tickers, non-8-K documents and sources the SEC does not provide through daily indexes. Daily filings do not contain reliable announcement minutes. There is no live-price check, profitability assessment, background monitoring or Robinhood execution verification in this phase.</p>
  </section>;
 }
