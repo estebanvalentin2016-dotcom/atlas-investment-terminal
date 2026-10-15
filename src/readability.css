@@ -167,3 +167,53 @@ th{font-size:12px}td{font-size:14px}
 .atlas-topic-row span,.atlas-topic-row small{font-size:14px;color:#bed5e6}
 .atlas-topic-lab .atlas-summary-line{padding:0 22px}
 @media(max-width:750px){.atlas-live-details,.atlas-live-saved,.atlas-live-matches,.atlas-topic-news,.atlas-topic-ranked{margin-left:12px;margin-right:12px}.atlas-topic-row{flex-wrap:wrap}.atlas-topic-row>div:last-child{text-align:left}}
+
+/* Conviction-first workspace navigation and research funnel. */
+.sidebar nav[aria-label="ATLAS workspace"]{display:block;overflow-y:auto;min-height:0;flex:1;padding-bottom:12px}
+.atlas-nav-group{margin:5px 0 18px}
+.atlas-nav-group .side-label{padding:8px 18px 7px;font-size:12px;font-weight:800;letter-spacing:.75px;color:#8eb5d4}
+.atlas-nav-group .navitem,.atlas-demo-nav .navitem{width:100%;min-height:47px;text-align:left;font-size:15px}
+.atlas-demo-nav{margin:9px 7px 16px;padding:6px 8px;border:1px solid #586275;border-radius:10px;background:#172332}
+.atlas-demo-nav>summary{cursor:pointer;padding:9px 5px;font-size:13px;line-height:1.4;font-weight:800;letter-spacing:.4px;color:#c2d0de}
+.atlas-demo-nav .navitem{font-size:14px}
+.atlas-research-home{display:grid;gap:20px}
+.atlas-home-mission{border:1px solid #476d8d;border-radius:15px;background:linear-gradient(130deg,#1b3953,#132437);padding:28px;display:grid;gap:14px;justify-items:start}
+.atlas-home-mission h2{font-size:clamp(30px,3.3vw,46px);line-height:1.18;max-width:850px;margin:0;color:#f6fbff}
+.atlas-home-mission h2 em{font-style:normal;color:#7fc8ff}
+.atlas-home-mission p{max-width:790px;font-size:18px;line-height:1.55;color:#dfebf5;margin:0}
+.atlas-home-journey{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.atlas-home-stage{min-width:0;display:grid;grid-template-columns:46px minmax(0,1fr);gap:12px;padding:20px;border-radius:13px;border:1px solid #43637f;background:#152c40;align-content:start}
+.atlas-stage-number{font-size:29px;font-weight:800;line-height:1.1;color:#8fc9f2}
+.atlas-home-stage h3{font-size:25px;margin:0 0 5px;color:#f1f8ff}
+.atlas-home-stage p{font-size:16px;line-height:1.55;margin:0 0 8px;color:#c9dbe9}
+.atlas-home-stage small{font-size:14px;color:#a8cee7}
+.atlas-home-stage .button{grid-column:2;justify-self:start}
+.atlas-home-boundaries{border:1px solid #456783;border-radius:12px;padding:20px;display:grid;gap:10px;justify-items:start;background:#182d42}
+.atlas-home-boundaries>strong{font-size:21px}
+.atlas-home-boundaries p{font-size:16px;line-height:1.55;margin:0}
+.atlas-conviction-lab{display:grid;gap:14px}
+.atlas-conviction-lab>.description,.atlas-conviction-lab>.atlas-ranking-controls,.atlas-conviction-lab>.real-error,.atlas-conviction-lab>.opportunity-uncertainty{margin:0 22px}
+.atlas-conviction-lab>.atlas-ranking-controls{margin-top:4px}
+.atlas-conviction-intro,.atlas-conviction-result{margin:8px 22px 22px;border:1px solid #506d89;border-radius:13px;padding:18px;background:#142b40;display:grid;gap:16px}
+.atlas-conviction-intro>strong{font-size:22px}
+.atlas-conviction-intro p,.atlas-conviction-result p{font-size:16px;line-height:1.55;margin:0}
+.atlas-conviction-verdict{display:grid;gap:9px;padding:18px;border:1px solid #84704d;border-radius:11px;background:#29271f}
+.atlas-conviction-verdict>span{font-size:15px;color:#e6decc}
+.atlas-conviction-verdict>strong{font-size:clamp(23px,2.8vw,32px);line-height:1.25;color:#f4db9b;overflow-wrap:anywhere}
+.atlas-conviction-count{display:flex;gap:13px;align-items:center}
+.atlas-conviction-count strong{font-size:35px;color:#e3f5ff}
+.atlas-conviction-count span{font-size:16px;color:#bbd4e6}
+.atlas-conviction-gates{display:grid;gap:8px}
+.atlas-conviction-gates>div{background:#1a354b;border:1px solid #496982;border-radius:8px;padding:13px}
+.atlas-conviction-gates strong{font-size:16px;color:#f0f7ff}
+.atlas-conviction-gates p{color:#bfd4e5;font-size:14px;margin:5px 0 0;overflow-wrap:anywhere}
+.atlas-conviction-thesis{display:grid;gap:13px}
+.atlas-conviction-thesis>strong{font-size:20px}
+.atlas-conviction-thesis label{display:grid;gap:8px;font-size:16px;font-weight:700}
+.atlas-conviction-thesis textarea{width:100%;border:1px solid #708ea8;border-radius:8px;padding:12px;background:#182f46;color:#f2f9ff;font:inherit;font-size:16px;line-height:1.55;resize:vertical}
+.atlas-conviction-thesis>.button{justify-self:start}
+.atlas-thesis-history{padding:11px 0;border-bottom:1px solid #496982;display:grid;gap:6px}
+.atlas-thesis-history strong{font-size:15px}
+.atlas-thesis-history p{font-size:15px}
+@media(max-width:800px){.atlas-home-journey{grid-template-columns:minmax(0,1fr)}.atlas-home-mission{padding:20px}.atlas-home-stage{padding:16px}}
+@media(max-width:630px){.atlas-conviction-intro,.atlas-conviction-result{margin:6px 10px 15px;padding:13px}.atlas-conviction-lab>.description,.atlas-conviction-lab>.atlas-ranking-controls{margin-left:10px;margin-right:10px}}
