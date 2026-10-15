@@ -8,3 +8,6 @@ SEC reported annual company data, source links, trend charts, calculated growth 
 
 ## 0.1.0 — 2026-10-14
 Initial working prototype: responsive research terminal, demo screener, research pages, valuation lab, watchlist, local storage, CSV export and financial calculation tests. All market inputs fictional.
+
+## 0.4.0 — in development
+Add Breakthrough Radar: manually record technology hypotheses, sources, commercial milestones and counterevidence, with local persistence and URL validation. No automatic discovery, scoring, or valuation. Pending user build/test and review.
