@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import IntradayAvailability from './IntradayAvailability';
+import PublicationTimeline from './PublicationTimeline';
 // @ts-ignore JavaScript-only research helpers.
 import {eventStudy,easternClock} from './event-study.mjs';
 // @ts-ignore JS-only benchmark comparator.
@@ -50,6 +51,7 @@ export default function EventReaction({ticker,acceptedAt}:{ticker:string;accepte
      <strong>Performance relative to SPY (percentage points)</strong>
      <p>ATLAS subtracts SPY's simple return over matching sessions. Positive means outperformance, not necessarily a positive stock return.</p>
      {benchmark?<><div className="event-reaction-grid">{horizons.map(([key,label])=><div className={`event-reaction-card event-reaction-${tone(benchmark.relative[key])}`} key={key}><span>{label} vs SPY</span><strong>{pct(benchmark.relative[key])}</strong></div>)}</div><p>Post-first-close relative to SPY: Session 3 <b>{pct(benchmark.continuation.day3)}</b> · Session 5 <b>{pct(benchmark.continuation.day5)}</b></p></>:<p>SPY comparison unavailable{benchmarkNote?': '+benchmarkNote:''}.</p>}
+     {study.firstSession&&<PublicationTimeline session={study.firstSession} secAcceptedAt={acceptedAt}/>}
      {study.firstSession&&<IntradayAvailability ticker={ticker} session={study.firstSession}/>}
      <strong>Observed intraday range relative to reference close</strong>
      <div className="event-excursion-grid">{horizons.map(([key,label])=><div className="event-excursion-card" key={key}><span>{label}</span><div><span>Highest high</span><b className={`event-${tone(study.excursions?.[key]?.highPct??null)}`}>{pct(study.excursions?.[key]?.highPct??null)}</b></div><div><span>Lowest low</span><b className={`event-${tone(study.excursions?.[key]?.lowPct??null)}`}>{pct(study.excursions?.[key]?.lowPct??null)}</b></div></div>)}</div></>:<p>{study.reason}</p>}
