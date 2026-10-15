@@ -4,6 +4,8 @@ import SurvivalEvidencePanel from './SurvivalEvidencePanel';
 import MarketCapEvidencePanel from './MarketCapEvidencePanel';
 import FinancingAutomationPanel from './FinancingAutomationPanel';
 import OperatingScenariosPanel from './OperatingScenariosPanel';
+import PriceHistoryPanel from './PriceHistoryPanel';
+import {assessPriceHistory,type HistoricalPriceResponse,type PriceHistoryAssessment} from './price-history-model';
 import {draftIssuerThesis} from './automatic-thesis';
 import type {MarketValuationClose,SecCompany} from './ranking-model';
 type ThesisVersion={ticker:string;createdAt:string;thesis:string;invalidation:string;verdict:'INSUFFICIENT EVIDENCE'};
@@ -20,6 +22,9 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
  const [ticker,setTicker]=useState(initialTicker);
  const [company,setCompany]=useState<SecCompany|null>(null);
  const [marketQuote,setMarketQuote]=useState<MarketValuationClose|null>(null);
+ const [historical,setHistorical]=useState<HistoricalPriceResponse|null>(null);
+ const [priceHistoryAssessment,setPriceHistoryAssessment]=useState<PriceHistoryAssessment|null>(null);
+ const [historicalIssue,setHistoricalIssue]=useState('');
  const [assessment,setAssessment]=useState<ConvictionAssessment|null>(null);
  const [marketIssue,setMarketIssue]=useState('');
  const [error,setError]=useState('');
@@ -31,7 +36,7 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
  async function investigate(e:FormEvent){
   e.preventDefault();
   const symbol=ticker.trim().toUpperCase();
-  setError('');setMarketIssue('');setCompany(null);setMarketQuote(null);setAssessment(null);setSavedMessage('');setThesis('');setInvalidation('');
+  setError('');setMarketIssue('');setHistoricalIssue('');setHistorical(null);setPriceHistoryAssessment(null);setCompany(null);setMarketQuote(null);setAssessment(null);setSavedMessage('');setThesis('');setInvalidation('');
   if(!/^[A-Z0-9.-]{1,12}$/.test(symbol)){setError('Enter a valid stock ticker.');return}
   setLoading(true);
   try{
@@ -46,10 +51,20 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
     market=body;
    }catch(e){setMarketIssue(e instanceof Error?e.message:'IEX close unavailable')}
    const asOf=nyToday();
+   let priceHistory:HistoricalPriceResponse|null=null;
+   try{
+    const h=await fetch('/api/market/long-history?ticker='+encodeURIComponent(symbol));
+    const body=await h.json() as HistoricalPriceResponse&{error?:string};
+    if(!h.ok||body.ticker!==symbol||body.provider!=='Alpaca'||body.feed!=='IEX'||!Array.isArray(body.bars))throw Error(body.error||'Completed historical IEX prices unavailable');
+    priceHistory=body;
+   }catch(e){setHistoricalIssue(e instanceof Error?e.message:'Completed historical prices unavailable')}
+   const trend=assessPriceHistory(priceHistory,asOf);
    const check=assessConvictionReadiness(sec,market,asOf);
-   const draft=draftIssuerThesis(sec,check,market,asOf);
+   const draft=draftIssuerThesis(sec,check,market,asOf,trend);
    setCompany(sec);
    setMarketQuote(market);
+   setHistorical(priceHistory);
+   setPriceHistoryAssessment(trend);
    setAssessment(check);
    setThesis(draft.thesis);
    setInvalidation(draft.invalidation);
@@ -90,6 +105,8 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
     {assessment.fundingRisk.status!=='nonnegative_fcf'&&<p><strong>Research priority:</strong> Explain where the cash went, whether growth investment is productive, what funding is available, and how future share issuance could affect your ownership.</p>}
    </section>}
    <OperatingScenariosPanel company={company} asOf={nyToday()}/>
+   <PriceHistoryPanel ticker={company.ticker} history={historical} assessment={priceHistoryAssessment??undefined} asOf={nyToday()}/>
+   {historicalIssue&&<p className="chart-note"><strong>Historical market-data limitation:</strong> {historicalIssue}</p>}
    <MarketCapEvidencePanel company={company} quote={marketQuote} asOf={nyToday()}/>
    <FinancingAutomationPanel company={company} asOf={nyToday()}/>
    <details className="atlas-details"><summary>Historical annual cash and dilution audit</summary><SurvivalEvidencePanel company={company} asOf={assessment.observed.asOfDate??nyToday()}/></details>
@@ -101,8 +118,8 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
    <div className="atlas-conviction-thesis">
     <strong>ATLAS automatically prepared a research thesis and invalidation checklist</strong>
     <p className="chart-note">These editable notes come from available issuer evidence and known research gaps, not from an independently verified fair-value or competitive-moat engine. Saving remains optional; automatic monitoring is not enabled.</p>
-    <label>What might the market be missing?<textarea rows={3} value={thesis} onChange={e=>setThesis(e.target.value)} placeholder="A documented business change, valuation disconnect, or credible growth catalyst…"/></label>
-    <label>What would prove you wrong?<textarea rows={3} value={invalidation} onChange={e=>setInvalidation(e.target.value)} placeholder="Financial thresholds, dilution, loss of a major customer or failed commercialization…"/></label>
+    <label>Automatically prepared hypothesis — edit before saving<textarea rows={10} value={thesis} onChange={e=>setThesis(e.target.value)} placeholder="A documented business change, valuation disconnect, or credible growth catalyst…"/></label>
+    <label>Disconfirming evidence checklist — not active alerts<textarea rows={9} value={invalidation} onChange={e=>setInvalidation(e.target.value)} placeholder="Financial thresholds, dilution, loss of a major customer or failed commercialization…"/></label>
     <button className="button secondary" type="button" disabled={!thesis.trim()||!invalidation.trim()} onClick={saveThesis}>Save timestamped thesis draft</button>
     {savedMessage&&<p role="status">{savedMessage}</p>}
     {existing.length>0&&<details className="atlas-details"><summary>Previous saved thesis drafts ({existing.length} recent)</summary>{existing.map(item=><div className="atlas-thesis-history" key={item.createdAt}><strong>{new Date(item.createdAt).toLocaleString('en-US')}</strong><p>{item.thesis}</p><p><strong>Invalidation:</strong> {item.invalidation}</p></div>)}</details>}
