@@ -70,6 +70,18 @@ describe('ATLAS conviction-readiness evidence gate',()=>{
   expect(result.fundingRisk.status).toBe('unknown');
   expect(result.requirements.find(x=>x.key==='cash-flow')?.progress).toBe('source_unavailable');
  });
+ it('automatically captures preliminary DEI/IEX capitalization but does not mark market cap verified',()=>{
+  const data=sec();
+  data.metrics.push({name:'Common shares outstanding (DEI)',values:[{year:2026,end:'2026-08-01',filed:'2026-08-08',form:'10-Q',accession:'0000123456-26-000001',value:12000000,tag:'EntityCommonStockSharesOutstanding'}]});
+  const q={...close(),iex20:{sessionCount:20,startDate:'2026-09-16',endDate:'2026-10-14',avgDailyIexShares:35000,avgDailyIexDollarVolume:3500000,coverage:'IEX only'}};
+  const result=assessConvictionReadiness(data,q,'2026-10-15');
+  const cap=result.requirements.find(x=>x.key==='market-cap');
+  expect(cap?.progress).toBe('partially_sourced');
+  expect(cap?.detail).toContain('1,200,000,000');
+  expect(cap?.status).toBe('missing');
+  expect(result.verdict).toBe('INSUFFICIENT EVIDENCE');
+  expect(result.verifiedCount).toBe(4);
+ });
  it('reports no verified public sources when no issuer has been retrieved',()=>{
   const result=assessConvictionReadiness(null,null,'2026-10-15');
   expect(result.verifiedCount).toBe(0);
