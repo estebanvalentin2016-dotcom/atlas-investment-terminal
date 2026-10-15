@@ -13,21 +13,29 @@ export function dailyMomentum(bars){
 }
 const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data))};
 export async function handleMarketRequest(req,res){
- const u=new URL(req.url,'http://localhost');if(u.pathname!=='/api/market/daily')return false;
+ const u=new URL(req.url,'http://localhost');if(!['/api/market/daily','/api/market/event'].includes(u.pathname))return false;
  if(req.method!=='GET'){json(res,405,{error:'Method not allowed'});return true}
  const ticker=(u.searchParams.get('ticker')||'').trim().toUpperCase();
  if(!/^[A-Z0-9.-]{1,12}$/.test(ticker)){json(res,400,{error:'Invalid ticker'});return true}
  const key=process.env.ALPACA_API_KEY_ID,secret=process.env.ALPACA_API_SECRET_KEY;
  if(!key||!secret){json(res,503,{error:'Free Alpaca market data is not configured. See MARKET_DATA.md'});return true}
  try{
-  const end=new Date(Date.now()-20*60*1000).toISOString();
-  const start=new Date(Date.now()-160*86400000).toISOString();
+  const eventMode=u.pathname==='/api/market/event';
+  const eventDate=u.searchParams.get('eventDate');
+  if(eventMode&&(!/^\d{4}-\d{2}-\d{2}$/.test(eventDate||'')||new Date(eventDate+'T00:00:00Z').toISOString().slice(0,10)!==eventDate)){json(res,400,{error:'Valid eventDate (YYYY-MM-DD) required'});return true}
+  const eventMs=eventMode?Date.parse(eventDate+'T00:00:00Z'):null;
+  if(eventMode&&(eventMs>Date.now()||eventMs<Date.now()-180*86400000)){json(res,400,{error:'Event is outside the supported recent 180-day historical window'});return true}
+  const end=eventMode?new Date(Math.min(Date.now()-20*60*1000,eventMs+16*86400000)).toISOString():new Date(Date.now()-20*60*1000).toISOString();
+  const start=eventMode?new Date(eventMs-14*86400000).toISOString():new Date(Date.now()-160*86400000).toISOString();
   const target=new URL(HOST+encodeURIComponent(ticker)+'/bars');
-  target.searchParams.set('timeframe','1Day');target.searchParams.set('start',start);target.searchParams.set('end',end);target.searchParams.set('feed','iex');target.searchParams.set('limit','200');target.searchParams.set('adjustment','raw');
+  target.searchParams.set('timeframe','1Day');target.searchParams.set('start',start);target.searchParams.set('end',end);target.searchParams.set('feed','iex');target.searchParams.set('limit','200');target.searchParams.set('adjustment',eventMode?'split':'raw');
   const r=await fetch(target,{headers:{'APCA-API-KEY-ID':key,'APCA-API-SECRET-KEY':secret,'Accept':'application/json'},signal:AbortSignal.timeout(12000)});
   if(!r.ok)throw new Error('Alpaca market data returned HTTP '+r.status);
-  const body=await r.json();const bars=normalizeBars(body);
-  json(res,200,{ticker,provider:'Alpaca',feed:'IEX',adjustment:'raw',retrievedAt:new Date().toISOString(),bars,summary:dailyMomentum(bars),partialHistory:Boolean(body.next_page_token)});
+  const body=await r.json();const allBars=normalizeBars(body);
+  // No incomplete current-day session enters event results, even if the provider returns it.
+  const easternToday=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const bars=eventMode?allBars.filter(b=>b.date<easternToday):allBars;
+  json(res,200,{ticker,provider:'Alpaca',feed:'IEX',adjustment:eventMode?'split':'raw',retrievedAt:new Date().toISOString(),bars,summary:eventMode?null:dailyMomentum(bars),partialHistory:Boolean(body.next_page_token),completedSessionsOnly:eventMode});
  }catch(e){json(res,502,{error:e instanceof Error?e.message:'Market data unavailable'})}
  return true;
 }
