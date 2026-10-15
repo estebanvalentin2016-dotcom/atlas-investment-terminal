@@ -3,6 +3,7 @@ export function parseMasterIndex(text,date,tickers){
  if(typeof text!=='string'||!Array.isArray(tickers))throw Error('Invalid index response');
  const cikMap=new Map(tickers.filter(t=>Number.isSafeInteger(Number(t.cik_str))&&typeof t.ticker==='string').map(t=>[String(Number(t.cik_str)),t]));
  const rows=[];
+ if(!text.includes('CIK')||!text.includes('Form Type')||!text.includes('Filename'))throw Error('Unrecognized SEC master index header');
  for(const line of text.split(/\r?\n/)){
   const fields=line.split('|').map(x=>x.trim());
   if(fields.length!==5)continue;
@@ -24,6 +25,19 @@ export function rankFreshFilings(rows,limit=40){
 }
 const send=(res,status,body)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(body))};
 let cache=null;
+const FALLBACK=['CRWD','NVDA','MSFT','AMZN','META','GOOGL','PLTR','AVGO','TSLA','AMD','MU','ORCL','CRM','ADBE','INTC','NFLX','AAPL','PANW','NET','SNOW','DDOG','NOW','UBER','COIN'];
+export function recentSubmissions(data,ticker,now=Date.now()){
+ const x=data?.filings?.recent,rows=[];
+ if(!Array.isArray(x?.form))return rows;
+ for(let i=0;i<x.form.length;i++){
+  if(!['8-K','8-K/A'].includes(x.form[i]))continue;
+  const filed=x.filingDate?.[i],accession=x.accessionNumber?.[i],when=Date.parse(filed+'T00:00:00Z');
+  if(!Number.isFinite(when)||when>now||when<now-7*86400000||!/^\d{10}-\d{2}-\d{6}$/.test(accession))continue;
+  const cik=Number(data.cik);if(!Number.isSafeInteger(cik)||cik<1)continue;
+  rows.push({ticker,name:data.name||ticker,form:x.form[i],filed,url:'https://www.sec.gov/Archives/edgar/data/'+cik+'/'+accession.replaceAll('-','')+'/'+accession+'.txt',cik:String(cik),kind:'8-K (contents unreviewed)'});
+ }
+ return rows;
+}
 export async function handleWideDiscovery(req,res){
  const u=new URL(req.url,'http://localhost');
  if(u.pathname!=='/api/opportunities/sec-wide')return false;
@@ -49,12 +63,29 @@ export async function handleWideDiscovery(req,res){
     const r=await fetch(url,{headers,signal:AbortSignal.timeout(12000)});
     if(r.status===404)continue;
     if(!r.ok){errors.push(day+': SEC HTTP '+r.status);continue}
+    const raw=await r.text();
+    const parsed=parseMasterIndex(raw,day,symbols);
     successfulDays++;
-    found.push(...parseMasterIndex(await r.text(),day,symbols));
+    diagnostics.push({date:day,bytes:raw.length,matched:parsed.length});
+    found.push(...parsed);
    }catch(e){errors.push(day+': '+(e instanceof Error?e.message:'Feed failed'))}
   }
-  if(!successfulDays)throw Error('No SEC daily indexes could be retrieved. '+errors.join('; '));
-  const body={coverageStatus:errors.length?'Partial — source requests blocked or failed':'Available dates retrieved',retrievedAt:new Date().toISOString(),lookbackCalendarDays:7,successfulDays,errorDays:errors,matchedFilings:found.length,rows:rankFreshFilings(found),scope:'SEC daily master index, publicly indexed tickers only',note:'Master indexes supply filing dates, not exact public release times, sentiment, item numbers, bullishness or market prices.'};
+  let fallbackChecked=0,fallbackFailed=0;
+  if(found.length===0){
+   const matches=new Map(symbols.filter(x=>x?.ticker&&Number.isSafeInteger(Number(x.cik_str))).map(x=>[x.ticker.toUpperCase(),x]));
+   for(const ticker of FALLBACK){
+    const item=matches.get(ticker);if(!item)continue;
+    try{
+     const cik=String(item.cik_str).padStart(10,'0');
+     const r=await fetch('https://data.sec.gov/submissions/CIK'+cik+'.json',{headers,signal:AbortSignal.timeout(10000)});
+     fallbackChecked++;
+     if(!r.ok){fallbackFailed++;continue}
+     found.push(...recentSubmissions(await r.json(),ticker));
+    }catch{fallbackFailed++}
+   }
+  }
+  if(!successfulDays&&fallbackChecked===0)throw Error('No SEC sources could be retrieved. '+errors.join('; '));
+  const body={coverageStatus:fallbackChecked?'Limited fallback: broad source returned no candidates':errors.length?'Partial — source requests blocked or failed':'Available dates retrieved',retrievedAt:new Date().toISOString(),lookbackCalendarDays:7,successfulDays,errorDays:errors,matchedFilings:found.length,rows:rankFreshFilings(found),scope:fallbackChecked?'Bounded company submissions fallback, not market-wide':'SEC daily index, listed tickers',fallbackChecked,fallbackFailed,diagnostics,note:'Master indexes supply filing dates, not exact public release times, sentiment, item numbers, bullishness or market prices.'};
   cache={at:Date.now(),body};send(res,200,body);
  }catch(e){send(res,502,{error:e instanceof Error?e.message:'SEC-wide discovery unavailable',errorDays:errors})}
  return true;
