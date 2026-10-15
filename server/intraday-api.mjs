@@ -12,12 +12,12 @@ export function summarizeIntraday(body,session){
  const seen=new Set(),bars=[];
  for(const b of body.bars){
   const local=typeof b.t==='string'?marketClock(b.t):null;
-  if(!local||local.date!==session||local.minutes<570||local.minutes>=960||seen.has(b.t))continue;
+  if(!local||local.date!==session||local.minutes<570||local.minutes>=960||(local.minutes-570)%15!==0||seen.has(b.t))continue;
   if(![b.o,b.h,b.l,b.c,b.v].every(x=>Number.isFinite(x)&&x>=0)||b.o<=0||b.c<=0||b.h<b.l)continue;
   seen.add(b.t);bars.push({timestamp:b.t,timeEt:String(Math.floor(local.minutes/60)).padStart(2,'0')+':'+String(local.minutes%60).padStart(2,'0'),open:b.o,high:b.h,low:b.l,close:b.c,volume:b.v});
  }
  bars.sort((a,b)=>a.timestamp.localeCompare(b.timestamp));
- return {bars,barCount:bars.length,firstBarTimeEt:bars[0]?.timeEt??null,lastBarTimeEt:bars.at(-1)?.timeEt??null,fullRegularSession:bars.length===26&&bars[0]?.timeEt==='09:30'&&bars.at(-1)?.timeEt==='15:45',partialHistory:Boolean(body.next_page_token)};
+ return {bars,barCount:bars.length,firstBarTimeEt:bars[0]?.timeEt??null,lastBarTimeEt:bars.at(-1)?.timeEt??null,fullRegularSession:bars.length===26&&bars.every((b,i)=>{const clock=marketClock(b.timestamp);return clock?.minutes===570+i*15}),partialHistory:Boolean(body.next_page_token)};
 }
 export async function handleIntradayRequest(req,res){
  const u=new URL(req.url,'http://localhost');
