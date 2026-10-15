@@ -76,6 +76,42 @@ describe('Autonomous first-stage evidence screening',()=>{
   missing.metrics.find(x=>x.name==='Net income')!.values=[];
   expect(initialAutonomousScreen(missing,'2026-10-15').status).toBe('incomplete_financials');
  });
+ it('does not promote SBAC when correctly matching full FY2025 and FY2024 revenues',()=>{
+  // Figures from SBA Communications' FY2025 10-K, in US dollars:
+  // $2.815B consolidated 2025 revenue, $2.680B consolidated 2024 revenue,
+  // $1.291B operating cash flows and $224.819M capex.
+  const rec=(year:number,value:number)=>({...fy(year,value),filed:year===2025?'2026-02-27':'2025-02-27'});
+  const data:SecCompany={ticker:'SBAC',name:'SBA Communications Corporation',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0001034054.json',retrievedAt:'2026-10-15',metrics:[
+   {name:'Revenue',tag:'Revenues',values:[rec(2025,2815139000),rec(2024,2679634000)]},
+   {name:'Operating cash flow',values:[rec(2025,1291328000)]},
+   {name:'Capital expenditures',values:[rec(2025,224819000)]},
+   {name:'Net income',values:[rec(2025,1054456000)]}
+  ]};
+  const result=initialAutonomousScreen(data,'2026-10-15');
+  expect(result.growth).toBe(5.06);
+  expect(result.fcfMargin).toBe(37.88);
+  expect(result.status).toBe('failed_thresholds');
+  expect(result.reasons).toContain('Annual revenue growth below provisional +10% floor');
+ });
+ it('quarantines anomalous 436% margins rather than granting an extremely high score',()=>{
+  const rec=(year:number,value:number)=>({...fy(year,value),filed:year===2025?'2026-02-27':'2025-02-27'});
+  const data:SecCompany={ticker:'SBAC',name:'SBA Communications Corporation',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0001034054.json',retrievedAt:'2026-10-15',metrics:[
+   {name:'Revenue',values:[rec(2025,244498000),rec(2024,152869000)]},
+   {name:'Operating cash flow',values:[rec(2025,1291328000)]},
+   {name:'Capital expenditures',values:[rec(2025,224819000)]},
+   {name:'Net income',values:[rec(2025,1054456000)]}
+  ]};
+  const result=initialAutonomousScreen(data,'2026-10-15');
+  expect(result.fcfMargin).toBe(436.2);
+  expect(result.status).toBe('accounting_review');
+  expect(result.score).toBeNull();
+ });
+ it('blocks ambiguous alternative revenue concepts even if headline growth looks favorable',()=>{
+  const data=company();
+  data.metrics.find(x=>x.name==='Revenue')!.quality='alternative_revenue_concepts';
+  const result=initialAutonomousScreen(data,'2026-10-15');
+  expect(result.status).toBe('accounting_review');
+ });
  it('keeps missing and stale financials separate from genuine screening failures',()=>{
   const data=company();
   data.metrics.find(x=>x.name==='Capital expenditures')!.values=[];
@@ -84,7 +120,7 @@ describe('Autonomous first-stage evidence screening',()=>{
  });
  it('reports a count for every screening stage without inventing a qualifying buy verdict',()=>{
   const records=[{...initialAutonomousScreen(company(),'2026-10-15'),status:'preliminary_pass' as const},{...initialAutonomousScreen(company(),'2026-10-15'),status:'incomplete_financials' as const}];
-  expect(scanCounts(records,2,4)).toEqual({enumerated:4,financialRecordsChecked:2,sourceFailures:2,preliminary:1,incomplete:1,failed:0,stale:0});
+  expect(scanCounts(records,2,4)).toEqual({enumerated:4,financialRecordsChecked:2,sourceFailures:2,preliminary:1,incomplete:1,failed:0,stale:0,accountingReview:0});
  });
 });
 describe('Preliminary valuation evidence warnings',()=>{
