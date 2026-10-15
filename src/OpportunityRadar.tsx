@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 type Lead={ticker:string;name:string;form:string;filed:string;url:string;kind:string};
-type Response={rows:Lead[];matchedFilings:number;successfulDays:number;coverageStatus:string;errorDays:string[];retrievedAt:string;scope:string;note:string;error?:string};
+type Response={rows:Lead[];matchedFilings:number;successfulDays:number;coverageStatus:string;fallbackChecked:number;fallbackFailed:number;diagnostics:{date:string;bytes:number;matched:number}[];errorDays:string[];retrievedAt:string;scope:string;note:string;error?:string};
 export default function OpportunityRadar(){
  const [result,setResult]=useState<Response|null>(null);
  const [error,setError]=useState('');
@@ -22,7 +22,8 @@ export default function OpportunityRadar(){
   <div className="opportunity-toolbar"><strong>{loading?'Retrieving SEC filing indexes…':result?'SEC index retrieval finished':'Waiting for scan'}</strong>{result&&<span>{result.matchedFilings} indexed 8-K filings · {result.successfulDays} daily indexes retrieved</span>}<button type="button" className="button" onClick={()=>void scan()} disabled={loading}>{loading?'Scanning…':'Refresh research queue'}</button></div>
   {error&&<p className="real-error" role="alert">{error}</p>}
   {result&&result.errorDays.length>0&&<details className="opportunity-errors"><summary>Partial coverage: {result.errorDays.length} SEC retrieval issue(s)</summary>{result.errorDays.map(e=><p key={e}>{e}</p>)}</details>}
-  {result&&<p className="chart-note">Source coverage: <strong>{result.coverageStatus}</strong>. SEC 403 indicates an access restriction or blocked request, not evidence of zero filings.</p>}
+  {result&&<p className="chart-note">Source coverage: <strong>{result.coverageStatus}</strong>. SEC 403 means access is restricted, not zero filings. {result.fallbackChecked>0&&('Fallback: '+result.fallbackChecked+' companies checked; '+result.fallbackFailed+' failed. This is NOT market-wide coverage.')}</p>}
+  {result&&<details className="opportunity-errors"><summary>Source diagnostics ({result.diagnostics?.length??0} parsed index files)</summary>{result.diagnostics?.map(x=><p key={x.date}>{x.date}: {x.bytes.toLocaleString()} characters · {x.matched} ticker-matched filings</p>)}</details>}
   {result&&result.rows.length>0&&<div className="opportunity-list">{result.rows.map(r=><article className="opportunity-candidate" key={r.url}>
    <div className="opportunity-top"><strong>{r.ticker}</strong><span>{r.form} · Awaiting substance review</span></div>
    <h4>{r.name}</h4>
