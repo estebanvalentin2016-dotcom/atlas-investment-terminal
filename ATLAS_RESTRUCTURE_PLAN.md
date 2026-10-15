@@ -1,5 +1,8 @@
 # ATLAS Product Restructure — Asymmetric Alpha & Investment Conviction
 
+> **P0 PRODUCT ACCEPTANCE GATE (supersedes prior feature priorities):** See [AUTONOMOUS_DISCOVERY_REQUIREMENT.md](AUTONOMOUS_DISCOVERY_REQUIREMENT.md). The product is NOT done until a user can select **Discover Opportunities** with **zero ticker entry**, traverse a real supported listed-company universe (not handpicked seeds), and obtain source-backed financial, institutional, dilution-sensitive five-year valuations and evidence-gated investment research. A complete, reproducible, counted end-to-end run must include an issuer outside the original test universe. The current 24-issuer batch scanner is an early operational slice, NOT completion. Deprioritize cosmetic and new standalone-dashboard work until this pipeline works.
+>
+
 Status: **Phase 1 in progress.** This plan applies the user's 2026-10-15 ATLAS Development Directive. It is an incremental migration, NOT a rewrite or data deletion.
 
 ## One product objective
