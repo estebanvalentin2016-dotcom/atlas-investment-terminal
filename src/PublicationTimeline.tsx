@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react';
 // @ts-ignore JavaScript-only provenance check
 import {assessPublication} from './publication-timeline.mjs';
 export default function PublicationTimeline({session,secAcceptedAt,ticker}:{session:string;secAcceptedAt:string|null;ticker:string}){
- const [candidates,setCandidates]=useState<{title:string;link:string;source:string;feedPublishedAt:string|null}[]>([]);
+ const [candidates,setCandidates]=useState<{title:string;link:string;source:string;feedPublishedAt:string|null;feedDateOnly?:string|null;feedDateRaw?:string;feedTimeSource?:string}[]>([]);
  const [newsState,setNewsState]=useState('Searching public news sources…');
  useEffect(()=>{
   let cancelled=false;
@@ -23,8 +23,8 @@ export default function PublicationTimeline({session,secAcceptedAt,ticker}:{sess
  return <section className="publication-timeline">
   <h4>Public announcement timing</h4>
   <p><strong>SEC acceptance (not public-release proof):</strong> {accepted}</p>
-  <p className="publication-warning">ATLAS automatically searches for related news. Results are candidates, not verified matches or original publisher timestamps. Checkpoint chronology stays unknown until original publication evidence is established.</p>
-  <div className="publication-candidates"><h5>Automatically discovered news</h5><p role="status">{newsState}</p>{candidates.map((c,i)=><div key={c.link+'-'+i}><a href={c.link} rel="noopener noreferrer" target="_blank">{c.title}</a><small>{c.source||'Source not supplied'} · Feed timestamp: {c.feedPublishedAt?new Date(c.feedPublishedAt).toLocaleString('en-US',{timeZone:'America/New_York',timeZoneName:'short'}):'Unknown'} · <strong>Not original publication verification</strong></small></div>)}</div>
+  <p className="publication-warning"><strong>Important: repeated 3 AM EDT readings can be Google News aggregation timestamps.</strong> They are NOT verified publisher posting times. ATLAS shows the source RSS clock separately and only treats a publisher's original date/time as confirmed after checking that publisher's page. Missing clock times remain unknown.</p>
+  <div className="publication-candidates"><h5>Automatically discovered news</h5><p role="status">{newsState}</p>{candidates.map((c,i)=><div key={c.link+'-'+i}><a href={c.link} rel="noopener noreferrer" target="_blank">{c.title}</a><small><strong>{c.source||'Source not supplied'}</strong> · Google RSS clock: <strong>{c.feedPublishedAt?new Date(c.feedPublishedAt).toLocaleString('en-US',{timeZone:'America/New_York',timeZoneName:'short',year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',second:'2-digit'}):c.feedDateOnly?'Date only '+c.feedDateOnly+' (time unknown)':'Unverified time'}</strong> · <strong>Not the publisher's verified posting time</strong> {c.feedDateRaw&&<span title="Original RSS pubDate">(raw feed: {c.feedDateRaw})</span>}</small></div>)}</div>
   <details className="publication-manual"><summary>Manual source correction / verification (optional)</summary><div className="publication-form">
    <label>Original public announcement URL (HTTPS)<input type="url" value={source} onChange={e=>{setSource(e.target.value);setSaved(null)}} placeholder="https://company.com/press-release" /></label>
    <label>Published date and time · Eastern<input type="datetime-local" value={published} onChange={e=>{setPublished(e.target.value);setSaved(null)}} /></label>
