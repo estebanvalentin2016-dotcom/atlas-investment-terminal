@@ -68,6 +68,25 @@ export function selectConsolidatedRevenue(facts){
   alternativeTags:conflicting.map(x=>x.tag)
  };
 }
+// DEI reports point-in-time entity common shares, unlike FY weighted-average
+// diluted shares. The SEC companyfacts feed can omit class/dimensional data,
+// so an observed count is not a verified date-matched equity denominator.
+export function instantOutstandingShares(facts){
+ const raw=facts?.dei?.EntityCommonStockSharesOutstanding?.units?.shares;
+ const validDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s+'T00:00:00Z'))&&new Date(s+'T00:00:00Z').toISOString().slice(0,10)===s;
+ const seen=new Set();
+ const values=(Array.isArray(raw)?raw:[]).filter(v=>
+  ['10-K','10-Q','10-K/A','10-Q/A'].includes(v.form)&&
+  !v.start&&validDate(v.end)&&validDate(v.filed)&&v.filed>=v.end&&
+  Number.isSafeInteger(v.val)&&v.val>0&&v.val<=1e13&&
+  typeof v.accn==='string'&&/^\d{10}-\d{2}-\d{6}$/.test(v.accn)
+ ).map(v=>({year:Number(v.end.slice(0,4)),end:v.end,filed:v.filed,value:v.val,form:v.form,accession:v.accn,tag:'EntityCommonStockSharesOutstanding'}))
+ .filter(v=>{const key=[v.end,v.filed,v.accession,v.value].join('|');if(seen.has(key))return false;seen.add(key);return true})
+ .sort((a,b)=>b.end.localeCompare(a.end)||b.filed.localeCompare(a.filed)||b.accession.localeCompare(a.accession)).slice(0,24);
+ return {tag:values.length?'EntityCommonStockSharesOutstanding':null,values,
+  quality:values.length?'unreconciled_sec_entity_shares':'missing',
+  selectionNote:'SEC DEI point-in-time count; number of share classes, entity-wide coverage, splits and current tradable float are not verified.'};
+}
 function json(res,status,data){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));}
 // Stable, broad ticker enumeration. No seed list or ticker inputs. The
 // multiplicative CIK+symbol sort scatters batch order rather than exclusively
@@ -148,7 +167,8 @@ export async function handleSecRequest(req,res){
    ['Long-term debt noncurrent',['LongTermDebtNoncurrent']],
    ['Short-term borrowings',['ShortTermBorrowings']],
    ['Weighted-average diluted shares',['WeightedAverageNumberOfDilutedSharesOutstanding']],
-  ].map(([name,tags])=>{const unit=name==='Diluted EPS'?'USD/shares':name==='Weighted-average diluted shares'?'shares':'USD';const result=name==='Revenue'?revenueSelection:selectFact(facts.facts,tags,unit);return {name,unit,...result};});
+   ['Common shares outstanding (DEI)',['EntityCommonStockSharesOutstanding']],
+  ].map(([name,tags])=>{const unit=name==='Diluted EPS'?'USD/shares':name==='Weighted-average diluted shares'||name==='Common shares outstanding (DEI)'?'shares':'USD';const result=name==='Revenue'?revenueSelection:name==='Common shares outstanding (DEI)'?instantOutstandingShares(facts.facts):selectFact(facts.facts,tags,unit);return {name,unit,...result};});
   json(res,200,{ticker,name:facts.entityName||match.title,cik,source,retrievedAt:new Date().toISOString(),metrics});
  }catch(e){json(res,503,{error:e instanceof Error?e.message:'SEC data temporarily unavailable'});}
  return true;
