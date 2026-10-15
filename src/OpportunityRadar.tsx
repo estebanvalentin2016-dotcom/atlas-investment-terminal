@@ -68,7 +68,7 @@ export default function OpportunityRadar(){
  return <section className="panel real-panel opportunity-radar">
   <div className="panel-head"><div><span className="eyebrow">ATLAS / OPPORTUNITY DISCOVERY</span><h3>SEC catalyst discovery</h3></div><span className="tag">Research leads · not buy signals</span></div>
   <p className="description"><strong>Find the filing. See the important numbers. Then check the stock.</strong> SEC filings are research leads — not automatic buy signals.</p>
-  <div className="opportunity-toolbar"><strong>{loading?'Retrieving SEC filing indexes…':error?'Scan failed':result?'SEC index retrieval finished':'Waiting for scan'}</strong>{result&&<span>{result.matchedFilings.toLocaleString()} raw 8-K matches · {result.successfulDays} valid daily indexes{result.fallbackChecked>0?' · '+result.fallbackChecked+' fallback companies checked':''}</span>}<button type="button" className="button" onClick={()=>void scan()} disabled={loading}>{loading?'Scanning…':'Refresh research queue'}</button></div>
+  <div className="opportunity-toolbar"><strong>{loading?'Retrieving SEC filing indexes…':error?'Scan failed':result?'SEC index retrieval finished':'Waiting for scan'}</strong><button type="button" className="button" onClick={()=>void scan()} disabled={loading}>{loading?'Scanning…':'Refresh research queue'}</button></div>
   {result&&<div className="atlas-scan-grid" aria-label="SEC scan at a glance">
    <div><span>Filings found</span><strong>{result.rows.length.toLocaleString()}</strong><small>Not all are opportunities</small></div>
    <div><span>SEC index days accessible</span><strong>{result.successfulDays}</strong><small>Public filing sources</small></div>
