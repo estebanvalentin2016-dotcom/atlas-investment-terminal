@@ -15,3 +15,11 @@ This increment adds a **pure calculation module, tests, and SEC acceptance times
 - Next increment: enrich SEC results with acceptance timestamps, confirm completed-session and adjustment policy, then integrate the engine into a UI with provenance and explicit data-quality flags.
 
 Run `npm.cmd run build` and `npm.cmd run test` on Windows before merging.
+
+### First on-demand integration
+- Catalyst Radar now offers **Analyze price reaction** on filings with SEC acceptance timestamps. The event window uses the **Eastern acceptance date**, not the often-different filing date.
+- The new `/api/market/event` endpoint requests a bounded event-centered window from free Alpaca **IEX**, with `adjustment=split`, and excludes the current Eastern trading date entirely. It intentionally rejects event dates older than 180 calendar days and will label older 8-Ks unavailable.
+- 1/3/5-session results measure the close of each eligible session relative to the pre-event reference close. These are **not investable entry-to-exit returns**, and do not establish the event's causal effect. An intraday filing may have already been reflected in that reference.
+- The endpoint does not paginate. A provider continuation token prevents the browser from presenting incomplete results.
+- The project still needs provider data checks, real-market spot checks and more comprehensive event-window test cases before treating results as quantitatively reliable.
+
