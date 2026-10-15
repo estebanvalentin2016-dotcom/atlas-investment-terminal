@@ -88,6 +88,23 @@ describe('event-to-session alignment',()=>{
   expect(r.continuation.day3).toBeNull();
   expect(r.continuation.day5).toBeNull();
  });
+ it('separates overnight gap from open-to-close trading without adding percentages',()=>{
+  const sample=[
+   {date:'2026-08-26',close:100},
+   {date:'2026-08-27',open:110,close:120,high:121,low:109},
+   {date:'2026-08-28',close:121}
+  ];
+  const r=eventStudy('2026-08-27T00:07:02Z',sample);
+  expect(r.firstSessionBreakdown.gapPct).toBeCloseTo(10);
+  expect(r.firstSessionBreakdown.regularSessionPct).toBeCloseTo((120/110-1)*100);
+  expect(r.returns.day1).toBeCloseTo(20);
+  expect((1+r.firstSessionBreakdown.gapPct/100)*(1+r.firstSessionBreakdown.regularSessionPct/100)-1).toBeCloseTo(.2);
+ });
+ it('does not invent open-close or gap return when opening price is missing',()=>{
+  const r=eventStudy('2026-10-12T20:10:00Z',bars);
+  expect(r.firstSessionBreakdown.gapPct).toBeNull();
+  expect(r.firstSessionBreakdown.regularSessionPct).toBeNull();
+ });
  it('does not fabricate returns for insufficient data',()=>{
   expect(eventStudy('2026-10-16T22:00:00Z',bars).returns.day1).toBeNull();
  });
