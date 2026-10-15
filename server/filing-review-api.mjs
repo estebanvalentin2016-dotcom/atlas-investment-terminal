@@ -43,22 +43,34 @@ export function assessFilingEvidence(sourceText){
  }
  return {status:potential.length&&cautions.length?'mixed_claims':potential.length?'potential_language':'no_positive_phrase_detected',potential:potential.slice(0,4),cautions:cautions.slice(0,3),textCharacters:text.length,limitations:'Rule-based text matching only. Phrases are not verified for context, novelty, size, timing, or sign; no bullish conclusion, valuation, upside estimate or trade recommendation.'};
 }
-async function readLimited(response,maxBytes=2500000){
- const declared=Number(response.headers.get('content-length')||0);
- if(declared>maxBytes)throw Error('SEC filing exceeds review size limit');
+// SEC full-submission files can contain large exhibits. Inspect a strictly
+// bounded prefix instead of rejecting an otherwise reachable filing by size.
+export async function readBoundedFiling(response,maxBytes=4000000){
+ const declared=Number(response.headers.get('content-length'));
+ const declaredBytes=Number.isSafeInteger(declared)&&declared>=0?declared:null;
  if(!response.body)throw Error('SEC filing body unavailable');
- const reader=response.body.getReader();const decoder=new TextDecoder();
- let bytes=0,text='';
+ const reader=response.body.getReader(),decoder=new TextDecoder();
+ let bytesRead=0,text='',complete=false,truncated=false;
  try{
-  while(true){
-   const result=await reader.read();
-   if(result.done)break;
-   bytes+=result.value.byteLength;
-   if(bytes>maxBytes){await reader.cancel();throw Error('SEC filing exceeds review size limit')}
-   text+=decoder.decode(result.value,{stream:true});
+  while(bytesRead<maxBytes){
+   const next=await reader.read();
+   if(next.done){complete=true;break}
+   const room=maxBytes-bytesRead;
+   const part=next.value.byteLength>room?next.value.subarray(0,room):next.value;
+   text+=decoder.decode(part,{stream:true});
+   bytesRead+=part.byteLength;
+   if(part.byteLength<next.value.byteLength){truncated=true;break}
   }
-  return text+decoder.decode();
- }finally{reader.releaseLock()}
+  if(!complete&&!truncated){
+   const extra=await reader.read();
+   complete=extra.done;
+   truncated=!extra.done;
+  }
+  return {text:text+decoder.decode(),bytesRead,truncated:truncated||(declaredBytes!==null&&declaredBytes>maxBytes),declaredBytes,limitBytes:maxBytes};
+ }finally{
+  if(!complete){try{await reader.cancel()}catch{}}
+  reader.releaseLock();
+ }
 }
 const cache=new Map();
 export async function handleFilingReview(req,res){
@@ -77,13 +89,14 @@ export async function handleFilingReview(req,res){
    const data={url,sourceStatus:'unavailable',httpStatus:response.status,evidence:null,retrievedAt:new Date().toISOString(),note:'SEC source could not be retrieved. No classification is possible.'};
    respond(res,200,data);return true;
   }
-  const source=await readLimited(response);
+  const read=await readBoundedFiling(response);
+  const source=read.text;
   if(!/<SEC-DOCUMENT\b|<DOCUMENT>|\bFORM\s+8[- ]K\b/i.test(source)){
    respond(res,200,{url,sourceStatus:'unavailable',evidence:null,retrievedAt:new Date().toISOString(),note:'SEC response did not contain recognizable 8-K filing structure; evidence review skipped.'});
    return true;
   }
   const evidence=assessFilingEvidence(source);
-  const data={url,sourceStatus:'reviewed_text',httpStatus:200,evidence,retrievedAt:new Date().toISOString(),note:'Evidence is raw phrase-matching from SEC submission text, not verified event classification. Always inspect the original filing.'};
+  const data={url,sourceStatus:read.truncated?'partial_text':'reviewed_text',httpStatus:200,evidence,bytesRead:read.bytesRead,declaredBytes:read.declaredBytes,limitBytes:read.limitBytes,truncated:read.truncated,retrievedAt:new Date().toISOString(),note:read.truncated?'Partial review only: read the first '+read.bytesRead.toLocaleString('en-US')+' bytes of a larger SEC submission. Material later exhibits may be missing. An absent pattern is inconclusive.':'Phrase matches in SEC submission text are not verified event classifications. Inspect the original filing.'};
   if(cache.size>30)cache.clear();
   cache.set(url,{at:Date.now(),data});
   respond(res,200,data);
