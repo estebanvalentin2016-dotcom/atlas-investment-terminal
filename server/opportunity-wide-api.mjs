@@ -4,10 +4,10 @@ export function parseMasterIndex(text,date,tickers){
  const cikMap=new Map(tickers.filter(t=>Number.isSafeInteger(Number(t.cik_str))&&typeof t.ticker==='string').map(t=>[String(Number(t.cik_str)),t]));
  const rows=[];
  for(const line of text.split(/\r?\n/)){
-  const match=line.match(/^(\d+)\|([^|]+)\|(8-K(?:\/A)?)\|(\d{4}-\d{2}-\d{2})\|(edgar\/data\/\d+\/[^\s|]+\.txt)$/);
-  if(!match)continue;
-  const [,cik,name,form,filed,relative]=match;
-  if(filed!==date)continue;
+  const fields=line.split('|').map(x=>x.trim());
+  if(fields.length!==5)continue;
+  const [cik,name,form,filed,relative]=fields;
+  if(!/^\d+$/.test(cik)||!['8-K','8-K/A'].includes(form)||filed!==date||!/^edgar\/data\/\d+\/[\w.\/-]+\.txt$/.test(relative)||relative.includes('..'))continue;
   const matchTicker=cikMap.get(String(Number(cik)));
   if(!matchTicker)continue;
   rows.push({ticker:matchTicker.ticker,name:matchTicker.title||name,form,filed,url:'https://www.sec.gov/Archives/'+relative,cik,kind:'8-K (contents unreviewed)'});
@@ -42,6 +42,7 @@ export async function handleWideDiscovery(req,res){
   for(let offset=0;offset<7;offset++){
    const d=new Date(today-offset*86400000);
    const day=d.toISOString().slice(0,10),quarter=Math.floor(d.getUTCMonth()/3)+1;
+   if(d.getUTCDay()===0||d.getUTCDay()===6)continue;
    const yyyy=d.getUTCFullYear(),compact=day.replaceAll('-','');
    const url='https://www.sec.gov/Archives/edgar/daily-index/'+yyyy+'/QTR'+quarter+'/master.'+compact+'.idx';
    try{
@@ -53,7 +54,7 @@ export async function handleWideDiscovery(req,res){
    }catch(e){errors.push(day+': '+(e instanceof Error?e.message:'Feed failed'))}
   }
   if(!successfulDays)throw Error('No SEC daily indexes could be retrieved. '+errors.join('; '));
-  const body={retrievedAt:new Date().toISOString(),lookbackCalendarDays:7,successfulDays,errorDays:errors,matchedFilings:found.length,rows:rankFreshFilings(found),scope:'SEC daily master index, publicly indexed tickers only',note:'Master indexes supply filing dates, not exact public release times, sentiment, item numbers, bullishness or market prices.'};
+  const body={coverageStatus:errors.length?'Partial — source requests blocked or failed':'Available dates retrieved',retrievedAt:new Date().toISOString(),lookbackCalendarDays:7,successfulDays,errorDays:errors,matchedFilings:found.length,rows:rankFreshFilings(found),scope:'SEC daily master index, publicly indexed tickers only',note:'Master indexes supply filing dates, not exact public release times, sentiment, item numbers, bullishness or market prices.'};
   cache={at:Date.now(),body};send(res,200,body);
  }catch(e){send(res,502,{error:e instanceof Error?e.message:'SEC-wide discovery unavailable',errorDays:errors})}
  return true;
