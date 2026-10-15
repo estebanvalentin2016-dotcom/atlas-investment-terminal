@@ -81,7 +81,7 @@ describe('Annual balance sheet and share-count evidence, without false valuation
   const gate=assessed.requirements.find(x=>x.key==='survival')!;
   expect(gate.status).toBe('missing');
   expect(gate.detail).toContain('21,000,000');
-  expect(gate.detail).toContain('Full debt maturity');
+  expect(gate.detail).toContain('Full debt maturities');
  });
  it('displays real-source cash and dilution facts while keeping the technical audit collapsed',()=>{
   const html=renderToStaticMarkup(createElement(SurvivalEvidencePanel,{company:sample(),asOf:'2026-10-14'}));
