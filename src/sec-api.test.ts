@@ -20,7 +20,7 @@ describe('SEC DEI point-in-time common share counts',()=>{
 });
 import {describe,expect,it} from 'vitest';
 // @ts-ignore JavaScript-only SEC backend module is tested directly.
-import {annualValues,selectFact,selectConsolidatedRevenue,instantOutstandingShares} from '../server/sec-api.mjs';
+import {annualValues,selectFact,selectConsolidatedRevenue,instantOutstandingShares,latestInstantFact} from '../server/sec-api.mjs';
 describe('SEC annual fact normalization',()=>{
  it('uses reported annual durations and latest filing for each fiscal ending year',()=>{
   const values=annualValues({units:{USD:[
@@ -92,4 +92,22 @@ describe('SEC annual fact normalization',()=>{
   expect(values.map((x:{year:number,value:number})=>[x.year,x.value])).toEqual([[2025,200],[2024,150],[2023,90]]);
  });
 
+});
+describe('Quarterly cash and borrowing observations, date provenance',()=>{
+ const point=(end:string,filed:string,val:number,form='10-Q')=>({form,end,filed,val,accn:'0000123456-26-000099'});
+ it('collects period-end instant balances across 10-Q and 10-K without treating periods as annual flows',()=>{
+  const data={'us-gaap':{CashAndCashEquivalentsAtCarryingValue:{units:{USD:[
+   point('2025-12-31','2026-02-15',8000000,'10-K'),
+   point('2026-06-30','2026-08-08',10000000),
+   {...point('2026-06-30','2026-08-08',90000000),start:'2026-04-01'},
+   point('2026-09-30','2026-08-08',7000000)
+  ]}}}};
+  const result=latestInstantFact(data,['CashAndCashEquivalentsAtCarryingValue']);
+  expect(result.values.map((v:{end:string;value:number})=>[v.end,v.value])).toEqual([['2026-06-30',10000000],['2025-12-31',8000000]]);
+  expect(result.values[0].filed).toBe('2026-08-08');
+ });
+ it('returns missing rather than manufacturing values from unavailable GAAP tags',()=>{
+  expect(latestInstantFact({},['LiabilitiesCurrent']).values).toEqual([]);
+  expect(latestInstantFact({'us-gaap':{LongTermDebtCurrent:{units:{USD:[{...point('2026-06-30','2026-08-08',100000),accn:null}]}}}},['LongTermDebtCurrent']).values).toEqual([]);
+ });
 });
