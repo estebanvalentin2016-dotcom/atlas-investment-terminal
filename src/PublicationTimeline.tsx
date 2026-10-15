@@ -1,7 +1,6 @@
 import {useEffect,useState} from 'react';
 // @ts-ignore JavaScript-only provenance check
 import {assessPublication} from './publication-timeline.mjs';
-const checkpoints=['09:45','10:00','10:30'];
 export default function PublicationTimeline({session,secAcceptedAt,ticker}:{session:string;secAcceptedAt:string|null;ticker:string}){
  const [candidates,setCandidates]=useState<{title:string;link:string;source:string;feedPublishedAt:string|null}[]>([]);
  const [newsState,setNewsState]=useState('Searching public news sources…');
