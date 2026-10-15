@@ -19,7 +19,7 @@ The Node/Vite development server calls the SEC. Your browser calls only your loc
 
 - This is a **preview feature**, not yet production-reviewed. Validate locally before merging to main.
 - Only SEC company tickers and annual US-GAAP standardized facts are supported. Missing tags return unavailable instead of fabricated values.
-- Annual revenue, net income, operating cash flow and total assets are provided where standardized tags exist; definitions and fiscal years vary. Company-specific XBRL tags, non-US GAAP, shares, price data, trailing twelve months and quarter comparisons are not supported yet.
+- Annual revenue, net income, operating cash flow and total assets are provided where standardized tags exist; definitions and fiscal years vary. Revenue supports several consolidated US-GAAP tags and reconciles available fiscal years without adding different tags together. It does not yet support unrecognized company-specific extensions. If CRWD revenue still reads 'unavailable', we will inspect the source tagging rather than invent a number. Company-specific XBRL tags, non-US GAAP, shares, price data, trailing twelve months and quarter comparisons are not supported yet.
 - Reported historical data may include amended filings or restatements. The app displays filing dates.
 - SEC endpoints may throttle or be temporarily unavailable. No mock fallbacks are shown in the real-data tab.
 - The current `/api/sec/company` is a local-development proxy only. Any public production deployment requires a dedicated backend with rate limiting, caching, validation, monitoring, appropriate source attribution, and legal/licensing review.
