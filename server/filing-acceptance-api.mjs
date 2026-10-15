@@ -10,7 +10,7 @@ export function extractSecAcceptanceHeader(raw,accession){
  if(headEnd<0||headEnd>120000)return null; // only trust the actual top-level header
  const head=raw.slice(headStart,headEnd);
  const accessionMatch=head.match(/(?:^|\n)\s*ACCESSION NUMBER:\s*(\d{10}-\d{2}-\d{6})\b/i);
- if(accessionMatch&&accessionMatch[1]!==accession)return null;
+ if(!accessionMatch||accessionMatch[1]!==accession)return null;
  const stamp=head.match(/<ACCEPTANCE-DATETIME>\s*(\d{14})\b/i);
  if(!stamp)return null;
  const digits=stamp[1];
