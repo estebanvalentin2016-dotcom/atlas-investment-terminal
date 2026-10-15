@@ -35,3 +35,10 @@
 - [ ] Risk budgeting, concentration analysis, portfolio imports
 - [ ] Automated earnings/transcript/document changes with source citations
 - [ ] Source-verified AI research assistant
+
+## In development — v0.4
+- [x] Manual, source-aware emerging technology research journal
+- [x] Distinguish hypotheses, technical evidence, commercial milestones and counterevidence
+- [x] Optional public ticker and browser-local persistence
+- [ ] Independently verify source content and provenance
+- [ ] Research workflows for technology-to-company economic exposure
