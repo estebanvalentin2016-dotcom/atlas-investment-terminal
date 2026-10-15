@@ -55,7 +55,7 @@ export async function handleSecRequest(req,res){
   const source=SEC_ROOT+'/api/xbrl/companyfacts/CIK'+cik+'.json';
   const facts=await cached(cik,()=>secJson(source));
   const metrics=[
-   ['Revenue',['RevenueFromContractWithCustomerExcludingAssessedTax','RevenueFromContractWithCustomerIncludingAssessedTax','RevenueFromContractWithCustomer','Revenues','SalesRevenueNet','SalesRevenueGoodsNet','SalesRevenueServicesNet']],
+   ['Revenue',['RevenueFromContractWithCustomerExcludingAssessedTax','RevenueFromContractWithCustomerIncludingAssessedTax','RevenueFromContractWithCustomer','Revenues','SalesRevenueNet']],
    ['Net income',['NetIncomeLoss']],
    ['Operating cash flow',['NetCashProvidedByUsedInOperatingActivities']],
    ['Total assets',['Assets']],
