@@ -11,3 +11,5 @@ Suggested next tasks: test and finalize the v0.3 two-company SEC comparison, imp
 The v0.4 branch adds a manual Breakthrough Radar research log with local browser persistence, evidence categories and source URLs. It does not independently verify claims or forecast returns; see BREAKTHROUGH_RESEARCH.md. Run build and tests before merging.
 
 v0.5 branch adds a research Publication Discovery Feed backed by Crossref metadata (server-side Node proxy). Do not imply these are independently verified breakthroughs or that results identify investable companies. Continue with company exposure analysis only with direct evidence. Test build, parsing and UI before merge.
+
+v0.8 builds a watchlist momentum scanner on top of v0.7 with an eight-symbol limit. Pattern classes are illustrative, not validated trade signals. v0.5–v0.7 may be in stacked open PRs; verify merge state before moving any branch to main.
