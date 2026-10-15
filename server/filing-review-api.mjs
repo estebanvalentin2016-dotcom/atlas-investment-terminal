@@ -73,6 +73,70 @@ export async function readBoundedFiling(response,maxBytes=4000000){
   reader.releaseLock();
  }
 }
+// Locate a filing's primary 8-K and selected Exhibit 99 releases. These are
+// specific source documents, not an assertion that the entire filing was read.
+const safeDocumentName=name=>typeof name==='string'&&name.length<=128&&/^[a-zA-Z0-9][a-zA-Z0-9._-]*\.(?:htm|html|txt)$/i.test(name)&&!name.includes('..');
+export function parseArchiveFiling(input){
+ const url=permittedFilingUrl(input);
+ if(!url)return null;
+ const m=new URL(url).pathname.match(/^\/Archives\/edgar\/data\/(\d+)\/(?:(\d+)\/)?(\d{10}-\d{2}-\d{6})\.txt$/i);
+ if(!m)return null;
+ const cik=String(Number(m[1])),accession=m[3],folder=accession.replaceAll('-','');
+ if(m[2]&&m[2]!==folder)return null;
+ return {cik,accession,root:'https://www.sec.gov/Archives/edgar/data/'+cik+'/'+folder+'/',url};
+}
+export function selectFilingDocuments(submission,index,accession){
+ const r=submission?.filings?.recent;
+ let primary=null;
+ if(Array.isArray(r?.accessionNumber)){
+  const i=r.accessionNumber.indexOf(accession);
+  if(i>=0&&['8-K','8-K/A'].includes(r.form?.[i])&&safeDocumentName(r.primaryDocument?.[i]))primary=r.primaryDocument[i];
+ }
+ const items=Array.isArray(index?.directory?.item)?index.directory.item:[];
+ // Prefer explicit 8-K primary metadata; the index listing is not an event taxonomy.
+ if(!primary){
+  const candidates=items.map(x=>x.name).filter(safeDocumentName).filter(x=>/(?:^|[-_.])8[-_]?k(?:[-_.]|$)|form[-_]?8[-_]?k|d\d+8k/i.test(x));
+  if(candidates.length===1)primary=candidates[0];
+ }
+ const exhibitCandidates=items.map(x=>x.name).filter(safeDocumentName).filter(name=>/(?:^|[-_.])(?:ex(?:hibit)?[-_.]?99|dex99)[-_.]?\d*/i.test(name));
+ const docs=[],seen=new Set();
+ if(primary){docs.push({role:'Primary 8-K',name:primary});seen.add(primary.toLowerCase())}
+ for(const name of exhibitCandidates){if(docs.length>=3)break;if(!seen.has(name.toLowerCase())){docs.push({role:'Exhibit 99',name});seen.add(name.toLowerCase())}}
+ return {documents:docs,primaryLocated:!!primary,exhibitsListed:exhibitCandidates.length,selectedExhibits:docs.filter(x=>x.role==='Exhibit 99').length};
+}
+export async function reviewSelectedDocuments(filing,headers){
+ const problems=[];
+ let submission=null,index=null;
+ const metadataUrl='https://data.sec.gov/submissions/CIK'+filing.cik.padStart(10,'0')+'.json';
+ const indexUrl=filing.root+'index.json';
+ for(const [kind,url] of [['submissions',metadataUrl],['filing index',indexUrl]]){
+  try{
+   const response=await fetch(url,{headers,redirect:'error',signal:AbortSignal.timeout(12000)});
+   if(!response.ok){problems.push(kind+' HTTP '+response.status);continue}
+   const body=await readBoundedFiling(response,5000000);
+   if(body.truncated){problems.push(kind+' metadata exceeded size limit');continue}
+   const json=JSON.parse(body.text);
+   if(kind==='submissions')submission=json;else index=json;
+  }catch(e){problems.push(kind+' metadata unavailable: '+(e instanceof Error?e.message:'Unknown error'))}
+ }
+ const selection=selectFilingDocuments(submission,index,filing.accession);
+ if(!selection.documents.length)return {documents:[],problems:[...problems,'No safe primary or Exhibit 99 documents identified'],selection};
+ const documents=[];
+ for(const entry of selection.documents){
+  const sourceUrl=filing.root+encodeURIComponent(entry.name);
+  try{
+   const response=await fetch(sourceUrl,{headers,redirect:'error',signal:AbortSignal.timeout(12000)});
+   if(!response.ok){documents.push({role:entry.role,name:entry.name,url:sourceUrl,status:'unavailable',error:'SEC HTTP '+response.status});continue}
+   const result=await readBoundedFiling(response,1400000);
+   if(/^\s*(?:<!doctype html>)?\s*<html[\s\S]{0,1000}(?:access denied|request rate threshold exceeded|request blocked)/i.test(result.text)){
+    documents.push({role:entry.role,name:entry.name,url:sourceUrl,status:'unavailable',error:'Non-document SEC response'});continue;
+   }
+   const evidence=assessFilingEvidence(result.text);
+   documents.push({role:entry.role,name:entry.name,url:sourceUrl,status:result.truncated?'partial':'reviewed',bytesRead:result.bytesRead,declaredBytes:result.declaredBytes,evidence});
+  }catch(e){documents.push({role:entry.role,name:entry.name,url:sourceUrl,status:'unavailable',error:e instanceof Error?e.message:'Document retrieval failed'})}
+ }
+ return {documents,problems,selection};
+}
 const cache=new Map();
 export async function handleFilingReview(req,res){
  const route=new URL(req.url,'http://localhost');
@@ -85,7 +149,26 @@ export async function handleFilingReview(req,res){
  const prior=cache.get(url);
  if(prior&&Date.now()-prior.at<15*60000){respond(res,200,prior.data);return true}
  try{
-  const response=await fetch(url,{headers:{'User-Agent':agent,Accept:'text/plain,text/html'},redirect:'error',signal:AbortSignal.timeout(12000)});
+  const headers={'User-Agent':agent,Accept:'application/json,text/plain,text/html'};
+  const filing=parseArchiveFiling(url);
+  if(filing){
+   const targeted=await reviewSelectedDocuments(filing,headers);
+   const checked=targeted.documents.filter(d=>d.evidence);
+   if(checked.length){
+    // Preserve excerpts with the direct source document that contains them.
+    const evidence={
+     status:checked.some(d=>d.evidence.potential.length)&&checked.some(d=>d.evidence.cautions.length)?'mixed_claims':checked.some(d=>d.evidence.potential.length)?'potential_language':'no_positive_phrase_detected',
+     potential:checked.flatMap(d=>d.evidence.potential.map(item=>({...item,sourceUrl:d.url,sourceName:d.name}))).slice(0,8),
+     cautions:checked.flatMap(d=>d.evidence.cautions.map(item=>({...item,sourceUrl:d.url,sourceName:d.name}))).slice(0,6),
+     textCharacters:checked.reduce((n,d)=>n+d.evidence.textCharacters,0),
+     limitations:'Selected primary/exhibit documents only. A non-match cannot rule out material disclosures in skipped documents. Phrases are not verified or ranked.'
+    };
+    const data={url,sourceStatus:'partial_text',reviewMethod:'selected_documents',evidence,documents:targeted.documents,selection:targeted.selection,sourceProblems:targeted.problems,retrievedAt:new Date().toISOString(),note:'Reviewed '+checked.length+' selected SEC document(s). This is not a complete filing review or a verified bullish catalyst.'};
+    if(cache.size>30)cache.clear();
+    cache.set(url,{at:Date.now(),data});respond(res,200,data);return true;
+   }
+  }
+  const response=await fetch(url,{headers,redirect:'error',signal:AbortSignal.timeout(12000)});
   if(!response.ok){
    const data={url,sourceStatus:'unavailable',httpStatus:response.status,evidence:null,retrievedAt:new Date().toISOString(),note:'SEC source could not be retrieved. No classification is possible.'};
    respond(res,200,data);return true;
