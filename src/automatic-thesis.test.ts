@@ -49,8 +49,11 @@ describe('Autonomous Conviction Lab research draft',()=>{
   const issuer=c(),a=assessConvictionReadiness(issuer,q,'2026-10-15');
   const draft=draftIssuerThesis(issuer,a,q,'2026-10-15',trend);
   expect(draft.thesis).toContain('SHAREHOLDER PRICE HISTORY');
-  expect(draft.thesis).toContain('DIVERGENCE TO INVESTIGATE');
-  expect(draft.thesis).toContain('annual SEC revenue grew 50.0%');
+  expect(draft.thesis).toContain('CROSS-PERIOD CONTRAST TO INVESTIGATE');
+  expect(draft.thesis).toContain('These periods are not aligned');
+  expect(draft.thesis).toContain('2025-12-31');
+  expect(draft.thesis).toContain(trend.returnStartDates.year1!);
+  expect(draft.thesis).toContain('revenue increased 50.0%');
   expect(draft.thesis).toContain('Not verified IPO-to-date');
   expect(draft.invalidation).toContain('split-adjusted 1Y/3Y');
   expect(draft.thesis).not.toContain('guaranteed');
