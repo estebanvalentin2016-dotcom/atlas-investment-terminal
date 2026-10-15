@@ -10,7 +10,7 @@ export const defaultRankWeights:RankWeights={growth:30,fcf:35,profit:20,pe:15};
 const finite=(n:number)=>Number.isFinite(n);
 const percent=(n:number)=>Math.round(n*100)/100;
 const recent=(list:Annual[])=>[...list].filter(r=>r&&finite(r.value)&&/^\d{4}-\d{2}-\d{2}$/.test(r.end)).sort((a,b)=>b.year-a.year);
-const matchYear=(metric:SecMetric|undefined,year:number)=>recent(metric?.values||[]).find(x=>x.year===year)?.value??null;
+const matchYear=(metric:SecMetric|undefined,year:number,periodEnd:string)=>recent(metric?.values||[]).find(x=>x.year===year&&x.end===periodEnd)?.value??null;
 const cap=(n:number)=>Math.max(0,Math.min(100,n));
 const normalized=(x:number,lo:number,hi:number)=>cap((x-lo)/(hi-lo)*100);
 export function deriveRankingMetrics(company:SecCompany,pe:number|null=null):RankMetrics{
@@ -21,14 +21,14 @@ export function deriveRankingMetrics(company:SecCompany,pe:number|null=null):Ran
  const year=current.year, revenue=current.value;
  const previous=rev.find(r=>r.year===year-1);
  const growth=previous&&previous.value>0?percent((revenue/previous.value-1)*100):null;
- const operating=matchYear(m.get('Operating cash flow'),year);
- const rawCapex=matchYear(m.get('Capital expenditures'),year);
+ const operating=matchYear(m.get('Operating cash flow'),year,current.end);
+ const rawCapex=matchYear(m.get('Capital expenditures'),year,current.end);
  // SEC GAAP capex payments are normally nonnegative. Reject negative values
  // instead of silently applying the wrong cash flow sign.
  const capex=rawCapex!==null&&rawCapex>=0?rawCapex:null;
  const fcf=operating!==null&&capex!==null?operating-capex:null;
  const fcfMargin=revenue>0&&fcf!==null?percent(fcf/revenue*100):null;
- const net=matchYear(m.get('Net income'),year);
+ const net=matchYear(m.get('Net income'),year,current.end);
  const profitMargin=revenue>0&&net!==null?percent(net/revenue*100):null;
  return {year,growth,fcfMargin,profitMargin,pe:validPe(pe),fcf,revenue,capex};
 }
