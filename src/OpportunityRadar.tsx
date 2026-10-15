@@ -91,7 +91,7 @@ export default function OpportunityRadar(){
     <p className="opportunity-uncertainty">Fundamental bullishness: <strong>Not assessed</strong> · Remaining upside: <strong>Unknown</strong> · Robinhood eligibility: <strong>Unverified</strong></p>
     <a href={r.url} target="_blank" rel="noopener noreferrer">Inspect SEC source ↗</a>
     <FilingEvidence data={reviews[r.url]} loading={reviewing.includes(r.url)} onReview={()=>void reviewSource(r.url)}/>
-    <FilingPriceContext ticker={r.ticker} eventDate={r.filed}/>
+    <FilingPriceContext key={r.url} ticker={r.ticker} eventDate={r.filed} sourceUrl={r.url}/>
    </article>)}</div>:<p className="chart-note">No filings match these filters. Try clearing the search or changing the date.</p>}
    {filtered.length>PAGE_SIZE&&<div className="opportunity-pagination"><span>Showing {(currentPage-1)*PAGE_SIZE+1}–{Math.min(currentPage*PAGE_SIZE,filtered.length)} of {filtered.length}</span><button type="button" className="button secondary" disabled={currentPage<=1} onClick={()=>setPage(p=>Math.max(1,p-1))}>Previous</button><strong>Page {currentPage} / {pages}</strong><button type="button" className="button secondary" disabled={currentPage>=pages} onClick={()=>setPage(p=>Math.min(pages,p+1))}>Next</button></div>}
   </div>}
