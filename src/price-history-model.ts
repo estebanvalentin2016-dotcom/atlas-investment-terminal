@@ -6,6 +6,7 @@ export type PriceHistoryAssessment={
  status:'usable'|'partial'|'stale'|'missing';
  latestDate:string|null;firstDate:string|null;observedYears:number|null;
  returns:{year1:number|null;year3:number|null;year5:number|null;year10:number|null;sinceAvailable:number|null};
+ returnStartDates:{year1:string|null;year3:string|null;year5:string|null;year10:string|null};
  threeYearAnnualized:number|null;drawdownFrom52WeekHigh:number|null;
  trendScore:number|null;assessment:string;coverageNote:string;
 };
@@ -14,9 +15,28 @@ const elapsed=(newer:string,older:string)=>(Date.parse(newer+'T00:00:00Z')-Date.
 const round=(n:number)=>Math.round(n*100)/100;
 const clamp=(n:number,low:number,high:number)=>Math.max(low,Math.min(high,n));
 const priorYear=(date:string,years:number)=>{const d=new Date(date+'T00:00:00Z');d.setUTCFullYear(d.getUTCFullYear()-years);return d.toISOString().slice(0,10)};
+// Both the figure displayed under a 1Y/3Y/5Y chart and the corresponding
+// return metric MUST use the same first available weekly close ON/AFTER
+// the calendar anniversary. Previously metrics used the prior bar and the
+// chart used the next bar, producing different values for the same horizon.
+export function trailingPriceWindow(bars:HistoricalBar[],asOf:string,years:number):HistoricalBar[]|null{
+ if(!validDate(asOf)||!Number.isInteger(years)||years<1)return null;
+ const sorted=[...bars].filter(b=>validDate(b.date)&&b.date<asOf&&Number.isFinite(b.close)&&b.close>0).sort((a,b)=>a.date.localeCompare(b.date));
+ const latest=sorted.at(-1);
+ if(!latest)return null;
+ const target=priorYear(latest.date,years);
+ const start=sorted.find(b=>b.date>=target);
+ if(!start||elapsed(start.date,target)>28||start.date===latest.date)return null;
+ const window=sorted.filter(b=>b.date>=start.date);
+ // Weekly closes with huge unobserved spans do not establish a credible
+ // historical horizon, even if endpoint arithmetic is mathematically possible.
+ if(window.length<years*30)return null;
+ return window;
+}
 export function assessPriceHistory(raw:HistoricalPriceResponse|null,asOf:string):PriceHistoryAssessment{
  const empty:PriceHistoryAssessment={status:'missing',latestDate:null,firstDate:null,observedYears:null,
   returns:{year1:null,year3:null,year5:null,year10:null,sinceAvailable:null},
+  returnStartDates:{year1:null,year3:null,year5:null,year10:null},
   threeYearAnnualized:null,drawdownFrom52WeekHigh:null,trendScore:null,
   assessment:'Price trend unavailable',coverageNote:'No independently retrieved comparable split-adjusted price history.'};
  if(!raw||raw.provider!=='Alpaca'||raw.feed!=='IEX'||raw.timeframe!=='1Week'||raw.adjustment!=='split'||raw.completedWeeksOnly!==true||!validDate(asOf)||!Array.isArray(raw.bars))return empty;
@@ -27,13 +47,12 @@ export function assessPriceHistory(raw:HistoricalPriceResponse|null,asOf:string)
  const common={...empty,latestDate:latest.date,firstDate:first.date,observedYears:round(years)};
  if(raw.partialHistory)return {...common,status:'partial',assessment:'Incomplete paginated history',coverageNote:'Source pagination did not finish; price performance is withheld.'};
  if(elapsed(asOf,latest.date)>21)return {...common,status:'stale',assessment:'Historical prices stale',coverageNote:'Latest observed completed IEX weekly bar is more than 21 days old; historical signals withheld.'};
- const lookback=(years:number)=>{
-  const target=priorYear(latest.date,years);
-  const prior=[...bars].reverse().find(b=>b.date<=target);
-  if(!prior||elapsed(target,prior.date)>28)return null;
-  return round((latest.close/prior.close-1)*100);
- };
- const year1=lookback(1),year3=lookback(3),year5=lookback(5),year10=lookback(10);
+ const windows={year1:trailingPriceWindow(bars,asOf,1),year3:trailingPriceWindow(bars,asOf,3),
+  year5:trailingPriceWindow(bars,asOf,5),year10:trailingPriceWindow(bars,asOf,10)};
+ const changeIn=(window:HistoricalBar[]|null)=>window?round((window.at(-1)!.close/window[0].close-1)*100):null;
+ const year1=changeIn(windows.year1),year3=changeIn(windows.year3),year5=changeIn(windows.year5),year10=changeIn(windows.year10);
+ const returnStartDates={year1:windows.year1?.[0].date??null,year3:windows.year3?.[0].date??null,
+  year5:windows.year5?.[0].date??null,year10:windows.year10?.[0].date??null};
  const sinceAvailable=round((latest.close/first.close-1)*100);
  const r3=year3!==null?round((Math.pow(1+year3/100,1/3)-1)*100):null;
  const trailing=bars.filter(b=>elapsed(latest.date,b.date)<=366);
@@ -44,9 +63,9 @@ export function assessPriceHistory(raw:HistoricalPriceResponse|null,asOf:string)
  const trend=year1!==null&&r3!==null?round(clamp(50+0.45*year1+0.55*r3,0,100)):null;
  const assessment=trend===null?'Insufficient 1Y and 3Y price coverage':year1!==null&&r3!==null&&year1>0&&r3>0?'Positive 1Y and 3Y historical trend':year1!==null&&r3!==null&&year1<0&&r3<0?'Negative 1Y and 3Y historical trend':'Mixed long-term price trend';
  return {status:'usable',latestDate:latest.date,firstDate:first.date,observedYears:round(years),
-  returns:{year1,year3,year5,year10,sinceAvailable},
+  returns:{year1,year3,year5,year10,sinceAvailable},returnStartDates,
   threeYearAnnualized:r3,drawdownFrom52WeekHigh:drawdown,trendScore:trend,assessment,
-  coverageNote:'Alpaca IEX completed weekly closes, split-adjusted; dividends excluded. Earliest available bar is not the verified IPO price. Source coverage may omit early life or former ticker symbols.'};
+  coverageNote:'Alpaca IEX completed weekly closes, split-adjusted; dividends excluded. Trailing-period returns begin at the first available weekly bar after the calendar anniversary (and require sufficient weekly coverage). Earliest available bar is not the verified IPO price. Source coverage may omit early life or former ticker symbols.'};
 }
 export function combineResearchPriority(fundamentalScore:number|null,history:PriceHistoryAssessment|null){
  if(fundamentalScore===null||!Number.isFinite(fundamentalScore))return {score:null,priceWeighted:false};
