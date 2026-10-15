@@ -51,8 +51,12 @@ const filingTopics=[
 export function researchFilingContext(sourceText){
  const text=extractFilingText(sourceText),metrics=[],topics=[];
  for(const entry of metricsPatterns){
-  const match=entry.re.exec(text);entry.re.lastIndex=0;
-  if(match)metrics.push({label:entry.label,reportedValue:match[0],excerpt:text.slice(Math.max(0,match.index-80),Math.min(text.length,match.index+match[0].length+160)).trim()});
+  // Keep at most two separate mentions of each figure so quarter and trailing-year
+  // inflows can both appear; this is text extraction, not audited normalization.
+  for(const match of text.matchAll(entry.re)){
+   if(metrics.filter(x=>x.label===entry.label).length>=2)break;
+   metrics.push({label:entry.label,reportedValue:match[0],excerpt:text.slice(Math.max(0,match.index-80),Math.min(text.length,match.index+match[0].length+160)).trim()});
+  }
  }
  for(const item of filingTopics){
   if(new RegExp('\\bItem\\s+'+item.code.replace('.','\\.')+'\\b','i').test(text))topics.push(item);
