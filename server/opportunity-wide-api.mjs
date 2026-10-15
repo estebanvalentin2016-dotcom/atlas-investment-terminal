@@ -45,7 +45,7 @@ export async function handleWideDiscovery(req,res){
  const agent=process.env.SEC_USER_AGENT;
  if(!agent||!agent.includes('@')){send(res,503,{error:'SEC_USER_AGENT not configured'});return true}
  if(cache&&Date.now()-cache.at<10*60000){send(res,200,cache.body);return true}
- const errors=[],found=[];let successfulDays=0;
+ const errors=[],found=[],diagnostics=[];let successfulDays=0;
  try{
   const headers={'User-Agent':agent,Accept:'text/plain,application/json'};
   const meta=await fetch('https://www.sec.gov/files/company_tickers.json',{headers,signal:AbortSignal.timeout(12000)});
