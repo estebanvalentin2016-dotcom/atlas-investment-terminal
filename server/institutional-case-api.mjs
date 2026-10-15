@@ -15,9 +15,9 @@ export const HISTORICAL_VALUEACT={
  ]
 };
 const cache=new Map();
-export async function verifyValueActCase(){
+export async function verifyValueActCase({refresh=false}={}){
  const cached=cache.get('valueact');
- if(cached&&Date.now()-cached.at<3600000)return cached.result;
+ if(!refresh&&cached&&Date.now()-cached.at<3600000)return cached.result;
  const agent=process.env.SEC_USER_AGENT;
  if(!agent||!agent.includes('@'))throw Error('SEC_USER_AGENT not configured');
  const headers={'User-Agent':agent,Accept:'application/json,application/xml,text/xml,text/plain'};
@@ -55,7 +55,7 @@ export async function handleInstitutionalCase(req,res){
  if(url.pathname!=='/api/institutions/historical-case')return false;
  const reply=(status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
  if(req.method!=='GET'){reply(405,{error:'Method not allowed'});return true}
- try{const result=await verifyValueActCase();reply(result.status==='verified_against_live_sec'?200:503,result)}
+ try{const result=await verifyValueActCase({refresh:url.searchParams.get('refresh')==='1'});reply(result.status==='verified_against_live_sec'?200:503,result)}
  catch(e){reply(503,{status:'unavailable',error:e instanceof Error?e.message:'SEC verification unavailable',note:'No historical comparison validated in this session.'})}
  return true;
 }
