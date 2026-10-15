@@ -95,10 +95,10 @@ export function selectFilingDocuments(submission,index,accession){
  const items=Array.isArray(index?.directory?.item)?index.directory.item:[];
  // Prefer explicit 8-K primary metadata; the index listing is not an event taxonomy.
  if(!primary){
-  const candidates=items.map(x=>x.name).filter(safeDocumentName).filter(x=>/(?:^|[-_.])8[-_]?k(?:[-_.]|$)|form[-_]?8[-_]?k|d\d+8k/i.test(x));
+  const candidates=items.map(x=>x.name).filter(safeDocumentName).filter(x=>/(?:^|[-_.])8[-_]?k(?:[-_.]|$)|form[-_]?8[-_]?k|d\d+(?:d)?8k/i.test(x));
   if(candidates.length===1)primary=candidates[0];
  }
- const exhibitCandidates=items.map(x=>x.name).filter(safeDocumentName).filter(name=>/(?:^|[-_.])(?:ex(?:hibit)?[-_.]?99|dex99)[-_.]?\d*/i.test(name));
+ const exhibitCandidates=items.map(x=>x.name).filter(safeDocumentName).filter(name=>/(?:^|[-_.])ex(?:hibit)?[-_.]?99|dex99|d\d+ex99/i.test(name));
  const docs=[],seen=new Set();
  if(primary){docs.push({role:'Primary 8-K',name:primary});seen.add(primary.toLowerCase())}
  for(const name of exhibitCandidates){if(docs.length>=3)break;if(!seen.has(name.toLowerCase())){docs.push({role:'Exhibit 99',name});seen.add(name.toLowerCase())}}
