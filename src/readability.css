@@ -352,3 +352,18 @@ th{font-size:12px}td{font-size:14px}
 .atlas-autonomous-valuation.atlas-valuation-amber{border:2px solid #b78f5c;background:#342b21}
 .atlas-autonomous-valuation.atlas-valuation-amber strong{color:#f7d398}
 @media(max-width:650px){.atlas-autonomous-actions{margin:0 10px}}
+
+/* Early SEC balance-sheet research; facts are visible, gaps remain explicit. */
+.atlas-survival-panel{border:1px solid #59768f;background:#162f46;border-radius:12px;padding:17px;display:grid;gap:12px}
+.atlas-survival-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.atlas-survival-panel-head>strong{font-size:21px;color:#f3f9ff}
+.atlas-survival-panel-head>span{font-size:14px;font-weight:700;color:#f0d4a2}
+.atlas-survival-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.atlas-survival-metrics>div{display:grid;align-content:start;gap:7px;padding:14px;min-width:0;background:#203b53;border:1px solid #56758f;border-radius:9px}
+.atlas-survival-metrics span{font-size:14px;color:#c4d9e8}
+.atlas-survival-metrics strong{font-size:clamp(20px,2.3vw,30px);line-height:1.2;overflow-wrap:anywhere}
+.atlas-survival-metrics small{font-size:13px;color:#bdcfde;line-height:1.45}
+.atlas-survival-panel>.atlas-details p{margin:9px 0;line-height:1.5;overflow-wrap:anywhere}
+.atlas-survival-panel .atlas-details a{color:#a9deff}
+.atlas-survival-warning{background:#392921;border:1px solid #9d674c;border-radius:9px;padding:12px;font-size:15px;line-height:1.6}
+@media(max-width:600px){.atlas-survival-metrics{grid-template-columns:minmax(0,1fr)}.atlas-survival-panel{padding:12px}}
