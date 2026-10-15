@@ -1,18 +1,36 @@
 // SEC daily master indexes are market-wide filing discovery, not sentiment or financial evaluation.
-export function parseMasterIndex(text,date,tickers){
+import {gunzipSync} from 'node:zlib';
+
+// Inspect raw bytes: some SEC endpoints serve octet-stream text, and transport
+// layers may leave raw gzip bytes. Never classify undecodable files as empty.
+export function decodeIndexBytes(bytes){
+ const input=bytes instanceof Uint8Array?bytes:new Uint8Array(bytes);
+ const gz=input[0]===0x1f&&input[1]===0x8b;
+ const unpacked=gz?gunzipSync(input):input;
+ const utf16=unpacked[0]===0xff&&unpacked[1]===0xfe;
+ return {text:new TextDecoder(utf16?'utf-16le':'utf-8').decode(unpacked),encoding:gz?'gzip':utf16?'utf-16le':'utf-8'};
+}
+export function parseMasterIndex(text,indexDate,tickers){
  if(typeof text!=='string'||!Array.isArray(tickers))throw Error('Invalid index response');
  const cikMap=new Map(tickers.filter(t=>Number.isSafeInteger(Number(t.cik_str))&&typeof t.ticker==='string').map(t=>[String(Number(t.cik_str)),t]));
  const rows=[];
- if(!text.includes('CIK')||!text.includes('Form Type')||!text.includes('Filename'))throw Error('Unrecognized SEC master index header');
+ let validRecords=0;
  for(const line of text.split(/\r?\n/)){
   const fields=line.split('|').map(x=>x.trim());
   if(fields.length!==5)continue;
   const [cik,name,form,filed,relative]=fields;
-  if(!/^\d+$/.test(cik)||!['8-K','8-K/A'].includes(form)||filed!==date||!/^edgar\/data\/\d+\/[\w.\/-]+\.txt$/.test(relative)||relative.includes('..'))continue;
+  if(!/^\d{1,10}$/.test(cik)||!/^[A-Z0-9][A-Z0-9/-]{0,24}$/.test(form)||!/^\d{4}-\d{2}-\d{2}$/.test(filed)||!/^edgar\/data\/\d+\/[\w./-]+\.txt$/.test(relative)||relative.includes('..'))continue;
+  validRecords++;
+  if(!['8-K','8-K/A'].includes(form))continue;
   const matchTicker=cikMap.get(String(Number(cik)));
   if(!matchTicker)continue;
-  rows.push({ticker:matchTicker.ticker,name:matchTicker.title||name,form,filed,url:'https://www.sec.gov/Archives/'+relative,cik,kind:'8-K (contents unreviewed)'});
+  // The legal filed date may precede the daily index dissemination date.
+  rows.push({ticker:matchTicker.ticker,name:matchTicker.title||name,form,filed,discoveredOn:indexDate,url:'https://www.sec.gov/Archives/'+relative,cik,kind:'8-K (contents unreviewed)'});
  }
+ // Require either parseable genuine index records or recognizable column headers.
+ // Never treat an access-denied HTML page or binary garbage as a zero-filing day.
+ const recognizableHeader=/CIK\s*\|.*Company.*\|.*Form.*\|.*Date.*\|.*File/i.test(text.slice(0,4096));
+ if(!validRecords&&!recognizableHeader)throw Error('Unrecognized SEC master index content');
  return rows;
 }
 export function rankFreshFilings(rows,limit=40){
@@ -21,7 +39,7 @@ export function rankFreshFilings(rows,limit=40){
   if(!r?.url||!/^https:\/\/www\.sec\.gov\/Archives\/edgar\/data\//.test(r.url))continue;
   unique.set(r.url,r);
  }
- return [...unique.values()].sort((a,b)=>b.filed.localeCompare(a.filed)||a.ticker.localeCompare(b.ticker)).slice(0,limit);
+ return [...unique.values()].sort((a,b)=>(b.discoveredOn||b.filed).localeCompare(a.discoveredOn||a.filed)||b.filed.localeCompare(a.filed)||a.ticker.localeCompare(b.ticker)).slice(0,limit);
 }
 const send=(res,status,body)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(body))};
 let cache=null;
@@ -70,8 +88,11 @@ export async function handleWideDiscovery(req,res){
     const r=await fetch(url,{headers,signal:AbortSignal.timeout(12000)});
     if(r.status===404)continue;
     if(!r.ok){diagnostics.push({date:day,status:r.status,matched:0,bytes:0,valid:false});errors.push(day+': SEC HTTP '+r.status);continue}
-    const raw=await r.text();
-    const diag={date:day,status:r.status,contentType:r.headers.get('content-type')||'unknown',bytes:raw.length,matched:0,valid:false};
+    const wire=new Uint8Array(await r.arrayBuffer());
+    let raw='',encoding='unreadable';
+    try{const decoded=decodeIndexBytes(wire);raw=decoded.text;encoding=decoded.encoding}
+    catch(e){errors.push(day+': index decoding failed: '+(e instanceof Error?e.message:'unknown error'))}
+    const diag={date:day,status:r.status,contentType:r.headers.get('content-type')||'unknown',bytes:wire.byteLength,encoding,firstChars:raw.slice(0,160).replace(/[\x00-\x1f\x7f]/g,' '),matched:0,valid:false};
     diagnostics.push(diag);
     try{
      const parsed=parseMasterIndex(raw,day,symbols);
