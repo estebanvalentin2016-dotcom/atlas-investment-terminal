@@ -27,10 +27,17 @@ export function eventStudy(acceptedAt,bars) {
   if (aligned.status !== 'aligned') return {...aligned, returns:{day1:null,day3:null,day5:null}};
   const i=aligned.index, baseline=bars[i-1]?.close;
   const valid=x=>Number.isFinite(x)&&x>0;
-  const result={};
+  const result={}, excursions={};
   for(const n of [1,3,5]){
     const close=bars[i+n-1]?.close;
     result['day'+n]=valid(baseline)&&valid(close)?(close/baseline-1)*100:null;
+    // Require the entire window and valid high/low values; never substitute closing prices.
+    const window=bars.slice(i,i+n);
+    const complete=window.length===n&&window.every(b=>valid(b.high)&&valid(b.low)&&b.high>=b.low&&valid(b.close));
+    excursions['day'+n]=complete&&valid(baseline)?{
+      highPct:(Math.max(...window.map(b=>b.high))/baseline-1)*100,
+      lowPct:(Math.min(...window.map(b=>b.low))/baseline-1)*100
+    }:null;
   }
-  return {...aligned, baselineSession:bars[i-1].date, returns:result, completeHorizons:[1,3,5].filter(n=>result['day'+n]!==null)};
+  return {...aligned, baselineSession:bars[i-1].date, returns:result, excursions, completeHorizons:[1,3,5].filter(n=>result['day'+n]!==null)};
 }
