@@ -88,3 +88,9 @@ th{font-size:12px}td{font-size:14px}
 .opportunity-radar .opportunity-uncertainty strong{color:#fff4da}
 .opportunity-radar .atlas-details .filing-evidence-excerpt{margin:10px 0}
 @media(max-width:780px){.atlas-scan-grid{grid-template-columns:1fr;margin:14px 16px}}
+
+/* Sidebar remains navigable when enlarged labels exceed short screens. */
+.sidebar{overflow-y:auto;overscroll-behavior:contain}
+.sidebar .brand{padding-bottom:23px}
+@media(max-height:820px){.sidebar .helpbox{margin-bottom:14px}.sidebar{padding-top:18px}}
+@media(prefers-reduced-motion:reduce){button{transition:none}.sidebar{scroll-behavior:auto}}
