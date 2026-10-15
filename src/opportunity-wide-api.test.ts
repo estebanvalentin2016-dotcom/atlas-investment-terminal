@@ -1,4 +1,4 @@
-import {describe,it,expect} from 'vitest';
+import {describe,it,expect,vi} from 'vitest';
 // @ts-ignore Node-only SEC index parser
 import {parseMasterIndex,rankFreshFilings,handleWideDiscovery,recentSubmissions} from '../server/opportunity-wide-api.mjs';
 describe('market-wide SEC filing discovery',()=>{
@@ -11,5 +11,31 @@ describe('market-wide SEC filing discovery',()=>{
  it('parses real master index padding around form and issuer fields',()=>{const padded='1535527|CrowdStrike Holdings             |8-K     |2026-10-14|edgar/data/1535527/0001535527-26-000029.txt';expect(parseMasterIndex(index(padded),'2026-10-14',tickers)).toHaveLength(1)});
  it('rejects responses lacking a recognizable SEC index header',()=>expect(()=>parseMasterIndex('<html>Access denied</html>','2026-10-14',tickers)).toThrow('Unrecognized SEC master index header'));
  it('extracts recent 8-K fallback rows without inventing bullishness',()=>{const rows=recentSubmissions({cik:1535527,name:'CrowdStrike',filings:{recent:{form:['8-K','10-Q'],filingDate:['2026-10-14','2026-10-14'],accessionNumber:['0001535527-26-000029','0001535527-26-000030']}}},'CRWD',Date.parse('2026-10-15T12:00:00Z'));expect(rows).toHaveLength(1);expect(rows[0].url).toContain('000153552726000029')});
+ it('returns diagnostics and fallback results without a runtime error',async()=>{
+  const oldAgent=process.env.SEC_USER_AGENT;
+  process.env.SEC_USER_AGENT='Atlas test atlas-test@example.com';
+  const day=new Date().toISOString().slice(0,10);
+  vi.stubGlobal('fetch',vi.fn(async (url:string|URL)=>{
+   const target=String(url);
+   if(target.includes('company_tickers.json'))return new Response(JSON.stringify({'0':{cik_str:1535527,ticker:'CRWD',title:'CrowdStrike Holdings'}}),{status:200});
+   if(target.includes('/daily-index/'))return new Response('CIK|Company Name|Form Type|Date Filed|Filename\\n',{status:200});
+   if(target.includes('/submissions/CIK0001535527.json'))return new Response(JSON.stringify({cik:1535527,name:'CrowdStrike Holdings',filings:{recent:{form:['8-K'],filingDate:[day],accessionNumber:['0001535527-26-000029']}}}),{status:200});
+   throw new Error('Unexpected URL '+target);
+  }));
+  let status=0;
+  let payload='';
+  const res={writeHead(code:number){status=code},end(value:string){payload=value}};
+  try{
+   expect(await handleWideDiscovery({url:'/api/opportunities/sec-wide',method:'GET'},res)).toBe(true);
+   expect(status).toBe(200);
+   const data=JSON.parse(payload);
+   expect(data.diagnostics.length).toBeGreaterThan(0);
+   expect(data.fallbackChecked).toBe(1);
+   expect(data.rows[0].ticker).toBe('CRWD');
+  }finally{
+   vi.unstubAllGlobals();
+   if(oldAgent===undefined)delete process.env.SEC_USER_AGENT;else process.env.SEC_USER_AGENT=oldAgent;
+  }
+ });
  it('ignores unrelated routes',async()=>expect(await handleWideDiscovery({url:'/api/other'},{})).toBe(false));
 });
