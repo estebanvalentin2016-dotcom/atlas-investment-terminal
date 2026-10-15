@@ -14,7 +14,7 @@ export function annualPeFromSec(company:SecCompany,quote:MarketValuationClose|nu
  const rev=recent(company.metrics.find(x=>x.name==='Revenue')?.values||[])[0];
  const eps=recent(company.metrics.find(x=>x.name==='Diluted EPS')?.values||[]).find(x=>rev&&x.end===rev.end);
  if(!eps||eps.value<=0||!Number.isFinite(eps.value))return {...base,reason:'Matching positive annual diluted EPS not available'};
- if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(eps.filed)||Date.parse(eps.filed+'T00:00:00Z')>Date.parse(quote.sessionDate+'T00:00:00Z'))return {...base,reason:'SEC EPS not yet published as of IEX close'};
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(eps.filed)||Date.parse(eps.filed+'T00:00:00Z')>Date.parse(quote.sessionDate+'T00:00:00Z'))return {...base,reason:'SEC EPS not yet published as of IEX close'};
  const age=Date.parse(quote.sessionDate+'T00:00:00Z')-Date.parse(eps.filed+'T00:00:00Z');
  if(!Number.isFinite(age)||age<0||age>550*86400000)return {...base,reason:'Reported annual EPS is stale'};
  const pe=Math.round(quote.price/eps.value*100)/100;
@@ -64,8 +64,8 @@ export function scoreCompany(company:SecCompany,weights:RankWeights,manualPe:num
  const observed=active.filter(p=>p.value!==null);
  const evidenceWeight=observed.reduce((sum,p)=>sum+weights[p.key],0);
  const coverage=total>0?percent(evidenceWeight/total*100):0;
- const missing:string[]=active.filter(p=>p.value===null).map(p=>p.key==='growth'?'Revenue growth':p.key==='fcf'?'FCF margin':p.key==='profit'?'Net margin':'P/E (manual)');
- const reasons=observed.map(p=>(p.key==='growth'?'Revenue growth':p.key==='fcf'?'Free cash flow margin':p.key==='profit'?'Net margin':'Manually supplied P/E')+': '+(p.value===null?'unknown':p.value.toFixed(2))+(p.key==='pe'?'x':'%'));
+ const missing:string[]=active.filter(p=>p.value===null).map(p=>p.key==='growth'?'Revenue growth':p.key==='fcf'?'FCF margin':p.key==='profit'?'Net margin':'Automatic FY P/E');
+ const reasons=observed.map(p=>(p.key==='growth'?'Revenue growth':p.key==='fcf'?'Free cash flow margin':p.key==='profit'?'Net margin':'SEC earnings / IEX close FY P/E')+': '+(p.value===null?'unknown':p.value.toFixed(2))+(p.key==='pe'?'x':'%'));
  if(metrics.year===null)missing.push('SEC fiscal-year revenue');
  if(stale)missing.push('Fresh SEC fiscal financials');
  const hasCore=observed.filter(p=>p.key!=='pe').length>=2;
