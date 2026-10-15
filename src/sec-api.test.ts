@@ -1,4 +1,5 @@
 import {describe,expect,it} from 'vitest';
+// @ts-ignore JavaScript-only SEC backend module is tested directly.
 import {annualValues,selectFact} from '../server/sec-api.mjs';
 describe('SEC annual fact normalization',()=>{
  it('uses reported annual durations and latest filing for each fiscal ending year',()=>{
