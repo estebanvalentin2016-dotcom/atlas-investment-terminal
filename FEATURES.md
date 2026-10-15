@@ -61,3 +61,10 @@
 - [x] Open stock chart on Yahoo Finance for independent visual review
 - [ ] Automatically associate filing catalysts to market sessions
 - [ ] Paper-trade historical entry/exit rules with realistic friction
+
+## In development — v0.8
+- [x] Multi-ticker daily momentum scan for up to 8 symbols
+- [x] Clearly defined illustrative bullish and bearish research criteria
+- [x] Per-symbol errors, source metadata and Yahoo Finance links
+- [ ] Detect catalyst-to-price timing and run historical event studies
+- [ ] Evaluate out-of-sample results including trading costs
