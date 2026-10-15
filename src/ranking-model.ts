@@ -6,6 +6,21 @@ export type SecCompany={ticker:string;name:string;source:string;retrievedAt:stri
 export type RankWeights={growth:number;fcf:number;profit:number;pe:number};
 export type RankMetrics={year:number|null;growth:number|null;fcfMargin:number|null;profitMargin:number|null;pe:number|null;fcf:number|null;revenue:number|null;capex:number|null};
 export type Ranked={ticker:string;name:string;year:number|null;source:string;metrics:RankMetrics;score:number|null;coverage:number;count:number;reasons:string[];missing:string[];annualFiled:string|null};
+export type MarketValuationClose={ticker:string;price:number;sessionDate:string;feed:string;provider:string;completedSession:boolean;splitValidation?:string};
+export type AnnualPe={pe:number|null;eps:number|null;epsEnd:string|null;priceDate:string|null;reason:string};
+export function annualPeFromSec(company:SecCompany,quote:MarketValuationClose|null):AnnualPe{
+ const base={pe:null,eps:null,epsEnd:null,priceDate:quote?.sessionDate??null};
+ if(!quote||quote.ticker!==company.ticker||quote.feed!=='IEX'||!quote.completedSession||!Number.isFinite(quote.price)||quote.price<=0)return {...base,reason:'Completed IEX close unavailable'};
+ const rev=recent(company.metrics.find(x=>x.name==='Revenue')?.values||[])[0];
+ const eps=recent(company.metrics.find(x=>x.name==='Diluted EPS')?.values||[]).find(x=>rev&&x.end===rev.end);
+ if(!eps||eps.value<=0||!Number.isFinite(eps.value))return {...base,reason:'Matching positive annual diluted EPS not available'};
+ if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(eps.filed)||Date.parse(eps.filed+'T00:00:00Z')>Date.parse(quote.sessionDate+'T00:00:00Z'))return {...base,reason:'SEC EPS not yet published as of IEX close'};
+ const age=Date.parse(quote.sessionDate+'T00:00:00Z')-Date.parse(eps.filed+'T00:00:00Z');
+ if(!Number.isFinite(age)||age<0||age>550*86400000)return {...base,reason:'Reported annual EPS is stale'};
+ const pe=Math.round(quote.price/eps.value*100)/100;
+ if(!Number.isFinite(pe)||pe<=0||pe>1000)return {...base,reason:'Computed annual earnings multiple outside supported range'};
+ return {pe,eps:eps.value,epsEnd:eps.end,priceDate:quote.sessionDate,reason:'Indicative fiscal-year P/E; TTM earnings and post-filing share splits not verified'};
+}
 export const defaultRankWeights:RankWeights={growth:30,fcf:35,profit:20,pe:15};
 const finite=(n:number)=>Number.isFinite(n);
 const percent=(n:number)=>Math.round(n*100)/100;
