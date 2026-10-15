@@ -1,5 +1,6 @@
 import {useState,type FormEvent} from 'react';
 import {assessConvictionReadiness,type ConvictionAssessment} from './conviction-readiness';
+import SurvivalEvidencePanel from './SurvivalEvidencePanel';
 import type {MarketValuationClose,SecCompany} from './ranking-model';
 type ThesisVersion={ticker:string;createdAt:string;thesis:string;invalidation:string;verdict:'INSUFFICIENT EVIDENCE'};
 const KEY='atlas.conviction.theses.v1';
@@ -71,6 +72,7 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
     <div><span className="atlas-glance-label">FCF margin</span><strong className="atlas-glance-value">{pct(assessment.observed.fcfMarginPct)}</strong><small>Reported operating cash flow less capex ÷ sales</small></div>
     <div><span className="atlas-glance-label">Indicative annual P/E</span><strong className="atlas-glance-value">{assessment.observed.fyPe===null?'N/A':assessment.observed.fyPe.toFixed(1)+'×'}</strong><small>{assessment.observed.asOfDate??'Quote missing'} · not TTM or forward</small></div>
    </div>
+   <SurvivalEvidencePanel company={company} asOf={assessment.observed.asOfDate??nyToday()}/>
    <p className="chart-note"><strong>Source:</strong> <a href={company.source} target="_blank" rel="noopener noreferrer">SEC company financial facts ↗</a>. Missing or delayed figures remain unknown. An attractive reported metric is not evidence of mispricing.</p>
    <details className="atlas-details" open><summary>What must be established before a buy verdict?</summary>
     <div className="atlas-conviction-gates">{assessment.requirements.map(item=><div key={item.key}><strong>{item.status==='verified'?'✓':'○'} {item.label}</strong><p>{item.detail}</p></div>)}</div>
