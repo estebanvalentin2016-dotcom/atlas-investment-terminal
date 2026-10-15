@@ -13,10 +13,10 @@ export type SurvivalEvidence={
 const validDay=(d:string)=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&Number.isFinite(Date.parse(d+'T00:00:00Z'))&&new Date(d+'T00:00:00Z').toISOString().slice(0,10)===d;
 const round=(v:number)=>Math.round(v*100)/100;
 function eligible(row:Annual,asOf:string){
- return validDay(row.end)&&validDay(row.filed)&&row.end<=asOf&&row.filed<=asOf&&Number.isFinite(row.value)&&row.value>=0;
+ return validDay(row.end)&&validDay(row.filed)&&row.end<=asOf&&row.filed<=asOf&&Number.isFinite(row.value);
 }
-function observation(metric:SecMetric|undefined,fiscalEnd:string,asOf:string):SourcedFigure|null{
- const item=metric?.values.filter(row=>row.end===fiscalEnd&&eligible(row,asOf)).sort((a,b)=>b.filed.localeCompare(a.filed))[0];
+function observation(metric:SecMetric|undefined,fiscalEnd:string,asOf:string,allowNegative=false):SourcedFigure|null{
+ const item=metric?.values.filter(row=>row.end===fiscalEnd&&eligible(row,asOf)&&(allowNegative||row.value>=0)).sort((a,b)=>b.filed.localeCompare(a.filed))[0];
  return item?{value:item.value,fiscalEnd:item.end,filed:item.filed,tag:metric?.tag??item.tag??null,accession:item.accession??null}:null;
 }
 export function deriveSurvivalEvidence(company:SecCompany,asOf:string):SurvivalEvidence{
@@ -34,14 +34,14 @@ export function deriveSurvivalEvidence(company:SecCompany,asOf:string):SurvivalE
  const noncurrentDebt=observation(metrics.get('Long-term debt noncurrent'),end,asOf);
  const shortBorrowings=observation(metrics.get('Short-term borrowings'),end,asOf);
  const weightedDilutedShares=observation(metrics.get('Weighted-average diluted shares'),end,asOf);
- const previous=(metrics.get('Weighted-average diluted shares')?.values??[]).filter(r=>r.year===revenue.year-1&&eligible(r,asOf))
+ const previous=(metrics.get('Weighted-average diluted shares')?.values??[]).filter(r=>r.year===revenue.year-1&&eligible(r,asOf)&&r.value>=0)
   .sort((a,b)=>b.filed.localeCompare(a.filed))[0];
  const previousWeightedDilutedShares=previous?{value:previous.value,fiscalEnd:previous.end,filed:previous.filed,tag:metrics.get('Weighted-average diluted shares')?.tag??previous.tag??null,accession:previous.accession??null}:null;
  const weightedShareChangePct=weightedDilutedShares&&previousWeightedDilutedShares&&previousWeightedDilutedShares.value>0?
   round((weightedDilutedShares.value/previousWeightedDilutedShares.value-1)*100):null;
  // Source matched to the same fiscal period and *actually filed by* asOf.
  // Historical SEC restatements received later cannot leak into old snapshots.
- const opCash=observation(metrics.get('Operating cash flow'),end,asOf);
+ const opCash=observation(metrics.get('Operating cash flow'),end,asOf,true);
  const capex=observation(metrics.get('Capital expenditures'),end,asOf);
  const fcf=opCash&&capex?opCash.value-capex.value:null;
  const simpleCashToBurnYears=cash&&fcf!==null&&fcf<0?round(cash.value/-fcf):null;
