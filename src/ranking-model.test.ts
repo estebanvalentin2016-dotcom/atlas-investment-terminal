@@ -42,7 +42,7 @@ describe('SEC annual fundamental ranking model',()=>{
   const a=scoreCompany(company('A'),defaultRankWeights);
   const b=scoreCompany(company('A'),defaultRankWeights,12);
   expect(a.metrics.pe).toBeNull();
-  expect(a.missing).toContain('P/E (manual)');
+  expect(a.missing).toContain('Automatic FY P/E');
   expect(a.coverage).toBe(85);
   expect(b.coverage).toBe(100);
   expect(b.score).toBeGreaterThan(a.score!);
