@@ -65,17 +65,23 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
   {!assessment&&<div className="atlas-conviction-intro"><strong>Five verdicts, one evidence standard.</strong><p>Strong Speculative Buy · Buy Candidate · Watchlist · Avoid · Insufficient Evidence</p><p>For now, the engine can only issue <strong>Insufficient Evidence</strong> because the full valuation, risk and mispricing modules are not built. It does not assign arbitrary return probabilities.</p></div>}
   {assessment&&company&&<div className="atlas-conviction-result">
    <div className="atlas-conviction-verdict"><span>{company.ticker} · {company.name}</span><strong>{assessment.verdict}</strong><p>{assessment.summary}</p></div>
-   <div className="atlas-conviction-count"><strong>{assessment.verifiedCount}/{assessment.totalCount}</strong><span>Evidence gates currently supported</span></div>
+   <div className="atlas-conviction-count"><strong>{assessment.verifiedCount}/{assessment.totalCount}</strong><span>Evidence categories verified · not an investment score</span></div>
    <div className="atlas-key-return">
     <div><span className="atlas-glance-label">SEC revenue growth</span><strong className="atlas-glance-value">{pct(assessment.observed.revenueGrowthPct)}</strong><small>FY {assessment.observed.fiscalYear??'unknown'}</small></div>
     <div><span className="atlas-glance-label">Free cash flow after capex</span><strong className="atlas-glance-value">{currency(assessment.observed.freeCashFlow)}</strong><small>Company SEC fiscal period</small></div>
     <div><span className="atlas-glance-label">FCF margin</span><strong className="atlas-glance-value">{pct(assessment.observed.fcfMarginPct)}</strong><small>Reported operating cash flow less capex ÷ sales</small></div>
     <div><span className="atlas-glance-label">Indicative annual P/E</span><strong className="atlas-glance-value">{assessment.observed.fyPe===null?'N/A':assessment.observed.fyPe.toFixed(1)+'×'}</strong><small>{assessment.observed.asOfDate??'Quote missing'} · not TTM or forward</small></div>
    </div>
+   {assessment.fundingRisk.status!=='unknown'&&<section className={'atlas-conviction-funding '+(assessment.fundingRisk.status==='nonnegative_fcf'?'atlas-funding-neutral':'atlas-funding-alert')}>
+    <strong>{assessment.fundingRisk.headline}</strong>
+    <p>{assessment.fundingRisk.detail}</p>
+    {assessment.fundingRisk.status!=='nonnegative_fcf'&&<p><strong>Research priority:</strong> Explain where the cash went, whether growth investment is productive, what funding is available, and how future share issuance could affect your ownership.</p>}
+   </section>}
    <SurvivalEvidencePanel company={company} asOf={assessment.observed.asOfDate??nyToday()}/>
    <p className="chart-note"><strong>Source:</strong> <a href={company.source} target="_blank" rel="noopener noreferrer">SEC company financial facts ↗</a>. Missing or delayed figures remain unknown. An attractive reported metric is not evidence of mispricing.</p>
-   <details className="atlas-details" open><summary>What must be established before a buy verdict?</summary>
-    <div className="atlas-conviction-gates">{assessment.requirements.map(item=><div key={item.key}><strong>{item.status==='verified'?'✓':'○'} {item.label}</strong><p>{item.detail}</p></div>)}</div>
+   <details className="atlas-details" open><summary>What ATLAS verified — and what automation is still missing</summary>
+    <p className="atlas-gates-explainer"><strong>These gaps are ATLAS development tasks, not homework for you.</strong> Verified means a source has passed the current evidence check; partial means some SEC observations are available but the full analysis is missing. Pending means the automated analysis is not connected yet.</p>
+    <div className="atlas-conviction-gates">{assessment.requirements.map(item=><div key={item.key}><div className="atlas-gate-heading"><strong>{item.status==='verified'?'✓':'○'} {item.label}</strong><span className={'atlas-gate-progress atlas-progress-'+item.progress}>{item.progress==='verified'?'Source checked':item.progress==='partially_sourced'?'Partial evidence':item.progress==='engine_pending'?'Automation pending':'Source unavailable'}</span></div><p>{item.detail}</p></div>)}</div>
    </details>
    <div className="atlas-conviction-thesis">
     <strong>Write your own testable investment thesis</strong>
