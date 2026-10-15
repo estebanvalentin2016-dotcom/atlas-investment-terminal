@@ -39,7 +39,7 @@ export default function RealResearch(){
  return <section className="panel real-panel">
   <div className="panel-head"><div><span className="eyebrow">PUBLIC COMPANY FILINGS / SEC EDGAR</span><h3>Real company financials</h3></div><span className="tag">SEC reported · no stock quotes</span></div>
   <p className="description">Research actual US public companies using reported annual financial data from SEC filings. These figures are separate from ATLAS's fictional demo screener and valuation lab.</p>
-  <form className="real-search" onSubmit={lookup}><label htmlFor="real-ticker">Ticker</label><input id="real-ticker" value={ticker} onChange={e=>setTicker(e.target.value.toUpperCase())} maxLength={12} placeholder="CRWD" pattern="[A-Za-z0-9.\\-]{1,12}" required/><button className="button primary" disabled={loading} type="submit">{loading?'Loading SEC data…':'Fetch company filings'}</button></form>
+  <form className="real-search" onSubmit={lookup}><label htmlFor="real-ticker">Ticker</label><input id="real-ticker" value={ticker} onChange={e=>setTicker(e.target.value.toUpperCase())} maxLength={12} placeholder="CRWD" pattern="[A-Za-z0-9.-]{1,12}" required/><button className="button primary" disabled={loading} type="submit">{loading?'Loading SEC data…':'Fetch company filings'}</button></form>
   {error&&<div className="real-error" role="alert">{error}. No substitute or sample figures are being displayed.</div>}
   {data&&<div className="real-results">
    <div className="real-company"><strong>{data.name} ({data.ticker})</strong><span>CIK {data.cik} · Retrieved {new Date(data.retrievedAt).toLocaleString()}</span></div>
