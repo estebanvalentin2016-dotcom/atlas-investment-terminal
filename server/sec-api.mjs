@@ -87,6 +87,23 @@ export function instantOutstandingShares(facts){
   quality:values.length?'unreconciled_sec_entity_shares':'missing',
   selectionNote:'SEC DEI point-in-time count; number of share classes, entity-wide coverage, splits and current tradable float are not verified.'};
 }
+// Point-in-time 10-Q / 10-K balance-sheet facts. Never mix these with
+// annual duration observations or silently equate a missing tag with zero.
+export function latestInstantFact(facts,tags,unit='USD'){
+ const validDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s+'T00:00:00Z'))&&new Date(s+'T00:00:00Z').toISOString().slice(0,10)===s;
+ const entries=[];
+ for(const tag of tags){
+  for(const v of facts?.['us-gaap']?.[tag]?.units?.[unit]||[]){
+   if(!['10-Q','10-K','10-Q/A','10-K/A'].includes(v.form)||v.start||!validDate(v.end)||!validDate(v.filed)||
+    v.end>v.filed||!Number.isFinite(v.val)||v.val<0||typeof v.accn!=='string'||!/^\d{10}-\d{2}-\d{6}$/.test(v.accn))continue;
+   entries.push({year:Number(v.end.slice(0,4)),end:v.end,filed:v.filed,value:v.val,form:v.form,accession:v.accn,tag});
+  }
+ }
+ const unique=new Map(entries.map(x=>[[x.tag,x.end,x.filed,x.accession,x.value].join('|'),x]));
+ const values=[...unique.values()].sort((a,b)=>b.end.localeCompare(a.end)||b.filed.localeCompare(a.filed)||tags.indexOf(a.tag)-tags.indexOf(b.tag)).slice(0,20);
+ return {tag:values[0]?.tag??null,values,quality:values.length?'dated_balance_sheet_observations':'missing',
+  selectionNote:'10-Q/10-K instant GAAP observations; only facts public by the chosen as-of date count. Values are NOT complete funding or debt maturity disclosures.'};
+}
 function json(res,status,data){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));}
 // Stable, broad ticker enumeration. No seed list or ticker inputs. The
 // multiplicative CIK+symbol sort scatters batch order rather than exclusively
@@ -168,7 +185,13 @@ export async function handleSecRequest(req,res){
    ['Short-term borrowings',['ShortTermBorrowings']],
    ['Weighted-average diluted shares',['WeightedAverageNumberOfDilutedSharesOutstanding']],
    ['Common shares outstanding (DEI)',['EntityCommonStockSharesOutstanding']],
-  ].map(([name,tags])=>{const unit=name==='Diluted EPS'?'USD/shares':name==='Weighted-average diluted shares'||name==='Common shares outstanding (DEI)'?'shares':'USD';const result=name==='Revenue'?revenueSelection:name==='Common shares outstanding (DEI)'?instantOutstandingShares(facts.facts):selectFact(facts.facts,tags,unit);return {name,unit,...result};});
+   ['Latest cash and cash equivalents',['CashAndCashEquivalentsAtCarryingValue']],
+   ['Latest current assets',['AssetsCurrent']],
+   ['Latest current liabilities',['LiabilitiesCurrent']],
+   ['Latest current long-term debt',['LongTermDebtCurrent']],
+   ['Latest noncurrent long-term debt',['LongTermDebtNoncurrent']],
+   ['Latest short-term borrowings',['ShortTermBorrowings']],
+  ].map(([name,tags])=>{const unit=name==='Diluted EPS'?'USD/shares':name==='Weighted-average diluted shares'||name==='Common shares outstanding (DEI)'?'shares':'USD';const result=name==='Revenue'?revenueSelection:name==='Common shares outstanding (DEI)'?instantOutstandingShares(facts.facts):name.startsWith('Latest ')?latestInstantFact(facts.facts,tags,unit):selectFact(facts.facts,tags,unit);return {name,unit,...result};});
   json(res,200,{ticker,name:facts.entityName||match.title,cik,source,retrievedAt:new Date().toISOString(),metrics});
  }catch(e){json(res,503,{error:e instanceof Error?e.message:'SEC data temporarily unavailable'});}
  return true;
