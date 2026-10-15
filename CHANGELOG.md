@@ -1,3 +1,6 @@
+## 0.8.0 — in development
+Add user-initiated scanner for up to eight tickers using existing Alpaca IEX daily market-data adapter. Classify illustrative bullish/bearish multi-day patterns from 1/3/5-day returns, RVOL and distance to 20-day high. No catalyst alignment or independently validated signals. Local verification required.
+
 ## 0.7.0 — in development
 Free-tier Alpaca IEX daily OHLCV lookup, 1/3/5-day returns and relative-volume calculations, plus a direct Yahoo Finance chart link. Requires optional server-only Alpaca credentials. Not yet locally tested.
 
