@@ -28,7 +28,7 @@ export function deriveSurvivalEvidence(company:SecCompany,asOf:string):SurvivalE
   weightedDilutedShares:null,previousWeightedDilutedShares:null,weightedShareChangePct:null,freeCashFlow:null,
   simpleCashToBurnYears:null,missing:['Comparable SEC annual revenue period unavailable as of '+asOf],
   notes:['Do not infer financial health from missing SEC tags or from a future filing.'],source:company.source} satisfies SurvivalEvidence;
- if(!end||!validDay(asOf))return empty;
+ if(!end||!revenue||!validDay(asOf))return empty;
  const cash=observation(metrics.get('Cash and cash equivalents'),end,asOf);
  const currentDebt=observation(metrics.get('Current portion of long-term debt'),end,asOf);
  const noncurrentDebt=observation(metrics.get('Long-term debt noncurrent'),end,asOf);
