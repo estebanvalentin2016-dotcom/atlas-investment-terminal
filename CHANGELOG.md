@@ -1,3 +1,12 @@
+## 0.8.0 — in development
+Add user-initiated scanner for up to eight tickers using existing Alpaca IEX daily market-data adapter. Classify illustrative bullish/bearish multi-day patterns from 1/3/5-day returns, RVOL and distance to 20-day high. No catalyst alignment or independently validated signals. Local verification required.
+
+## 0.7.0 — in development
+Free-tier Alpaca IEX daily OHLCV lookup, 1/3/5-day returns and relative-volume calculations, plus a direct Yahoo Finance chart link. Requires optional server-only Alpaca credentials. Not yet locally tested.
+
+## 0.6.0 — in development
+SEC 8-K catalyst discovery by ticker and manual price/volume continuation worksheet. No real-time market data, alerts or trade signals; still needs local tests.
+
 ## 0.5.0 — in development
 Discovery Feed searches Crossref publication metadata, with live DOI source links and retrieval timestamps. Manual research review required; no automatic breakthroughs or public-company attribution. Pending user build/test.
 
