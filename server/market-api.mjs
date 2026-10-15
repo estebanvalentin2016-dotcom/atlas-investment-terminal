@@ -11,6 +11,46 @@ export function dailyMomentum(bars){
  const high20=Math.max(...bars.slice(-20).map(b=>b.high));
  return {date:latest.date,close:latest.close,volume:latest.volume,day1:ret(1),day3:ret(3),day5:ret(5),rvol:mean>0?latest.volume/mean:null,below20DayHighPct:high20>0?(latest.close/high20-1)*100:null};
 }
+const valuationCache=new Map();
+export function mostRecentCompletedDaily(bars,asofDate,maxAgeDays=10){
+ const list=bars.filter(x=>x.date<asofDate).sort((a,b)=>b.date.localeCompare(a.date));
+ const latest=list[0]||null;
+ if(!latest)return null;
+ const age=(Date.parse(asofDate+'T00:00:00Z')-Date.parse(latest.date+'T00:00:00Z'))/86400000;
+ return Number.isFinite(age)&&age>=0&&age<=maxAgeDays?latest:null;
+}
+export async function handleValuationPriceRequest(req,res){
+ const u=new URL(req.url,'http://localhost');
+ if(u.pathname!=='/api/market/valuation-close')return false;
+ if(req.method!=='GET'){json(res,405,{error:'Method not allowed'});return true}
+ const ticker=(u.searchParams.get('ticker')||'').trim().toUpperCase();
+ if(!/^[A-Z0-9.-]{1,12}$/.test(ticker)){json(res,400,{error:'Invalid ticker'});return true}
+ const key=process.env.ALPACA_API_KEY_ID,secret=process.env.ALPACA_API_SECRET_KEY;
+ if(!key||!secret){json(res,503,{error:'Alpaca IEX market data not configured'});return true}
+ const prior=valuationCache.get(ticker);
+ if(prior&&Date.now()-prior.at<10*60000){json(res,200,prior.body);return true}
+ try{
+  const now=Date.now();
+  const easternToday=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(now));
+  const start=new Date(now-25*86400000).toISOString();
+  const end=new Date(now-20*60000).toISOString();
+  const target=new URL(HOST+encodeURIComponent(ticker)+'/bars');
+  for(const [name,val] of Object.entries({timeframe:'1Day',start,end,feed:'iex',limit:'40',adjustment:'raw'}))target.searchParams.set(name,val);
+  const upstream=await fetch(target,{headers:{'APCA-API-KEY-ID':key,'APCA-API-SECRET-KEY':secret,Accept:'application/json'},signal:AbortSignal.timeout(12000)});
+  if(!upstream.ok){json(res,502,{error:'Alpaca valuation close HTTP '+upstream.status});return true}
+  const incoming=await upstream.json();
+  const bars=normalizeBars(incoming);
+  // Ignore today's session entirely, including after hours. Never mix a
+  // partial IEX bar with SEC annual EPS and call it an intraday P/E.
+  const quote=mostRecentCompletedDaily(bars,easternToday);
+  if(!quote){json(res,503,{error:'No recent completed IEX trading session is available'});return true}
+  const body={ticker,price:quote.close,sessionDate:quote.date,feed:'IEX',provider:'Alpaca',adjustment:'raw',completedSession:true,splitValidation:'unverified',retrievedAt:new Date().toISOString()};
+  valuationCache.set(ticker,{at:Date.now(),body});
+  if(valuationCache.size>80)valuationCache.clear();
+  json(res,200,body);
+ }catch(e){json(res,502,{error:e instanceof Error?e.message:'Valuation close unavailable'})}
+ return true;
+}
 const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data))};
 export async function handleMarketRequest(req,res){
  const u=new URL(req.url,'http://localhost');if(!['/api/market/daily','/api/market/event'].includes(u.pathname))return false;
