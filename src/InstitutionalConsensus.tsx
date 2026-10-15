@@ -1,4 +1,5 @@
 import {useMemo,useState,type FormEvent} from 'react';
+import InstitutionalHistoricalCase from './InstitutionalHistoricalCase';
 import {FUND_SOURCE_STATUS,consensusFromReports,reportingRecordsFrom13F,type InstitutionRecord} from './institutional-consensus';
 type Report={period:string;filed:string;sourceUrl:string};
 type Position={key:string;cusip:string;issuer:string;className:string;shares:number;previousShares:number|null;portfolioPct:number|null;change:InstitutionRecord['change']};
@@ -39,6 +40,7 @@ export default function InstitutionalConsensus({onInvestigate}:{onInvestigate?:(
  return <section className="panel real-panel atlas-consensus">
   <div className="panel-head"><div><span className="eyebrow">CROSS-INSTITUTIONAL INTELLIGENCE / DISCLOSED HOLDINGS</span><h3>Are independent managers converging on the same companies?</h3></div><span className="tag">No automatic buy ratings</span></div>
   <p className="description"><strong>See overlapping holdings and newly reported share increases.</strong> ATLAS separates <strong>co-reporting</strong> from <strong>verified active-manager consensus</strong>. An increase in reported shares is not a dated purchase.</p>
+  <InstitutionalHistoricalCase onResearch={onInvestigate?()=>onInvestigate('ROCKET COMPANIES'):undefined}/>
   <form className="atlas-ranking-controls atlas-consensus-controls" onSubmit={inspect}><label>SEC manager CIKs (2–6, separated by commas)<input aria-label="Consensus manager CIKs" value={ciks} onChange={e=>setCiks(e.target.value)} placeholder="1743937, 1418814"/></label><button className="button primary" type="submit" disabled={busy}>{busy?'Loading SEC filings…':'Analyze institutional overlap'}</button></form>
   <p className="chart-note"><strong>First-stage SEC coverage:</strong> exact CUSIP + share class, two comparable quarter-end reports per loaded manager. A larger universe and fund-level holdings feeds are being added incrementally; examples are not endorsed institutions.</p>
   {progress&&<p className="atlas-summary-line" role="status">{progress}</p>}
