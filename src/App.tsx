@@ -14,6 +14,7 @@ import './catalyst.css';
 import './discovery.css';
 import './breakthrough.css';
 import './real-research.css';
+import './readability.css';
 import {Activity,ArrowDownRight,ArrowRight,ArrowUpRight,BarChart3,Bookmark,Check,ChevronDown,Command,Compass,Download,Filter,LayoutDashboard,Menu,Plus,Search,Settings2,ShieldAlert,SlidersHorizontal,TrendingUp,X} from 'lucide-react';
 import {calculateValuation,companies,fmtMoney,fmtPct,makeScenarios,opportunityScore,startingInputs,type Company,type Inputs} from './model';
 
