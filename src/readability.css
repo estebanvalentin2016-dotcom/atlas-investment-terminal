@@ -94,3 +94,43 @@ th{font-size:12px}td{font-size:14px}
 .sidebar .brand{padding-bottom:23px}
 @media(max-height:820px){.sidebar .helpbox{margin-bottom:14px}.sidebar{padding-top:18px}}
 @media(prefers-reduced-motion:reduce){button{transition:none}.sidebar{scroll-behavior:auto}}
+
+/* Positive/negative denotes the measured direction, never a buy/sell recommendation. */
+.atlas-tone-positive{color:#66e6aa!important}
+.atlas-tone-negative{color:#ff8892!important}
+.atlas-tone-neutral{color:#f8fbff!important}
+.atlas-metric-detail{font-size:14px;color:#bcd3e5;line-height:1.5}
+.atlas-ranking-entry{margin:18px 22px;padding:14px 18px;background:#112b43;border:1px solid #4c799a}
+.atlas-ranking-entry>summary{font-size:21px!important;color:#eaf7ff!important}
+.atlas-ranking-chevron{color:#77dcb4}
+.atlas-ranking-workbench{display:grid;gap:17px;padding:15px 0 5px}
+.atlas-ranking-head h3{font-size:26px;line-height:1.2;margin:4px 0 8px}
+.atlas-ranking-head p{font-size:16px;margin:0;color:#c5d9ed}
+.atlas-ranking-controls{display:flex;align-items:end;gap:12px;flex-wrap:wrap}
+.atlas-ranking-controls label{flex:1 1 280px;display:grid;gap:8px;font-size:16px;font-weight:700}
+.atlas-ranking-controls input,.atlas-ranking-metrics input{background:#172d43;border:1px solid #6686a0;border-radius:8px;min-height:46px;padding:10px 12px;color:#f2f9ff;font-size:16px;max-width:100%}
+.atlas-ranking-weights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.atlas-ranking-weights label{background:#142b40;border:1px solid #436781;border-radius:11px;padding:15px;display:grid;gap:11px}
+.atlas-ranking-weights label>span{display:flex;justify-content:space-between;gap:10px;font-size:17px}
+.atlas-ranking-weights em{font-style:normal;color:#9fd3ff;font-weight:800}
+.atlas-ranking-weights input{width:100%;accent-color:#66b5ff;cursor:pointer}
+.atlas-ranking-weights small{font-size:14px;color:#bed1e3;line-height:1.5}
+.atlas-ranking-results{display:grid;gap:14px}
+.atlas-ranking-results>strong{font-size:24px}
+.atlas-ranking-row{padding:18px;border-radius:12px;border:1px solid #456783;background:#13273d;display:grid;gap:13px;overflow-wrap:anywhere}
+.atlas-ranking-row-head{display:flex;justify-content:space-between;gap:16px;align-items:start}
+.atlas-ranking-row-head>div{display:flex;align-items:start;gap:14px}
+.atlas-ranking-row-head>div:last-child{flex-direction:column;align-items:end;gap:4px}
+.atlas-ranking-row-head strong{font-size:23px;color:#f2f8ff}
+.atlas-ranking-row-head p{font-size:15px;color:#d0dfed;margin:2px 0}
+.atlas-ranking-row-head small{font-size:13px;color:#adc9df}
+.atlas-rank-number{font-size:27px;font-weight:800;color:#b8dbf9}
+.atlas-rank-score{font-size:28px!important;color:#def4ff!important}
+.atlas-ranking-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.atlas-ranking-metrics>div,.atlas-ranking-metrics>label{border-radius:9px;border:1px solid #476783;background:#21394f;padding:11px;min-width:0;display:grid;gap:8px}
+.atlas-ranking-metrics span{font-size:14px;color:#bed2e4}
+.atlas-ranking-metrics strong{font-size:21px}
+.atlas-ranking-row>p{font-size:15px;margin:0}
+.atlas-rank-missing{color:#f4d2a6!important}
+@media(max-width:900px){.atlas-ranking-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:610px){.atlas-ranking-weights,.atlas-ranking-metrics{grid-template-columns:minmax(0,1fr)}.atlas-ranking-row-head{flex-wrap:wrap}.atlas-ranking-entry{margin:14px 10px}}
