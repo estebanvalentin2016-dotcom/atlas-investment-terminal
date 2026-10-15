@@ -1,5 +1,6 @@
 import {useMemo,useState,type FormEvent} from 'react';
 import InstitutionalHistoricalCase from './InstitutionalHistoricalCase';
+import FundCSVImport from './FundCSVImport';
 import {FUND_SOURCE_STATUS,consensusFromReports,reportingRecordsFrom13F,type InstitutionRecord} from './institutional-consensus';
 type Report={period:string;filed:string;sourceUrl:string};
 type Position={key:string;cusip:string;issuer:string;className:string;shares:number;previousShares:number|null;portfolioPct:number|null;change:InstitutionRecord['change']};
@@ -49,6 +50,7 @@ export default function InstitutionalConsensus({onInvestigate}:{onInvestigate?:(
    <strong>Fund-level disclosure connectors</strong>
    <p className="chart-note">Vanguard, BlackRock/iShares and State Street/SPDR disclose fund holdings on different schedules. ATLAS will store fund, manager, security, holdings date and actual publication date separately—not pretend these adapters already retrieve live fund records.</p>
    <div className="atlas-consensus-fundcards">{FUND_SOURCE_STATUS.map(entry=><div key={entry.provider}><strong>{entry.provider}</strong><span>{entry.status}</span><small>{entry.frequency} · {entry.note}</small></div>)}</div>
+   <FundCSVImport/>
   </div>
   {managers.length>0&&<div className="atlas-consensus-results">
    <div className="atlas-consensus-metrics">
