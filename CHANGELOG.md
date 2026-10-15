@@ -1,3 +1,6 @@
+## 0.7.0 — in development
+Free-tier Alpaca IEX daily OHLCV lookup, 1/3/5-day returns and relative-volume calculations, plus a direct Yahoo Finance chart link. Requires optional server-only Alpaca credentials. Not yet locally tested.
+
 ## 0.6.0 — in development
 SEC 8-K catalyst discovery by ticker and manual price/volume continuation worksheet. No real-time market data, alerts or trade signals; still needs local tests.
 
