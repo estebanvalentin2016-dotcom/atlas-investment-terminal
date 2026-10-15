@@ -31,6 +31,10 @@ export function eventStudy(acceptedAt,bars) {
   // Post-reaction changes have a different baseline: the first eligible session CLOSE.
   // They describe moves *after* the initial close, not the event-day jump.
   const firstClose=bars[i]?.close;
+  const firstOpen=bars[i]?.open;
+  const gapPct=valid(baseline)&&valid(firstOpen)?(firstOpen/baseline-1)*100:null;
+  const regularSessionPct=valid(firstOpen)&&valid(firstClose)?(firstClose/firstOpen-1)*100:null;
+  const firstSessionBreakdown={gapPct,regularSessionPct,open:valid(firstOpen)?firstOpen:null,referenceClose:valid(baseline)?baseline:null,sessionClose:valid(firstClose)?firstClose:null};
   for(const n of [1,3,5]){
     const close=bars[i+n-1]?.close;
     result['day'+n]=valid(baseline)&&valid(close)?(close/baseline-1)*100:null;
@@ -46,5 +50,5 @@ export function eventStudy(acceptedAt,bars) {
     const laterClose=bars[i+n-1]?.close;
     continuation['day'+n]=valid(firstClose)&&valid(laterClose)?(laterClose/firstClose-1)*100:null;
   }
-  return {...aligned, baselineSession:bars[i-1].date, firstSessionClose:valid(firstClose)?firstClose:null, returns:result, continuation, excursions, completeHorizons:[1,3,5].filter(n=>result['day'+n]!==null)};
+  return {...aligned, baselineSession:bars[i-1].date, firstSessionClose:valid(firstClose)?firstClose:null, firstSessionBreakdown, returns:result, continuation, excursions, completeHorizons:[1,3,5].filter(n=>result['day'+n]!==null)};
 }
