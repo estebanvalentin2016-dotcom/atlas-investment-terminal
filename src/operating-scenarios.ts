@@ -30,7 +30,7 @@ export function deriveOperatingScenarios(company:SecCompany,asOf:string):Operati
  if(!previous){reasons.push('Same-concept preceding annual revenue unavailable.');return {...blank,fiscalEnd:recent.end,filed:recent.filed,initialRevenue:recent.value};}
  const fact=(name:string)=>{
   const metric=company.metrics.find(m=>m.name===name);
-  const rows=(metric?.values??[]).filter(x=>eligible(x)&&x.end===recent.end).sort((a,b)=>b.filed.localeCompare(a.filed));
+  const rows=(metric?.values??[]).filter(x=>dateOk(x.end)&&dateOk(x.filed)&&x.end===recent.end&&x.end<=asOf&&x.filed<=asOf&&x.form==='10-K'&&Number.isFinite(x.value)&&(name==='Operating cash flow'||x.value>=0)).sort((a,b)=>b.filed.localeCompare(a.filed));
   return rows[0]?.value??null;
  };
  const op=fact('Operating cash flow'),capex=fact('Capital expenditures');
