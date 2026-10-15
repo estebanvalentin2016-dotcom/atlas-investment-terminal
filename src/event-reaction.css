@@ -22,3 +22,11 @@
 .event-excursion-card .event-negative{color:#ff8383}
 .event-excursion-card .event-flat,.event-excursion-card .event-unavailable{color:#e1eaf5}
 @media(max-width:700px){.event-excursion-grid{grid-template-columns:1fr}}
+
+.event-comparison{margin:20px 0;padding:16px;border:1px solid #31445e;border-radius:12px;background:#102036}
+.event-comparison h3{margin:0 0 10px}
+.event-comparison .compare-scroller{margin:14px 0;overflow-x:auto}
+.event-comparison .compare-table{min-width:680px}
+.event-comparison .event-positive{color:#65e2a1}
+.event-comparison .event-negative{color:#ff8383}
+.event-comparison .event-flat,.event-comparison .event-unavailable{color:#e1eaf5}
