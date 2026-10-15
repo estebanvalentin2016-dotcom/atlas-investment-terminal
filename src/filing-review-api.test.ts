@@ -1,6 +1,6 @@
 import {describe,expect,it,vi} from 'vitest';
 // @ts-ignore Node-only SEC filing review adapter
-import {permittedFilingUrl,extractFilingText,assessFilingEvidence,handleFilingReview,readBoundedFiling,parseArchiveFiling,selectFilingDocuments} from '../server/filing-review-api.mjs';
+import {permittedFilingUrl,extractFilingText,assessFilingEvidence,handleFilingReview,readBoundedFiling,parseArchiveFiling,selectFilingDocuments,researchFilingContext} from '../server/filing-review-api.mjs';
 describe('SEC source evidence review',()=>{
  const url='https://www.sec.gov/Archives/edgar/data/1819994/0001819994-26-000067.txt';
  it('accepts canonical SEC archive URLs and rejects other hosts, queries and unsupported paths',()=>{
@@ -59,8 +59,8 @@ describe('SEC source evidence review',()=>{
    const target=String(request);calls.push(target);
    if(target.includes('/submissions/CIK'))return new Response(JSON.stringify({filings:{recent:{accessionNumber:['0001193125-26-420979'],form:['8-K'],primaryDocument:['d100d8k.htm']}}}),{status:200});
    if(target.endsWith('/index.json'))return new Response(JSON.stringify({directory:{item:[{name:'d100d8k.htm'},{name:'d100dex991.htm'}]}}),{status:200});
-   if(target.endsWith('/d100d8k.htm'))return new Response('<html>The company furnished its earnings release as exhibit 99.1.</html>',{status:200});
-   if(target.endsWith('/d100dex991.htm'))return new Response('<html>The company raises full-year guidance.</html>',{status:200});
+   if(target.endsWith('/d100d8k.htm'))return new Response('<html>Item 2.02. Results of Operations and Financial Condition. The company furnished its earnings release as Exhibit 99.1.</html>',{status:200});
+   if(target.endsWith('/d100dex991.htm'))return new Response('<html>The company raises full-year guidance. 19% increase in revenue year-over-year. $205 billion of net inflows this quarter.</html>',{status:200});
    throw Error('Unexpected target: '+target);
   }));
   let code=0,body='';
@@ -72,9 +72,33 @@ describe('SEC source evidence review',()=>{
    expect(result.sourceStatus).toBe('partial_text');
    expect(result.documents).toHaveLength(2);
    expect(result.evidence.potential[0].sourceName).toBe('d100dex991.htm');
+   expect(result.evidence.topics.map((x:{code:string})=>x.code)).toContain('2.02');
+   expect(result.evidence.metrics.map((x:{reportedValue:string})=>x.reportedValue)).toContain('19% increase in revenue');
+   expect(result.evidence.metrics[0].sourceUrl).toContain('/d100dex991.htm');
    expect(result.evidence.potential[0].sourceUrl).toContain('/d100dex991.htm');
    expect(calls).not.toContain(other); // no 4.99 MB combined download
   }finally{vi.unstubAllGlobals();vi.unstubAllEnvs()}
+ });
+ it('extracts Q3 2026 BlackRock-style operating figures without inventing an earnings beat',()=>{
+  const release='BlackRock Reports Third Quarter 2026. $15.5 trillion in AUM following $869 billion of net inflows over the last twelve months. $205 billion of net inflows this quarter. 19% increase in revenue year-over-year. 38% increase in year-over-year as adjusted diluted EPS.';
+  const report=researchFilingContext(release);
+  const values=report.metrics.map((m:{reportedValue:string})=>m.reportedValue);
+  expect(values).toContain('$15.5 trillion in AUM');
+  expect(values).toContain('$205 billion of net inflows');
+  expect(values).toContain('$869 billion of net inflows');
+  expect(values).toContain('19% increase in revenue');
+  expect(values).toContain('38% increase in year-over-year as adjusted diluted EPS');
+  expect(assessFilingEvidence(release).status).toBe('no_positive_phrase_detected');
+ });
+ it('recognizes 8-K event subjects separately from operating performance',()=>{
+  const report=researchFilingContext('Item 2.02. Results of Operations and Financial Condition. Item 7.01. Regulation FD Disclosure. Item 9.01. Financial Statements and Exhibits.');
+  expect(report.topics.map((x:{code:string})=>x.code)).toEqual(['2.02','7.01','9.01']);
+  expect(report.metrics).toHaveLength(0);
+ });
+ it('does not infer metrics or direction from unrelated administrative text',()=>{
+  const report=researchFilingContext('The board appointed a director. Form 8-K. No operating metrics were provided.');
+  expect(report.metrics).toEqual([]);
+  expect(report.topics).toEqual([]);
  });
  it('reads only a bounded prefix when SEC declares an oversized full submission',async()=>{
   const raw='<SEC-DOCUMENT><DOCUMENT><TYPE>8-K\n<TEXT>The company raises annual guidance.</TEXT></DOCUMENT>'+'z'.repeat(120);
