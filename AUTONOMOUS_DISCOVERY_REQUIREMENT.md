@@ -72,3 +72,20 @@ From a fresh application session the user must be able to click **Discover Oppor
 | Strong Speculative Buys | Could be zero | Conviction gates | No recommendation permitted |
 
 **Owner acceptance test:** Click **Discover Opportunities** from a clean session. Do not type any company name or ticker. The scanned issuer pool must come from a real enumerated external security universe, not a demo/seed list; the produced candidates must have enough sourced financial, price, survival, institutional, dilution and valuation material for independently reproducible decisions. This remains the definition of done even if other dashboards appear complete.
+
+## First real user-verified autonomous scan (October 15, 2026)
+
+The user ran the **zero-ticker workflow** and shared its local UI output; these figures reflect the *app's reported local run*, not a separately audited full SEC index:
+- SEC ticker index showed **10,444** entries; batch **offsets 24–47**, **24** enumerated, **22** issuer financial records fetched, **2** blocked/failed sources.
+- Initial screen: **1 preliminary pass**, **7 rejected on thresholds**, **4 incomplete accounting**, **10 stale annual financials**, **1** completed-price follow-up; **0** evidence-complete investment verdicts.
+- The discovered test-out-of-seed company was **RGEN (Repligen Corp)** with app-reported annual revenue growth **+16.4%**, FCF margin **+12.7%**, FY P/E **207.3×** and completed Alpaca IEX price **$178.24 (2026-10-14)**; FY filing shown as 2026-02-26.
+- This confirms the code can enumerate and screen an untyped issuer without relying on manually supplied ticker seeds. **It does not confirm RGEN is a good investment, or that the 207.3× ratio is split-normalized/TTM earnings.** This is precisely why price sensitivity and valuation evidence must remain independent gates.
+
+## Next incremental improvement (committed; local validation pending)
+
+- The user can now choose **24 companies / one batch** or **up to 72 companies / three sequential batches** per click; completed-run cursor persists and can be explicitly restarted, and the expanded funnel counts every actually enumerated issuer. SEC queries remain limited to two concurrent company-facts requests.
+- Each price-checked research candidate has a prominent indicative FY P/E valuation caution: at or above 80×, label **high valuation hurdle**, at or above 40× label **elevated earnings multiple**. These are *heuristic research warnings*, not fair-value claims or universal rejection thresholds. Unknown multiples are never declared inexpensive. High multiple cautions are shown before ordinary factor scores in research-priority ordering.
+- New regression tests cover the warning, unknown valuations, sub-threshold margin, and the multi-batch control. The full SEC investable universe, cash/debt/dilution scenarios, sector standardization, independent active-manager consensus, and five-year risk-adjusted ranking **remain not implemented**.
+- New `.github/workflows/atlas-validation.yml` runs **npm ci**, **npm run build**, and **npm run test** on pushed feature-branch commits and PRs. GitHub Actions enablement/actual success must be verified; a workflow file is not itself a passing build.
+
+This is real progress toward the zero-ticker definition of done, but **not product completion**.
