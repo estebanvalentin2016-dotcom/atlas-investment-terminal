@@ -283,3 +283,25 @@ th{font-size:12px}td{font-size:14px}
 .atlas-consensus-security .atlas-summary-line{margin:0}
 .atlas-consensus-security a{color:#9bd9ff}
 @media(max-width:780px){.atlas-consensus-fundcards,.atlas-consensus-metrics{grid-template-columns:1fr}.atlas-consensus-controls,.atlas-consensus>.chart-note,.atlas-consensus>.atlas-summary-line,.atlas-consensus>.atlas-details,.atlas-consensus>.atlas-consensus-funds,.atlas-consensus>.atlas-consensus-results{margin:0 10px}.atlas-consensus-header>div:last-child{text-align:left}}
+
+/* ATLAS verified live SEC historical case: headline-first, cite every source */
+.atlas-case-study{display:grid;gap:13px;margin:0 22px;padding:18px;border-radius:13px;border:1px solid #5b7692;background:#19334a}
+.atlas-case-study>div:first-child{display:grid;gap:7px}
+.atlas-case-study h3{font-size:clamp(22px,2.5vw,28px);margin:0;color:#f0f9ff}
+.atlas-case-study p{font-size:16px;line-height:1.6;margin:0}
+.atlas-case-study>.button{justify-self:start}
+.atlas-case-confirmation{display:grid;gap:15px;border-top:1px solid #536d84;padding-top:15px}
+.atlas-case-confirmation a{color:#a5e1ff}
+.atlas-case-records{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.atlas-case-records article{display:grid;align-content:start;gap:9px;background:#152d44;border:1px solid #516f8a;padding:14px;border-radius:10px}
+.atlas-case-records article>div{display:grid;gap:4px}
+.atlas-case-records article>div strong{font-size:18px}
+.atlas-case-records article>div span,.atlas-case-records article>span{font-size:14px;color:#c5d9ea}
+.atlas-case-records article>strong{font-size:clamp(19px,2.1vw,28px)}
+.atlas-case-fundamentals{display:grid;gap:12px;border-top:1px solid #5d7791;padding-top:15px}
+.atlas-case-fundamentals>strong{font-size:20px;color:#f0dda9}
+.atlas-case-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.atlas-case-metrics>div{display:grid;gap:7px;padding:13px;background:#15334a;border:1px solid #4c7791;border-radius:10px}
+.atlas-case-metrics span{font-size:14px;color:#c3d8e9}
+.atlas-case-metrics strong{font-size:clamp(21px,2.2vw,29px)}
+@media(max-width:810px){.atlas-case-records,.atlas-case-metrics{grid-template-columns:minmax(0,1fr)}.atlas-case-study{margin:0 10px;padding:13px}}
