@@ -108,7 +108,7 @@ export default function AutonomousDiscovery({onResearch,onConviction}:{onResearc
      <div className="atlas-key-return">
       <div><span className="atlas-glance-label">Reported annual revenue growth</span><strong className={'atlas-glance-value '+(item.screen.growth!==null&&item.screen.growth>=0?'atlas-tone-positive':'atlas-tone-negative')}>{pct(item.screen.growth)}</strong></div>
       <div><span className="atlas-glance-label">Free cash flow margin</span><strong className="atlas-glance-value">{pct(item.screen.fcfMargin)}</strong></div>
-      <div><span className="atlas-glance-label">Indicative FY P/E</span><strong className="atlas-glance-value">{item.valuation?.pe===null||item.valuation===null?'N/A':item.valuation.pe.toFixed(1)+'×'}</strong></div>
+      <div><span className="atlas-glance-label">Indicative FY P/E</span><strong className="atlas-glance-value">{item.valuation?.pe==null?'N/A':item.valuation.pe.toFixed(1)+'×'}</strong></div>
       <div><span className="atlas-glance-label">Latest completed IEX close</span><strong className="atlas-glance-value">{money(item.quote?.price??null)}</strong><small>{item.quote?.sessionDate??'Price unavailable'}</small></div>
      </div>
      <p className="chart-note"><strong>FY filing:</strong> {item.screen.filed??'Unknown'}. <strong>Reason surfaced:</strong> {item.screen.reasons.join('; ')}. {item.priceIssue||item.valuation?.reason||'Price-sensitive earnings valuation incomplete.'}</p>
