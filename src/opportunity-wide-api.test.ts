@@ -1,6 +1,6 @@
 import {describe,it,expect,vi} from 'vitest';
 // @ts-ignore Node-only SEC index parser
-import {parseMasterIndex,rankFreshFilings,handleWideDiscovery,recentSubmissions,summarizeSubmissions,decodeIndexBytes} from '../server/opportunity-wide-api.mjs';
+import {parseMasterIndex,rankFreshFilings,handleWideDiscovery,recentSubmissions,summarizeSubmissions,decodeIndexBytes,diagnoseMasterIndex} from '../server/opportunity-wide-api.mjs';
 describe('market-wide SEC filing discovery',()=>{
  const tickers=[{cik_str:1535527,ticker:'CRWD',title:'CrowdStrike Holdings'}];
  const line='1535527|CrowdStrike Holdings|8-K|2026-10-14|edgar/data/1535527/0001535527-26-000029.txt';
@@ -12,6 +12,21 @@ describe('market-wide SEC filing discovery',()=>{
  it('rejects responses lacking a recognizable SEC index header',()=>expect(()=>parseMasterIndex('<html>Access denied</html>','2026-10-14',tickers)).toThrow('Unrecognized SEC master index content'));
  it('decodes raw octet-stream text before parsing',()=>{const raw=index(line);const decoded=decodeIndexBytes(new TextEncoder().encode(raw));expect(decoded.encoding).toBe('utf-8');expect(parseMasterIndex(decoded.text,'2026-10-14',tickers)).toHaveLength(1)});
  it('parses headerless SEC master records but rejects unrelated HTML',()=>{expect(parseMasterIndex(line,'2026-10-14',tickers)).toHaveLength(1);expect(()=>parseMasterIndex('<html>Access denied</html>','2026-10-14',tickers)).toThrow()});
+ it('separates raw 8-K counts from ticker-matched, valid indexed leads',()=>{
+  const raw=index(line,'7654321|Private Example|8-K|2026-10-14|edgar/data/7654321/abc.txt','1535527|CrowdStrike|10-Q|2026-10-14|edgar/data/1535527/report.txt');
+  const audit=diagnoseMasterIndex(raw,tickers);
+  expect(audit.records).toBe(3);
+  expect(audit.eightKRows).toBe(2);
+  expect(audit.validEightKPaths).toBe(2);
+  expect(audit.tickerMatchedEightK).toBe(1);
+  expect(audit.samples[0].mappedTicker).toBe('CRWD');
+ });
+ it('reports malformed 8-K paths separately from raw event counts',()=>{
+  const audit=diagnoseMasterIndex(index('1535527|CrowdStrike|8-K|2026-10-14|not-an-edgar-path'),tickers);
+  expect(audit.eightKRows).toBe(1);
+  expect(audit.validEightKPaths).toBe(0);
+  expect(audit.tickerMatchedEightK).toBe(1);
+ });
  it('extracts recent 8-K fallback rows without inventing bullishness',()=>{const rows=recentSubmissions({cik:1535527,name:'CrowdStrike',filings:{recent:{form:['8-K','10-Q'],filingDate:['2026-10-14','2026-10-14'],accessionNumber:['0001535527-26-000029','0001535527-26-000030']}}},'CRWD',Date.parse('2026-10-15T12:00:00Z'));expect(rows).toHaveLength(1);expect(rows[0].url).toContain('000153552726000029')});
  it('reports stale fallback dates explicitly instead of classifying them as zero-market opportunities',()=>{
   const data={cik:1535527,filings:{recent:{form:['10-Q','8-K'],filingDate:['2026-09-29','2026-09-10'],accessionNumber:['0001535527-26-000030','0001535527-26-000029']}}};
