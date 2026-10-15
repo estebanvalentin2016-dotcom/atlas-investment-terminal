@@ -3,8 +3,8 @@
 import {readBoundedFiling} from './filing-review-api.mjs';
 
 export const RESEARCH_MANAGERS=[
- {cik:'1743937',name:'13F manager research seed 1743937',category:'Classification unverified',role:'Verify reporting manager via SEC response'},
- {cik:'1418814',name:'13F manager research seed 1418814',category:'Classification unverified',role:'Verify reporting manager via SEC response'}
+ {cik:'1743937',name:'TOMS Capital Investment Management LP',category:'Classification unverified',role:'Identity documented in SEC 13F accession 0000902664-26-003522'},
+ {cik:'1418814',name:'ValueAct Holdings, L.P.',category:'Classification unverified',role:'Identity documented in SEC 13F accession 0001418814-26-000003'}
 ];
 const root='https://www.sec.gov';
 const memory=new Map();
