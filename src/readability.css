@@ -305,3 +305,36 @@ th{font-size:12px}td{font-size:14px}
 .atlas-case-metrics span{font-size:14px;color:#c3d8e9}
 .atlas-case-metrics strong{font-size:clamp(21px,2.2vw,29px)}
 @media(max-width:810px){.atlas-case-records,.atlas-case-metrics{grid-template-columns:minmax(0,1fr)}.atlas-case-study{margin:0 10px;padding:13px}}
+
+/* Main product acceptance: no ticker required for initiating discovery */
+.atlas-autonomous-discovery{display:grid;gap:17px;padding-bottom:18px}
+.atlas-autonomous-discovery .description{font-size:17px;line-height:1.55}
+.atlas-autonomous-discovery>.atlas-autonomous-cta{justify-self:start;margin:2px 22px;font-size:19px;font-weight:800;padding:15px 23px;min-height:56px}
+.atlas-autonomous-discovery>.chart-note,.atlas-autonomous-discovery>.atlas-summary-line,.atlas-autonomous-discovery>.opportunity-uncertainty{margin:0 22px}
+.atlas-autonomous-results{display:grid;gap:17px;margin:0 22px}
+.atlas-autonomous-results>p{margin:0}
+.atlas-autonomous-results a{color:#9fdcff}
+.atlas-autonomous-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.atlas-autonomous-metrics>div{display:grid;align-content:start;gap:7px;padding:17px;background:#1c344b;border:1px solid #50738e;border-radius:12px}
+.atlas-autonomous-metrics span{font-size:15px;font-weight:750;color:#c3d9ea}
+.atlas-autonomous-metrics strong{font-size:clamp(29px,3vw,40px);line-height:1.15;color:#f4fbff}
+.atlas-autonomous-metrics small{font-size:14px;color:#c5d8e8}
+.atlas-autonomous-funnel{display:grid;gap:10px;padding:16px;border:1px solid #5b7792;background:#152d42;border-radius:11px}
+.atlas-autonomous-funnel>strong{font-size:21px}
+.atlas-autonomous-funnel p{font-size:16px;margin:0;line-height:1.6}
+.atlas-autonomous-funnel p strong{color:#f7fbff}
+.atlas-autonomous-leads{display:grid;gap:16px}
+.atlas-autonomous-leads h4{font-size:24px;margin:0}
+.atlas-autonomous-lead{display:grid;gap:13px;padding:19px;border:1px solid #55748e;background:#183147;border-radius:12px}
+.atlas-autonomous-heading{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.atlas-autonomous-heading>div{display:grid;gap:5px}
+.atlas-autonomous-heading>div strong{font-size:23px;line-height:1.3}
+.atlas-autonomous-heading small{font-size:14px;color:#c2d7e7}
+.atlas-autonomous-heading>span{font-size:14px;font-weight:800;color:#f2d9a4;padding:7px;border:1px solid #89734f;border-radius:8px;align-self:start}
+.atlas-autonomous-lead .atlas-key-return{grid-template-columns:repeat(2,minmax(0,1fr))}
+.atlas-autonomous-lead .atlas-glance-value{font-size:clamp(21px,2.5vw,31px)}
+.atlas-autonomous-lead .atlas-ranking-controls{align-items:center}
+.atlas-autonomous-lead .atlas-ranking-controls a{font-size:15px;font-weight:750}
+.atlas-autonomous-lead>p{margin:0;font-size:15px}
+@media(max-width:1050px){.atlas-autonomous-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.atlas-autonomous-metrics,.atlas-autonomous-lead .atlas-key-return{grid-template-columns:minmax(0,1fr)}.atlas-autonomous-results{margin:0 10px}.atlas-autonomous-discovery>.atlas-autonomous-cta{margin:0 10px}}
