@@ -17,4 +17,19 @@ describe('SEC annual fact normalization',()=>{
   expect(selectFact(facts,['Assets']).values[0].value).toBe(500);
  });
  it('returns empty data instead of inventing a missing metric',()=>{expect(selectFact({},['Revenue'])).toEqual({tag:null,values:[]})});
+ it('accepts alternative consolidated-revenue tags',()=>{
+  const facts={'us-gaap':{RevenueFromContractWithCustomerIncludingAssessedTax:{units:{USD:[
+   {form:'10-K',fp:'FY',start:'2025-02-01',end:'2026-01-31',filed:'2026-03-05',val:4800000000}
+  ]}}}};
+  const r=selectFact(facts,['RevenueFromContractWithCustomerExcludingAssessedTax','RevenueFromContractWithCustomerIncludingAssessedTax']);
+  expect(r.values[0].value).toBe(4800000000);
+  expect(r.values[0].tag).toBe('RevenueFromContractWithCustomerIncludingAssessedTax');
+ });
+ it('fills missing years without double counting overlapping revenue concepts',()=>{
+  const rec=(year:number,val:number)=>({form:'10-K',fp:'FY',start:`${year}-01-01`,end:`${year}-12-31`,filed:`${year+1}-02-15`,val});
+  const facts={'us-gaap':{Revenues:{units:{USD:[rec(2025,200),rec(2024,150)]}},SalesRevenueNet:{units:{USD:[rec(2025,100),rec(2023,90)]}}}};
+  const values=selectFact(facts,['Revenues','SalesRevenueNet']).values;
+  expect(values.map((x:{year:number,value:number})=>[x.year,x.value])).toEqual([[2025,200],[2024,150],[2023,90]]);
+ });
+
 });
