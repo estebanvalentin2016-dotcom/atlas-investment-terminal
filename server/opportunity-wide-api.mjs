@@ -23,6 +23,14 @@ function indexRecords(text){
  return records;
 }
 const archivePath=path=>/^edgar\/data\/\d+\/[\w./-]+\.txt$/.test(path)&&!path.includes('..');
+export function normalizeSecDate(raw){
+ if(typeof raw!=='string')return null;
+ const date=/^\d{8}$/.test(raw)?raw.slice(0,4)+'-'+raw.slice(4,6)+'-'+raw.slice(6,8):raw;
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return null;
+ const parsed=new Date(date+'T00:00:00Z');
+ return Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===date?date:null;
+}
+
 const tickerIndex=tickers=>new Map(tickers.filter(x=>typeof x?.ticker==='string'&&Number.isSafeInteger(Number(x.cik_str))).map(x=>[String(Number(x.cik_str)),x]));
 export function parseMasterIndex(text,indexDate,tickers){
  if(typeof text!=='string'||!Array.isArray(tickers))throw Error('Invalid index response');
@@ -34,10 +42,10 @@ export function parseMasterIndex(text,indexDate,tickers){
   if(!['8-K','8-K/A'].includes(x.form)||!archivePath(x.path))continue;
   const ticker=tickerMap.get(String(Number(x.cik)));
   if(!ticker)continue;
-  const dateValid=/^\d{4}-\d{2}-\d{2}$/.test(x.filed)&&Number.isFinite(Date.parse(x.filed+'T00:00:00Z'));
+  const filingDate=normalizeSecDate(x.filed);
   // Never suppress discovery because the raw legal filing-date field is unexpected.
   // Unknown filing dates stay unknown; the public index's date remains separately labeled.
-  rows.push({ticker:ticker.ticker,name:ticker.title||x.name,form:x.form,filed:dateValid?x.filed:null,discoveredOn:indexDate,url:'https://www.sec.gov/Archives/'+x.path,cik:x.cik,kind:'8-K (contents unreviewed)'});
+  rows.push({ticker:ticker.ticker,name:ticker.title||x.name,form:x.form,filed:filingDate,discoveredOn:indexDate,url:'https://www.sec.gov/Archives/'+x.path,cik:x.cik,kind:'8-K (contents unreviewed)'});
  }
  return rows;
 }
@@ -50,7 +58,7 @@ export function diagnoseMasterIndex(text,tickers){
   if(archivePath(x.path))validEightKPaths++;
   const match=tickerMap.get(String(Number(x.cik)));
   if(match)tickerMatchedEightK++;
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(x.filed))undatedEightK++;
+  if(!normalizeSecDate(x.filed))undatedEightK++;
   if(samples.length<2)samples.push({cik:x.cik,form:x.form,filedRaw:x.filed.slice(0,30),path:x.path.slice(0,110),mappedTicker:match?.ticker||null});
  }
  return {records:records.length,eightKRows,validEightKPaths,tickerMatchedEightK,undatedEightK,samples};
@@ -146,7 +154,7 @@ export async function handleWideDiscovery(req,res){
   const body={
    coverageStatus:fallbackChecked?'Limited fallback — market-wide indexes yielded no valid matching leads':errors.length?'Partial market-wide index coverage':'Available daily indexes retrieved',
    source,retrievedAt:new Date().toISOString(),lookbackCalendarDays:7,successfulDays,errorDays:errors,matchedFilings:found.length,
-   rows:rankFreshFilings(found),fallbackChecked,fallbackFailed,diagnostics,fallbackDiagnostics,
+   rows:rankFreshFilings(found,1200),returnedFilings:Math.min(1200,new Set(found.map(x=>x.url)).size),truncated:new Set(found.map(x=>x.url)).size>1200,fallbackChecked,fallbackFailed,diagnostics,fallbackDiagnostics,
    note:'SEC index failures and delayed submissions can cause missing leads. No filing type alone proves a bullish opportunity.'
   };
   cache={at:Date.now(),body};send(res,200,body);
