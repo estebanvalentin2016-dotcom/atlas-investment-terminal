@@ -54,7 +54,7 @@ export default function InstitutionalConsensus(){
     <div><span>Security/period groups</span><strong>{count(candidates.length)}</strong></div>
     <div><span>Verified active consensus</span><strong>{count(candidates.filter(x=>x.signal==='verified_active_convergence').length)}</strong></div>
    </div>
-   <p className="opportunity-uncertainty"><strong>Do not mistake this for a bullish score.</strong> Raw SEC 13F reports don't establish whether a manager is active, whether two legal managers are affiliated, or why the shares are held. Consequently, **verified active consensus remains unassessed** until those independent disclosures are checked.</p>
+   <p className="opportunity-uncertainty"><strong>Do not mistake this for a bullish score.</strong> Raw SEC 13F reports don't establish whether a manager is active, whether two legal managers are affiliated, or why the shares are held. Consequently, <strong>verified active consensus remains unassessed</strong> until those independent disclosures are checked.</p>
    {latestDates.length>1&&<p className="opportunity-uncertainty"><strong>Different reporting dates:</strong> {latestDates.join(', ')}. ATLAS only groups security positions with exactly matching quarter-end dates.</p>}
    <div className="atlas-consensus-filters"><label>Company name or 9-character CUSIP<input value={search} onChange={e=>{setSearch(e.target.value);setPage(1)}} placeholder="Issuer or CUSIP"/></label><label className="atlas-consensus-check"><input type="checkbox" checked={changedOnly} onChange={e=>{setChangedOnly(e.target.checked);setPage(1)}}/> Focus on newly reported or increased share counts</label></div>
    <strong>{filtered.length} issuer/security groups match your filters</strong>
