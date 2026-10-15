@@ -28,3 +28,6 @@ Run `npm.cmd run build` and `npm.cmd run test` on Windows before merging.
 The event study now also displays the highest `high` and lowest `low` recorded over each fully observed 1-, 3-, and 5-session window, as percentages of the pre-event reference **close**. Missing or invalid OHLC bars and incomplete horizons produce N/A rather than invented results.
 
 These values describe the price range following a filing; they are **not** a backtested trading strategy's maximum favorable/adverse excursion (MFE/MAE). Actual MFE/MAE require an explicitly defined tradable entry time/price, side (long or short), position and exit rules. The ordering of the high and low inside a daily bar is also unknown. Do not assume either extreme was achievable or that an SEC filing caused it.
+
+### Post-initial-reaction continuation
+The UI separates two questions: (1) **cumulative reaction** from the pre-event close to session 1/3/5 closes; and (2) **continuation** from the first eligible session's close to the session 3 and 5 closes. Continuation uses `laterClose / firstSessionClose - 1`, not subtraction or addition of percentages. This distinction helps identify whether a large initial gap was sustained; it does **not** establish a realistically executable entry, after-hours access, trading friction or causality. A complete horizon is required, otherwise N/A.
