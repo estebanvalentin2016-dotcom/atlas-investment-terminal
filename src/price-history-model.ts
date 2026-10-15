@@ -42,7 +42,7 @@ export function assessPriceHistory(raw:HistoricalPriceResponse|null,asOf:string)
  // 20% transparent research-priority weight is used ONLY with 1Y+3Y
  // split-adjusted coverage. Missing data never counts as a bullish signal.
  const trend=year1!==null&&r3!==null?round(clamp(50+0.45*year1+0.55*r3,0,100)):null;
- const assessment=trend===null?'Insufficient 1Y and 3Y price coverage':year1>0&&r3>0?'Positive 1Y and 3Y historical trend':year1<0&&r3<0?'Negative 1Y and 3Y historical trend':'Mixed long-term price trend';
+ const assessment=trend===null?'Insufficient 1Y and 3Y price coverage':year1!==null&&r3!==null&&year1>0&&r3>0?'Positive 1Y and 3Y historical trend':year1!==null&&r3!==null&&year1<0&&r3<0?'Negative 1Y and 3Y historical trend':'Mixed long-term price trend';
  return {status:'usable',latestDate:latest.date,firstDate:first.date,observedYears:round(years),
   returns:{year1,year3,year5,year10,sinceAvailable},
   threeYearAnnualized:r3,drawdownFrom52WeekHigh:drawdown,trendScore:trend,assessment,
