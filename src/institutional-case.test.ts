@@ -8,7 +8,8 @@ function table(later:boolean,modified=false){
  const rows=h.expected.map((item:{issuer:string;key:string;earlier:number;later:number},i:number)=>{
   const count=later?item.later:item.earlier,shares=modified&&later&&i===0?count+1:count;
   const [cusip,className]=item.key.split('|');
-  return '<infoTable><nameOfIssuer>'+item.issuer+'</nameOfIssuer><titleOfClass>'+className+'</titleOfClass><cusip>'+cusip+'</cusip><value>100000000</value><shrsOrPrnAmt><sshPrnamt>'+shares+'</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt></infoTable>';
+  const values=later?[656283191,559339452,55658630,171156754]:[402059817,525189831,254022306,330798004];
+  return '<infoTable><nameOfIssuer>'+item.issuer+'</nameOfIssuer><titleOfClass>'+className+'</titleOfClass><cusip>'+cusip+'</cusip><value>'+values[i]+'</value><shrsOrPrnAmt><sshPrnamt>'+shares+'</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt></infoTable>';
  });
  return '<informationTable>'+rows.join('')+'</informationTable>';
 }
