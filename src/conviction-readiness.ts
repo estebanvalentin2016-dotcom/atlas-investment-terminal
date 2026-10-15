@@ -2,7 +2,7 @@ import {annualPeFromSec,deriveRankingMetrics,type MarketValuationClose,type SecC
 import {deriveSurvivalEvidence} from './survival-evidence';
 
 export type ReadinessStatus='verified'|'missing'|'unavailable';
-export type ConvictionRequirement={key:string;label:string;status:ReadinessStatus;detail:string};
+export type ConvictionRequirement={key:string;label:string;status:ReadinessStatus;detail:string;progress:'verified'|'partially_sourced'|'engine_pending'|'source_unavailable'};
 export type FundingRiskEvidence={status:'growth_with_negative_fcf'|'negative_fcf'|'nonnegative_fcf'|'unknown';headline:string;detail:string};
 export type ConvictionAssessment={
  fundingRisk:FundingRiskEvidence;
@@ -36,17 +36,17 @@ export function assessConvictionReadiness(company:SecCompany|null,price:MarketVa
  const survival=company?deriveSurvivalEvidence(company,recentClose?price!.sessionDate:today):null;
  const survivalNote=survival?'Annual SEC cash: '+(survival.cash?'$'+survival.cash.value.toLocaleString('en-US'):'not observed')+'; debt components reported: '+[survival.currentDebt,survival.noncurrentDebt,survival.shortBorrowings].filter(Boolean).length+'/3; weighted-share trend: '+(survival.weightedShareChangePct===null?'unknown':survival.weightedShareChangePct.toFixed(2)+'%')+'. Full debt maturities, quarterly liquidity and prospective financing are NOT assessed.':'Source-backed balance-sheet and financing-risk observations not loaded';
  const requirements:ConvictionRequirement[]=[
-  {key:'sec-identity',label:'Real public-company SEC financial source',status:company?.source?.startsWith('https://data.sec.gov/')?'verified':'missing',detail:company?'Source: '+company.source:'No SEC financial statement loaded'},
-  {key:'market-price',label:'Recent completed stock-price reference',status:recentClose?'verified':'missing',detail:recentClose?price!.sessionDate+' completed IEX close · $'+price!.price.toFixed(2):'Recent completed price unavailable; not a live quote'},
-  {key:'financial-history',label:'Recent annual company financials',status:current?'verified':'missing',detail:current?'Fiscal '+metrics?.year+' · filed '+financialDate:'Recent comparable annual statements not established'},
-  {key:'cash-flow',label:'Operating FCF after capital expenditure',status:current&&observedFcf!==null?'verified':'missing',detail:observedFcf!==null?'Derived SEC FY FCF · $'+observedFcf.toLocaleString('en-US'):'Need both same-period operating cash flow and capex'},
-  {key:'market-cap',label:'Verified current market cap, share count and liquidity',status:'missing',detail:'Pending verified diluted-share count, corporate actions, and liquidity'},
-  {key:'survival',label:'Cash runway, debt maturity, funding and dilution risk',status:'missing',detail:survivalNote},
-  {key:'scenarios',label:'Four dilution-aware valuation scenarios with sensitivity',status:'missing',detail:'Bear, base, bull and moonshot per-share models not yet validated'},
-  {key:'mispricing',label:'Testable market mispricing thesis and counterevidence',status:'missing',detail:'Must compare observed market expectations with independently justified assumptions'},
-  {key:'durability',label:'Cited competitive durability and obsolescence research',status:'missing',detail:'Technology durability, defensibility and expansion exposure not yet assessed'},
-  {key:'ownership',label:'Institutional/VC ownership with reporting dates',status:'missing',detail:'Historical backing and current disclosed holdings must remain separate'},
-  {key:'monitoring',label:'Versioned thesis and explicit invalidation triggers',status:'missing',detail:'Draft notes are supported, but a validated thesis-monitoring engine is not connected'}
+  {key:'sec-identity',progress:company?.source?.startsWith('https://data.sec.gov/')?'verified':'source_unavailable',label:'Real public-company SEC financial source',status:company?.source?.startsWith('https://data.sec.gov/')?'verified':'missing',detail:company?'Source: '+company.source:'No SEC financial statement loaded'},
+  {key:'market-price',progress:recentClose?'verified':'source_unavailable',label:'Recent completed stock-price reference',status:recentClose?'verified':'missing',detail:recentClose?price!.sessionDate+' completed IEX close · $'+price!.price.toFixed(2):'Recent completed price unavailable; not a live quote'},
+  {key:'financial-history',progress:current?'verified':'source_unavailable',label:'Recent annual company financials',status:current?'verified':'missing',detail:current?'Fiscal '+metrics?.year+' · filed '+financialDate:'Recent comparable annual statements not established'},
+  {key:'cash-flow',progress:current&&observedFcf!==null?'verified':'source_unavailable',label:'Operating FCF after capital expenditure',status:current&&observedFcf!==null?'verified':'missing',detail:observedFcf!==null?'Derived SEC FY FCF · $'+observedFcf.toLocaleString('en-US'):'Need both same-period operating cash flow and capex'},
+  {key:'market-cap',progress:'engine_pending',label:'Verified current market cap, share count and liquidity',status:'missing',detail:'ATLAS market-cap engine not connected: must automatically source as-of common shares outstanding, share classes, corporate actions, completed price and trading liquidity; annual weighted-average diluted shares cannot establish current market cap'},
+  {key:'survival',progress:survival&&(survival.cash||survival.weightedDilutedShares||survival.currentDebt||survival.noncurrentDebt||survival.shortBorrowings)?'partially_sourced':'engine_pending',label:'Cash runway, debt maturity, funding and dilution risk',status:'missing',detail:survivalNote},
+  {key:'scenarios',progress:'engine_pending',label:'Four dilution-aware valuation scenarios with sensitivity',status:'missing',detail:'ATLAS scenario engine not built: must model five-year revenue, margins, capex, debt, new financing, share dilution, exit values and downside before forecasting per-share returns'},
+  {key:'mispricing',progress:'engine_pending',label:'Testable market mispricing thesis and counterevidence',status:'missing',detail:'ATLAS mispricing analysis not connected: compare today's dated share price and valuation with explicit, falsifiable future business assumptions and counterevidence'},
+  {key:'durability',progress:'engine_pending',label:'Cited competitive durability and obsolescence research',status:'missing',detail:'ATLAS competitive-research integration not connected: source product/industry filings, customer exposure, switching costs, substitution threats and AI-infrastructure beneficiaries'},
+  {key:'ownership',progress:'engine_pending',label:'Institutional/VC ownership with reporting dates',status:'missing',detail:'Institutional 13F/consensus dashboards exist, but ATLAS has not yet resolved this issuer's CUSIP, manager affiliations, reporting delays and independent active holdings within the Conviction Lab'},
+  {key:'monitoring',progress:'partially_sourced',label:'Versioned thesis and explicit invalidation triggers',status:'missing',detail:'Timestamped manual thesis drafts work now; automatic filing/price monitoring, evidence-triggered invalidation, version comparisons and alerts are not connected'}
  ];
  return {
   fundingRisk,
