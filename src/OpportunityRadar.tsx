@@ -1,4 +1,5 @@
 import {useEffect,useMemo,useState} from 'react';
+import FilingEvidence,{type FilingEvidenceResult} from './FilingEvidence';
 type Lead={ticker:string;name:string;form:string;filed:string|null;discoveredOn?:string;url:string;kind:string};
 type IndexAudit={records:number;eightKRows:number;validEightKPaths:number;tickerMatchedEightK:number;undatedEightK:number;samples:{cik:string;form:string;filedRaw?:string;path:string;mappedTicker:string|null}[]};
 type IndexDiagnostic={date:string;bytes:number;matched:number;status:number;contentType?:string;valid:boolean;encoding?:string;firstChars?:string;audit?:IndexAudit};
@@ -13,6 +14,21 @@ export default function OpportunityRadar(){
  const [date,setDate]=useState('all');
  const [onePerCompany,setOnePerCompany]=useState(false);
  const [page,setPage]=useState(1);
+ const [reviews,setReviews]=useState<Record<string,FilingEvidenceResult>>({});
+ const [reviewing,setReviewing]=useState<string[]>([]);
+ const [bulkReviewing,setBulkReviewing]=useState(false);
+ async function reviewSource(url:string){
+  setReviewing(prev=>[...prev,url]);
+  try{
+   const response=await fetch('/api/opportunities/review?url='+encodeURIComponent(url));
+   const data=await response.json() as FilingEvidenceResult&{error?:string};
+   if(!response.ok)throw Error(data.error||'SEC review request failed');
+   setReviews(prev=>({...prev,[url]:data}));
+  }catch(e){
+   setReviews(prev=>({...prev,[url]:{url,sourceStatus:'unavailable',note:e instanceof Error?e.message:'Review failed'}}));
+  }finally{setReviewing(prev=>prev.filter(x=>x!==url))}
+ }
+
  async function scan(){
   setLoading(true);setError('');
   try{
@@ -37,6 +53,17 @@ export default function OpportunityRadar(){
  const currentPage=Math.min(page,pages);
  const shown=filtered.slice((currentPage-1)*PAGE_SIZE,currentPage*PAGE_SIZE);
  const resetFilters=()=>{setSearch('');setDate('all');setOnePerCompany(false);setPage(1)};
+ async function reviewPageSample(){
+  if(bulkReviewing)return;
+  setBulkReviewing(true);
+  try{
+   // Bounded, sequential, on-demand review; this is NOT a ranked market scan.
+   for(const lead of shown.slice(0,5)){
+    if(!reviews[lead.url])await reviewSource(lead.url);
+   }
+  }finally{setBulkReviewing(false)}
+ }
+
  return <section className="panel real-panel opportunity-radar">
   <div className="panel-head"><div><span className="eyebrow">ATLAS / OPPORTUNITY DISCOVERY</span><h3>SEC catalyst discovery</h3></div><span className="tag">Research leads · not buy signals</span></div>
   <p className="description">Discover ticker-linked SEC 8-K filings across accessible daily indexes. Search by company, filter by index date, and review source filings. This stage verifies filing discovery, not bullish fundamentals, remaining upside, liquidity, or trade eligibility.</p>
@@ -55,15 +82,17 @@ export default function OpportunityRadar(){
     <button type="button" className="button secondary" onClick={resetFilters}>Clear filters</button>
    </div>
    <p className="chart-note">Sorted by indexed day, then filing date and ticker. SEC daily master indexes do not provide intraday public-release timestamps. Collapsing by ticker hides additional filings until unchecked.</p>
+   <div className="opportunity-toolbar"><strong>Source evidence review</strong><span>Optional: inspect up to five visible filings sequentially. This is a convenience sample, NOT a ranking of best opportunities.</span><button type="button" className="button secondary" disabled={bulkReviewing||loading||!shown.length} onClick={()=>void reviewPageSample()}>{bulkReviewing?'Reviewing sample…':'Review first 5 visible'}</button></div>
    {shown.length>0?<div className="opportunity-list">{shown.map(r=><article className="opportunity-candidate" key={r.url}>
     <div className="opportunity-top"><strong>{r.ticker}</strong><span>{r.form} · Needs review</span></div>
     <h4>{r.name}</h4>
     <p>{r.discoveredOn?'Index day '+r.discoveredOn+' · Filing date '+(r.filed||'unverified'):'Filing date '+(r.filed||'unverified')+' · company submissions'}</p>
     <p className="opportunity-uncertainty">Fundamental bullishness: <strong>Not assessed</strong> · Remaining upside: <strong>Unknown</strong> · Robinhood eligibility: <strong>Unverified</strong></p>
     <a href={r.url} target="_blank" rel="noopener noreferrer">Inspect SEC source ↗</a>
+    <FilingEvidence data={reviews[r.url]} loading={reviewing.includes(r.url)} onReview={()=>void reviewSource(r.url)}/>
    </article>)}</div>:<p className="chart-note">No filings match these filters. Try clearing the search or changing the date.</p>}
    {filtered.length>PAGE_SIZE&&<div className="opportunity-pagination"><span>Showing {(currentPage-1)*PAGE_SIZE+1}–{Math.min(currentPage*PAGE_SIZE,filtered.length)} of {filtered.length}</span><button type="button" className="button secondary" disabled={currentPage<=1} onClick={()=>setPage(p=>Math.max(1,p-1))}>Previous</button><strong>Page {currentPage} / {pages}</strong><button type="button" className="button secondary" disabled={currentPage>=pages} onClick={()=>setPage(p=>Math.min(pages,p+1))}>Next</button></div>}
   </div>}
-  <p className="chart-note">Only recent SEC 8-K/8-K/A filing references are available here, not the content analysis or price response. This queue updates on opening or manual refresh, not in the background; two SEC index days may remain blocked. The next milestone is evidence-based catalyst qualification.</p>
+  <p className="chart-note">Discovery uses SEC 8-K/8-K/A filing references. On-demand source review uses limited phrase-matching; its findings are not verified bullish catalysts, and price reaction is not assessed. This queue updates on opening or manual refresh, not in the background; two SEC index days may remain blocked. The next milestone is evidence-based catalyst qualification.</p>
  </section>;
 }
