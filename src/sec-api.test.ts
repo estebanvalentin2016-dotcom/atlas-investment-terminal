@@ -12,6 +12,20 @@ describe('SEC annual fact normalization',()=>{
   expect(values[0].value).toBe(105);
   expect(values[0].year).toBe(2024);
  });
+ it('reads weighted-average diluted shares in the SEC shares unit, not dollars',()=>{
+  const facts={'us-gaap':{WeightedAverageNumberOfDilutedSharesOutstanding:{units:{
+   shares:[{form:'10-K',fp:'FY',start:'2025-01-01',end:'2025-12-31',filed:'2026-02-15',val:12500000}],
+   USD:[{form:'10-K',fp:'FY',start:'2025-01-01',end:'2025-12-31',filed:'2026-02-15',val:50000000}]
+  }}}};
+  expect(selectFact(facts,['WeightedAverageNumberOfDilutedSharesOutstanding'],'shares').values[0].value).toBe(12500000);
+  expect(selectFact(facts,['WeightedAverageNumberOfDilutedSharesOutstanding'],'shares').tag).toBe('WeightedAverageNumberOfDilutedSharesOutstanding');
+ });
+ it('keeps missing current and noncurrent debt tags absent instead of assuming zero',()=>{
+  const facts={'us-gaap':{LongTermDebtCurrent:{units:{USD:[{form:'10-K',fp:'FY',end:'2025-12-31',filed:'2026-02-15',val:3000000}]}}}};
+  expect(selectFact(facts,['LongTermDebtCurrent']).values[0].value).toBe(3000000);
+  expect(selectFact(facts,['LongTermDebtNoncurrent']).values).toEqual([]);
+  expect(selectFact(facts,['ShortTermBorrowings']).values).toEqual([]);
+ });
  it('supports annual balance-sheet facts without start dates',()=>{
   const facts={'us-gaap':{Assets:{units:{USD:[{form:'10-K',fp:'FY',end:'2025-09-30',filed:'2025-11-01',val:500}]}}}};
   expect(selectFact(facts,['Assets']).values[0].value).toBe(500);
