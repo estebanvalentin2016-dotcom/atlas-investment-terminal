@@ -62,6 +62,32 @@ describe('event-to-session alignment',()=>{
   const sample=[{date:'2026-10-09',close:100,high:101,low:99},{date:'2026-10-12',close:102,high:99,low:104}];
   expect(eventStudy('2026-10-09T20:30:00Z',sample).excursions.day1).toBeNull();
  });
+ it('measures post-first-close continuation as compound return, not added percentage points',()=>{
+  const sample=[
+   {date:'2026-08-26',close:100},
+   {date:'2026-08-27',close:120.32},
+   {date:'2026-08-28',close:121},
+   {date:'2026-08-31',close:121.9},
+   {date:'2026-09-01',close:115},
+   {date:'2026-09-02',close:107.34}
+  ];
+  const r=eventStudy('2026-08-27T00:07:02Z',sample);
+  expect(r.returns.day1).toBeCloseTo(20.32);
+  expect(r.returns.day3).toBeCloseTo(21.9);
+  expect(r.continuation.day3).toBeCloseTo((121.9/120.32-1)*100);
+  expect(r.continuation.day5).toBeCloseTo((107.34/120.32-1)*100);
+  expect(r.continuation.day5).toBeLessThan(0);
+ });
+ it('omits incomplete post-first-close horizons',()=>{
+  const sample=[
+   {date:'2026-10-09',close:100},
+   {date:'2026-10-12',close:120},
+   {date:'2026-10-13',close:123}
+  ];
+  const r=eventStudy('2026-10-09T20:30:00Z',sample);
+  expect(r.continuation.day3).toBeNull();
+  expect(r.continuation.day5).toBeNull();
+ });
  it('does not fabricate returns for insufficient data',()=>{
   expect(eventStudy('2026-10-16T22:00:00Z',bars).returns.day1).toBeNull();
  });
