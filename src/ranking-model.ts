@@ -6,7 +6,7 @@ export type SecCompany={ticker:string;name:string;source:string;retrievedAt:stri
 export type RankWeights={growth:number;fcf:number;profit:number;pe:number};
 export type RankMetrics={year:number|null;growth:number|null;fcfMargin:number|null;profitMargin:number|null;pe:number|null;fcf:number|null;revenue:number|null;capex:number|null};
 export type Ranked={ticker:string;name:string;year:number|null;source:string;metrics:RankMetrics;score:number|null;coverage:number;count:number;reasons:string[];missing:string[];annualFiled:string|null};
-export type MarketValuationClose={ticker:string;price:number;sessionDate:string;feed:string;provider:string;completedSession:boolean;splitValidation?:string};
+export type MarketValuationClose={ticker:string;price:number;sessionDate:string;feed:string;provider:string;completedSession:boolean;splitValidation?:string;iex20?:{sessionCount:number;startDate:string;endDate:string;avgDailyIexShares:number;avgDailyIexDollarVolume:number;coverage:string}|null};
 export type AnnualPe={pe:number|null;eps:number|null;epsEnd:string|null;priceDate:string|null;reason:string};
 export function annualPeFromSec(company:SecCompany,quote:MarketValuationClose|null):AnnualPe{
  const base={pe:null,eps:null,epsEnd:null,priceDate:quote?.sessionDate??null};
