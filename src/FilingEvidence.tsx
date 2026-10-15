@@ -1,16 +1,61 @@
-export type FilingEvidenceResult={url:string;sourceStatus:'reviewed_text'|'partial_text'|'unavailable';httpStatus?:number;bytesRead?:number;declaredBytes?:number|null;limitBytes?:number;truncated?:boolean;reviewMethod?:'selected_documents';documents?:{role:string;name:string;url:string;status:string;error?:string;bytesRead?:number;evidence?:{status:string;potential:{label:string;excerpt:string}[];cautions:{label:string;excerpt:string}[]}}[];sourceProblems?:string[];selection?:{primaryLocated:boolean;exhibitsListed:number;selectedExhibits:number};retrievedAt?:string;note:string;evidence?:{status:'mixed_claims'|'potential_language'|'no_positive_phrase_detected';potential:{label:string;excerpt:string;sourceName?:string;sourceUrl?:string}[];cautions:{label:string;excerpt:string;sourceName?:string;sourceUrl?:string}[];metrics?:{label:string;reportedValue:string;excerpt:string;sourceName?:string;sourceUrl?:string}[];topics?:{code:string;label:string}[];textCharacters:number;limitations:string}|null};
+type Statement={label:string;excerpt:string;sourceName?:string;sourceUrl?:string};
+type Metric=Statement&{reportedValue:string};
+export type FilingEvidenceResult={
+ url:string;sourceStatus:'reviewed_text'|'partial_text'|'unavailable';
+ httpStatus?:number;bytesRead?:number;declaredBytes?:number|null;limitBytes?:number;truncated?:boolean;
+ reviewMethod?:'selected_documents';
+ documents?:{role:string;name:string;url:string;status:string;error?:string;bytesRead?:number}[];
+ sourceProblems?:string[];
+ selection?:{primaryLocated:boolean;exhibitsListed:number;selectedExhibits:number};
+ retrievedAt?:string;note:string;
+ evidence?:{status:'mixed_claims'|'potential_language'|'no_positive_phrase_detected';potential:Statement[];cautions:Statement[];metrics?:Metric[];topics?:{code:string;label:string}[];textCharacters:number;limitations:string}|null;
+};
 export default function FilingEvidence({data,loading,onReview}:{data?:FilingEvidenceResult;loading:boolean;onReview:()=>void}){
+ const metrics=data?.evidence?.metrics||[];
+ const potential=data?.evidence?.potential||[];
+ const cautions=data?.evidence?.cautions||[];
+ const topics=data?.evidence?.topics||[];
+ const reviewed=data?.sourceStatus!=='unavailable';
  return <div className="filing-evidence">
-  <button type="button" className="button secondary" disabled={loading} onClick={onReview}>{loading?'Reviewing SEC filing…':data?'Review filing again':'Review filing evidence'}</button>
+  <button type="button" className="button secondary" disabled={loading} onClick={onReview}>
+   {loading?'Reading SEC documents…':data?'Refresh filing evidence':'Show the important numbers'}
+  </button>
   {data&&<div className="filing-evidence-body">
-   {data.sourceStatus==='unavailable'?<p className="opportunity-uncertainty"><strong>Source unavailable:</strong> {data.note}{data.httpStatus?' (SEC HTTP '+data.httpStatus+')':''}. No bullish conclusion can be drawn.</p>:
-   <>{Boolean(data.evidence?.topics?.length)&&<div className="filing-evidence-excerpt"><strong>Filing subjects</strong><p>{data.evidence?.topics?.map(topic=>topic.label+' (Item '+topic.code+')').join(' · ')}</p><p className="chart-note">SEC item codes describe disclosure categories, not market direction.</p></div>}
-    {Boolean(data.evidence?.metrics?.length)&&<div className="filing-evidence-metrics"><strong>Company-reported operating figures</strong><p className="chart-note">Extracted statements, not audited comparisons with analyst forecasts or price targets.</p>{data.evidence?.metrics?.map((m,i)=><div key={'m'+i} className="filing-evidence-excerpt"><strong>{m.label}: {m.reportedValue}</strong>{m.sourceUrl&&<p>SEC document: <a href={m.sourceUrl} target="_blank" rel="noopener noreferrer">{m.sourceName||'Source'}</a></p>}<p>{m.excerpt}</p></div>)}</div>}
-    {data.reviewMethod==='selected_documents'&&<div className="filing-evidence-sources"><strong>Inspected source documents</strong>{data.documents?.map(doc=><p key={doc.url}>{doc.role}: <a href={doc.url} target="_blank" rel="noopener noreferrer">{doc.name}</a> — {doc.status}{doc.error?' ('+doc.error+')':''}</p>)}<p className="chart-note">Selective review only. {data.selection?.exhibitsListed??0} Exhibit 99 files listed; {data.selection?.selectedExhibits??0} selected. Other exhibits may contain material information.</p>{data.sourceProblems?.length? <details><summary>Source metadata limitations</summary>{data.sourceProblems.map((problem,i)=><p key={i}>{problem}</p>)}</details>:null}</div>}{data.sourceStatus==='partial_text'&&<p className="opportunity-uncertainty"><strong>Partial evidence only:</strong> {data.note}{data.declaredBytes!=null?' · SEC declared '+data.declaredBytes.toLocaleString()+' bytes':''}. Do not interpret missing keyword matches as a negative result.</p>}<strong>{data.evidence?.status==='mixed_claims'?'Mixed language — review both sides':data.evidence?.status==='potential_language'?'Potentially favorable language found — unverified':data.evidence?.metrics?.length?(data.sourceStatus==='partial_text'?'Reported operating figures found — incomplete review':'Reported operating figures found — no upside judgment'):data.sourceStatus==='partial_text'?'No favorable phrase in reviewed portion — incomplete':'No matching favorable phrases found'}</strong>
-    <p className="chart-note">This is literal phrase detection, not a verified bullish catalyst. Context, materiality, prior publication, valuation and observed price reaction remain unknown.</p>
-    {data.evidence?.potential.map((item,i)=><div key={'p'+i} className="filing-evidence-excerpt"><strong>Review: {item.label}</strong>{item.sourceUrl&&<p>Source: <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">{item.sourceName||'SEC document'}</a></p>}<p>{item.excerpt}</p></div>)}
-    {data.evidence?.cautions.map((item,i)=><div key={'c'+i} className="filing-evidence-excerpt"><strong>Caution: {item.label}</strong>{item.sourceUrl&&<p>Source: <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">{item.sourceName||'SEC document'}</a></p>}<p>{item.excerpt}</p></div>)}
-    {!data.evidence?.potential.length&&<p className="chart-note">{data.sourceStatus==='partial_text'?'No positive pattern in the reviewed portion. Unread later sections may contain material news.':'No favorable keyword pattern detected. Reported metrics may still be significant; company results and price reactions require separate analysis.'}</p>}
+   {!reviewed?<p className="opportunity-uncertainty"><strong>Could not read the SEC document.</strong> {data.note} {data.httpStatus?'(HTTP '+data.httpStatus+')':''} The filing is not classified.</p>:
+   <>
+    <div className="atlas-glance">
+     <strong className="atlas-glance-title">What stands out</strong>
+     {topics.length>0&&<p className="atlas-summary-line"><strong>Filing type:</strong> {topics.slice(0,2).map(t=>t.label).join(' + ')}{topics.length>2?' and more':''}</p>}
+     {metrics.length>0?<div className="atlas-glance-cards">
+      {metrics.slice(0,6).map((metric,i)=><div className="atlas-glance-card" key={metric.label+'-'+i}>
+       <span className="atlas-glance-label">{metric.label}</span>
+       <strong className="atlas-glance-value">{metric.reportedValue}</strong>
+       {metric.sourceUrl&&<a className="atlas-glance-link" href={metric.sourceUrl} target="_blank" rel="noopener noreferrer">Check SEC source ↗</a>}
+      </div>)}
+     </div>:<p className="atlas-summary-line"><strong>No standard operating figures detected.</strong> The document could still contain significant news.</p>}
+     {potential.length>0&&<p className="atlas-summary-line"><strong>{potential.length} phrase{potential.length===1?'':'s'} to investigate.</strong> These are unverified text matches, not buy signals.</p>}
+     {cautions.length>0&&<p className="atlas-summary-line"><strong>{cautions.length} caution phrase{cautions.length===1?'':'s'} detected.</strong> Read the supporting passage before interpreting it.</p>}
+    </div>
+    <p className="atlas-summary-line"><strong>Investment conclusion: NOT YET.</strong> Reported growth does not establish an earnings surprise, fair value, or remaining upside.</p>
+    {data.sourceStatus==='partial_text'&&<p className="opportunity-uncertainty"><strong>Incomplete source review.</strong> Some exhibits or later passages were not read. A missing match is not proof of no catalyst.</p>}
+    {(potential.length>0||cautions.length>0)&&<details className="atlas-details">
+     <summary>Read the catalyst and caution phrases ({potential.length+cautions.length})</summary>
+     {potential.map((item,i)=><div key={'p'+i} className="filing-evidence-excerpt"><strong>Possible development: {item.label}</strong><p>{item.excerpt}</p>{item.sourceUrl&&<a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">Read original document ↗</a>}</div>)}
+     {cautions.map((item,i)=><div key={'c'+i} className="filing-evidence-excerpt"><strong>Caution: {item.label}</strong><p>{item.excerpt}</p>{item.sourceUrl&&<a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">Read original document ↗</a>}</div>)}
+    </details>}
+    {metrics.length>0&&<details className="atlas-details">
+     <summary>Show the original passages behind the numbers ({metrics.length})</summary>
+     {metrics.map((item,i)=><div key={'m'+i} className="filing-evidence-excerpt"><strong>{item.label}: {item.reportedValue}</strong><p>{item.excerpt}</p>{item.sourceUrl&&<a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">Source: {item.sourceName||'SEC document'} ↗</a>}</div>)}
+    </details>}
+    <details className="atlas-details">
+     <summary>Documents, limits & technical details</summary>
+     {topics.length>0&&<p><strong>SEC filing subjects:</strong> {topics.map(t=>t.label+' (Item '+t.code+')').join(' · ')}</p>}
+     {data.documents?.map(doc=><p key={doc.url}><strong>{doc.role}:</strong> <a href={doc.url} target="_blank" rel="noopener noreferrer">{doc.name}</a> · {doc.status}{doc.error?' — '+doc.error:''}</p>)}
+     <p><strong>Coverage:</strong> {data.note}</p>
+     {data.selection&&<p>Exhibit 99 files listed: {data.selection.exhibitsListed}. Selected: {data.selection.selectedExhibits}.</p>}
+     {data.sourceProblems?.map((problem,i)=><p key={i}>{problem}</p>)}
+     <p className="chart-note">{data.evidence?.limitations||'Text extraction is incomplete; verify original filings.'}</p>
+    </details>
    </>}
   </div>}
  </div>;
