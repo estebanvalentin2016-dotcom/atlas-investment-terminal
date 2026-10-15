@@ -78,6 +78,10 @@ export async function handleFilingReview(req,res){
    respond(res,200,data);return true;
   }
   const source=await readLimited(response);
+  if(!/<SEC-DOCUMENT\b|<DOCUMENT>|\bFORM\s+8[- ]K\b/i.test(source)){
+   respond(res,200,{url,sourceStatus:'unavailable',evidence:null,retrievedAt:new Date().toISOString(),note:'SEC response did not contain recognizable 8-K filing structure; evidence review skipped.'});
+   return true;
+  }
   const evidence=assessFilingEvidence(source);
   const data={url,sourceStatus:'reviewed_text',httpStatus:200,evidence,retrievedAt:new Date().toISOString(),note:'Evidence is raw phrase-matching from SEC submission text, not verified event classification. Always inspect the original filing.'};
   if(cache.size>30)cache.clear();
