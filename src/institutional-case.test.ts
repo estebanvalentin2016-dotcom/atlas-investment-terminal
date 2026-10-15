@@ -36,6 +36,8 @@ describe('Source-audited historical ValueAct position case',()=>{
    expect(report.checks.every((r:{checked:boolean})=>r.checked)).toBe(true);
    const rocket=report.checks.find((r:{ticker:string})=>r.ticker==='RKT');
    expect(rocket).toMatchObject({priorReported:28214724,latestReported:41668774,delta:13454050});
+   expect(rocket.latestIncludedPortfolioPct).toBeGreaterThan(rocket.previousIncludedPortfolioPct);
+   expect(report.coverage.weightScope).toContain('NOT total AUM');
    const blk=report.checks.find((r:{ticker:string})=>r.ticker==='BLK');
    expect(blk).toMatchObject({priorReported:546100,latestReported:581700,delta:35600});
    expect(report.sources.latest.filed).toBe('2026-08-14');
