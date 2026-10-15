@@ -43,6 +43,22 @@ export function selectFact(facts,tags,unit='USD'){
 function json(res,status,data){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));}
 export async function handleSecRequest(req,res){
  const url=new URL(req.url,'http://localhost');
+ if(url.pathname==='/api/sec/search'){
+  if(req.method!=='GET'){json(res,405,{error:'Method not allowed'});return true}
+  const query=(url.searchParams.get('q')||'').trim().toLowerCase();
+  if(query.length<1||query.length>80){json(res,400,{error:'Search for a ticker or company name (1–80 characters)'});return true}
+  try{
+   const index=await cached('tickers',()=>secJson(TICKERS));
+   const candidates=Object.values(index).filter(x=>typeof x.ticker==='string'&&typeof x.title==='string');
+   const entries=candidates.filter(x=>x.ticker.toLowerCase().includes(query)||x.title.toLowerCase().includes(query))
+    .sort((a,b)=>{
+     const score=x=>(x.ticker.toLowerCase()===query?0:x.ticker.toLowerCase().startsWith(query)?1:x.title.toLowerCase().startsWith(query)?2:3);
+     return score(a)-score(b)||a.ticker.localeCompare(b.ticker)
+    }).slice(0,15).map(x=>({ticker:x.ticker,name:x.title,cik:x.cik_str}));
+   json(res,200,{provider:'SEC company ticker index',query,items:entries,retrievedAt:new Date().toISOString()});
+  }catch(e){json(res,503,{error:e instanceof Error?e.message:'SEC company search unavailable'})}
+  return true;
+ }
  if(url.pathname!=='/api/sec/company')return false;
  if(req.method!=='GET'){json(res,405,{error:'Method not allowed'});return true;}
  const ticker=(url.searchParams.get('ticker')||'').toUpperCase().trim();
