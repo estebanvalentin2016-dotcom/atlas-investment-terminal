@@ -40,7 +40,7 @@ export default function InstitutionalConsensus({onInvestigate}:{onInvestigate?:(
  return <section className="panel real-panel atlas-consensus">
   <div className="panel-head"><div><span className="eyebrow">CROSS-INSTITUTIONAL INTELLIGENCE / DISCLOSED HOLDINGS</span><h3>Are independent managers converging on the same companies?</h3></div><span className="tag">No automatic buy ratings</span></div>
   <p className="description"><strong>See overlapping holdings and newly reported share increases.</strong> ATLAS separates <strong>co-reporting</strong> from <strong>verified active-manager consensus</strong>. An increase in reported shares is not a dated purchase.</p>
-  <InstitutionalHistoricalCase onResearch={onInvestigate?()=>onInvestigate('ROCKET COMPANIES'):undefined}/>
+  <InstitutionalHistoricalCase onResearch={onInvestigate?()=>onInvestigate('RKT'):undefined}/>
   <form className="atlas-ranking-controls atlas-consensus-controls" onSubmit={inspect}><label>SEC manager CIKs (2–6, separated by commas)<input aria-label="Consensus manager CIKs" value={ciks} onChange={e=>setCiks(e.target.value)} placeholder="1743937, 1418814"/></label><button className="button primary" type="submit" disabled={busy}>{busy?'Loading SEC filings…':'Analyze institutional overlap'}</button></form>
   <p className="chart-note"><strong>First-stage SEC coverage:</strong> exact CUSIP + share class, two comparable quarter-end reports per loaded manager. A larger universe and fund-level holdings feeds are being added incrementally; examples are not endorsed institutions.</p>
   {progress&&<p className="atlas-summary-line" role="status">{progress}</p>}
@@ -62,7 +62,6 @@ export default function InstitutionalConsensus({onInvestigate}:{onInvestigate?:(
    <strong>{filtered.length} issuer/security groups match your filters</strong>
    {shown.map(group=><article className="atlas-consensus-security" key={group.asOfDate+'|'+group.key}>
     <div className="atlas-consensus-header"><div><strong>{group.issuer}</strong><small>{group.className} · CUSIP {group.cusip} · as of {group.asOfDate}</small></div><div><strong>{group.reportedManagers} reporting manager{group.reportedManagers===1?'':'s'}</strong><small>{group.provisionalInterest} new/increased position signal{group.provisionalInterest===1?'':'s'}</small></div></div>
-    {onInvestigate&&<button className="button secondary" type="button" onClick={()=>onInvestigate(group.issuer)}>Research issuer name → verify ticker</button>}
     <p className="atlas-summary-line"><strong>Confirmed independent active buyers:</strong> {group.signal==='verified_active_convergence'?group.verifiedActiveFamilies+' verified families':'Not established'}. <strong>Passive/index and affiliation checks:</strong> not verified by 13F alone.</p>
     <details className="atlas-details"><summary>Inspect manager filings and dates ({group.reporters.length})</summary>
      {group.reporters.map(row=><p key={row.managerCik+'|'+row.key}><strong>{row.managerName}</strong> · {row.change.replaceAll('_',' ')} · current shares {count(row.shares)} · prior shares {row.priorShares===null?'not reported':count(row.priorShares)} · filed {row.publishedDate} · <a href={row.sourceUrl} target="_blank" rel="noopener noreferrer">Original SEC 13F ↗</a></p>)}
