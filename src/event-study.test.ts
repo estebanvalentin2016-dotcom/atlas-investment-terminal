@@ -1,4 +1,5 @@
 import {describe,it,expect} from 'vitest';
+// @ts-ignore JavaScript-only research helper tested directly by Vitest.
 import {easternClock,alignEvent,eventStudy} from './event-study.mjs';
 const dates=['2026-10-08','2026-10-09','2026-10-12','2026-10-13','2026-10-14','2026-10-15','2026-10-16'];
 const bars=dates.map((date,i)=>({date,close:100+i*2}));
