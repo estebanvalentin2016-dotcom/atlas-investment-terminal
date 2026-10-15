@@ -12,9 +12,10 @@ export default function InstitutionalHistoricalCase({onResearch}:{onResearch?:(t
  const [waiting,setWaiting]=useState(false),[financialLoading,setFinancialLoading]=useState(false);
  const [fundamentals,setFundamentals]=useState<ConvictionAssessment|null>(null),[fundamentalIssue,setFundamentalIssue]=useState('');
  async function verify(){
+  const refresh=Boolean(evidence);
   setWaiting(true);setEvidence(null);setError('');setFundamentals(null);setFundamentalIssue('');
   try{
-   const response=await fetch('/api/institutions/historical-case');
+   const response=await fetch('/api/institutions/historical-case'+(refresh?'?refresh=1':''));
    const data=await response.json() as Result;
    if(!response.ok||data.status!=='verified_against_live_sec')throw Error(data.error||'Source verification incomplete; no matched holding values may be claimed');
    setEvidence(data);
