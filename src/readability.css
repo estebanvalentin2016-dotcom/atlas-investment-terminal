@@ -338,3 +338,17 @@ th{font-size:12px}td{font-size:14px}
 .atlas-autonomous-lead>p{margin:0;font-size:15px}
 @media(max-width:1050px){.atlas-autonomous-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.atlas-autonomous-metrics,.atlas-autonomous-lead .atlas-key-return{grid-template-columns:minmax(0,1fr)}.atlas-autonomous-results{margin:0 10px}.atlas-autonomous-discovery>.atlas-autonomous-cta{margin:0 10px}}
+
+/* Autonomous discovery controls and valuation concerns must be obvious at a glance. */
+.atlas-autonomous-actions{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin:0 22px}
+.atlas-autonomous-actions label{display:grid;gap:8px;font-size:16px;font-weight:750;min-width:240px}
+.atlas-autonomous-actions select{min-height:46px;padding:9px 13px;font:inherit;background:#183449;color:#eff7ff;border:1px solid #688aa3;border-radius:9px}
+.atlas-autonomous-actions .button{min-height:46px}
+.atlas-autonomous-valuation{padding:15px;border-radius:10px;border:1px solid #567b95;background:#14374c;display:grid;gap:7px}
+.atlas-autonomous-valuation strong{font-size:20px;line-height:1.35}
+.atlas-autonomous-valuation p{font-size:16px;line-height:1.55;margin:0;color:#c9deee}
+.atlas-autonomous-valuation.atlas-valuation-red{border:2px solid #d16a6c;background:#38262c}
+.atlas-autonomous-valuation.atlas-valuation-red strong{color:#ffaaaa}
+.atlas-autonomous-valuation.atlas-valuation-amber{border:2px solid #b78f5c;background:#342b21}
+.atlas-autonomous-valuation.atlas-valuation-amber strong{color:#f7d398}
+@media(max-width:650px){.atlas-autonomous-actions{margin:0 10px}}
