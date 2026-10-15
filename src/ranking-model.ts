@@ -49,7 +49,7 @@ export function scoreCompany(company:SecCompany,weights:RankWeights,manualPe:num
  const observed=active.filter(p=>p.value!==null);
  const evidenceWeight=observed.reduce((sum,p)=>sum+weights[p.key],0);
  const coverage=total>0?percent(evidenceWeight/total*100):0;
- const missing=active.filter(p=>p.value===null).map(p=>p.key==='growth'?'Revenue growth':p.key==='fcf'?'FCF margin':p.key==='profit'?'Net margin':'P/E (manual)');
+ const missing:string[]=active.filter(p=>p.value===null).map(p=>p.key==='growth'?'Revenue growth':p.key==='fcf'?'FCF margin':p.key==='profit'?'Net margin':'P/E (manual)');
  const reasons=observed.map(p=>(p.key==='growth'?'Revenue growth':p.key==='fcf'?'Free cash flow margin':p.key==='profit'?'Net margin':'Manually supplied P/E')+': '+(p.value===null?'unknown':p.value.toFixed(2))+(p.key==='pe'?'x':'%'));
  if(metrics.year===null)missing.push('SEC fiscal-year revenue');
  if(stale)missing.push('Fresh SEC fiscal financials');
