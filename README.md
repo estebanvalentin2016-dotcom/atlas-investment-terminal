@@ -2,7 +2,7 @@
 
 A working, browser-based investment research prototype built with React, TypeScript, and Vite.
 
-**Current release: v0.1.0 — DEMO ONLY.** Every company, price series, financial metric, market cap, and ticker is fictional. It has no live market data. This is deliberate: the app should never confuse invented inputs with actual investment information.
+**Current stable release: v0.1.0 — DEMO ONLY.** The v0.2 feature branch adds a separate SEC Research preview, documented in [SEC_RESEARCH.md](SEC_RESEARCH.md). Every company, price series, financial metric, market cap, and ticker is fictional. It has no live market data. This is deliberate: the app should never confuse invented inputs with actual investment information.
 
 ## Quick start
 
