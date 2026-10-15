@@ -27,14 +27,21 @@ export default function IntradayAvailability({ticker,session}:{ticker:string;ses
    <div className="intraday-results-heading"><strong>Historical intraday coverage</strong><span className={info.fullRegularSession&&!info.partialHistory?'intraday-status-complete':'intraday-status-partial'}>{info.fullRegularSession&&!info.partialHistory?'All expected intervals':'Incomplete coverage'}</span></div>
    <div className="intraday-metrics"><div><span>15-minute bars</span><strong>{info.barCount}<small> / 26</small></strong></div><div><span>First bar · ET</span><strong>{info.firstBarTimeEt??'N/A'}</strong></div><div><span>Last bar · ET</span><strong>{info.lastBarTimeEt??'N/A'}</strong></div></div>
    <p className="intraday-source">IEX only · Provider pagination: <strong>{info.partialHistory?'Yes':'No'}</strong></p>
-   <div className="entry-research"><h4>Historical entry checkpoints</h4><p>Reference is the closing price of the 15-minute interval immediately before each checkpoint. Subsequent highs and lows use later bars only; their order is unknown.</p>
-   <div className="entry-grid">{windows.map(w=><article className="entry-card" key={w.time}><div className="entry-time">{w.time} ET</div><div className="entry-primary"><span>To session close</span><strong className={klass(w.toClose)}>{fmt(w.toClose)}</strong></div><div className="entry-secondary"><span>Subsequent highest high</span><strong className={klass(w.highest)}>{fmt(w.highest)}</strong></div><div className="entry-secondary"><span>Subsequent lowest low</span><strong className={klass(w.lowest)}>{fmt(w.lowest)}</strong></div><small>Prior-bar reference: {w.reference===null?'N/A':'
-  </div>}
- </section>;
-}
-+w.reference.toFixed(2)}</small></article>)}</div>
-   <p className="intraday-caveat">A completed-bar closing price is not a guaranteed fill at the checkpoint. Extremes are not executable returns. Spreads, slippage, fees, latency and when the catalyst became known are not modeled. Historical research, not a trade signal.</p></div>
-   <p className="intraday-caveat">Coverage does not establish executable prices, spreads, or liquidity across other exchanges.</p>
+   <div className="entry-research">
+    <h4>Historical entry checkpoints</h4>
+    <p>Reference is the completed 15-minute bar closing immediately before each checkpoint. The later highs and lows use subsequent bars only; their ordering is unknown.</p>
+    <div className="entry-grid">
+     {windows.map(w=><article className="entry-card" key={w.time}>
+      <div className="entry-time">{w.time} ET</div>
+      <div className="entry-primary"><span>To session close</span><strong className={klass(w.toClose)}>{fmt(w.toClose)}</strong></div>
+      <div className="entry-secondary"><span>Subsequent highest high</span><strong className={klass(w.highest)}>{fmt(w.highest)}</strong></div>
+      <div className="entry-secondary"><span>Subsequent lowest low</span><strong className={klass(w.lowest)}>{fmt(w.lowest)}</strong></div>
+      <small>Prior-bar reference: {w.reference===null?'N/A':'$'+w.reference.toFixed(2)}</small>
+     </article>)}
+    </div>
+    <p className="intraday-caveat">A completed-bar close is not a guaranteed fill at the checkpoint. Extremes are not executable returns. Spreads, slippage, fees, latency, and catalyst discovery timing are not modeled. Research only.</p>
+   </div>
+   <p className="intraday-caveat">Coverage does not establish executable prices, spreads or liquidity across other exchanges.</p>
   </div>}
  </section>;
 }
