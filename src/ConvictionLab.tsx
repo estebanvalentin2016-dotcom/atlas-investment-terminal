@@ -1,6 +1,7 @@
 import {useState,type FormEvent} from 'react';
 import {assessConvictionReadiness,type ConvictionAssessment} from './conviction-readiness';
 import SurvivalEvidencePanel from './SurvivalEvidencePanel';
+import MarketCapEvidencePanel from './MarketCapEvidencePanel';
 import type {MarketValuationClose,SecCompany} from './ranking-model';
 type ThesisVersion={ticker:string;createdAt:string;thesis:string;invalidation:string;verdict:'INSUFFICIENT EVIDENCE'};
 const KEY='atlas.conviction.theses.v1';
@@ -15,6 +16,7 @@ const readVersions=():ThesisVersion[]=>{try{const value=localStorage.getItem(KEY
 export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:string}){
  const [ticker,setTicker]=useState(initialTicker);
  const [company,setCompany]=useState<SecCompany|null>(null);
+ const [marketQuote,setMarketQuote]=useState<MarketValuationClose|null>(null);
  const [assessment,setAssessment]=useState<ConvictionAssessment|null>(null);
  const [marketIssue,setMarketIssue]=useState('');
  const [error,setError]=useState('');
@@ -26,7 +28,7 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
  async function investigate(e:FormEvent){
   e.preventDefault();
   const symbol=ticker.trim().toUpperCase();
-  setError('');setMarketIssue('');setCompany(null);setAssessment(null);setSavedMessage('');
+  setError('');setMarketIssue('');setCompany(null);setMarketQuote(null);setAssessment(null);setSavedMessage('');
   if(!/^[A-Z0-9.-]{1,12}$/.test(symbol)){setError('Enter a valid stock ticker.');return}
   setLoading(true);
   try{
@@ -41,6 +43,7 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
     market=body;
    }catch(e){setMarketIssue(e instanceof Error?e.message:'IEX close unavailable')}
    setCompany(sec);
+   setMarketQuote(market);
    setAssessment(assessConvictionReadiness(sec,market,nyToday()));
   }catch(e){setError(e instanceof Error?e.message:'Research source unavailable')}
   finally{setLoading(false)}
@@ -77,6 +80,7 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
     <p>{assessment.fundingRisk.detail}</p>
     {assessment.fundingRisk.status!=='nonnegative_fcf'&&<p><strong>Research priority:</strong> Explain where the cash went, whether growth investment is productive, what funding is available, and how future share issuance could affect your ownership.</p>}
    </section>}
+   <MarketCapEvidencePanel company={company} quote={marketQuote} asOf={nyToday()}/>
    <SurvivalEvidencePanel company={company} asOf={assessment.observed.asOfDate??nyToday()}/>
    <p className="chart-note"><strong>Source:</strong> <a href={company.source} target="_blank" rel="noopener noreferrer">SEC company financial facts ↗</a>. Missing or delayed figures remain unknown. An attractive reported metric is not evidence of mispricing.</p>
    <details className="atlas-details" open><summary>What ATLAS verified — and what automation is still missing</summary>
