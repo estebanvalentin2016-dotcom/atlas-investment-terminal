@@ -217,3 +217,38 @@ th{font-size:12px}td{font-size:14px}
 .atlas-thesis-history p{font-size:15px}
 @media(max-width:800px){.atlas-home-journey{grid-template-columns:minmax(0,1fr)}.atlas-home-mission{padding:20px}.atlas-home-stage{padding:16px}}
 @media(max-width:630px){.atlas-conviction-intro,.atlas-conviction-result{margin:6px 10px 15px;padding:13px}.atlas-conviction-lab>.description,.atlas-conviction-lab>.atlas-ranking-controls{margin-left:10px;margin-right:10px}}
+
+/* SEC Institutional Discovery: evidence-first, big text and accessible source audit. */
+.atlas-institutions{display:grid;gap:16px}
+.atlas-institutions>.description{font-size:17px}
+.atlas-investor-tabs,.atlas-institution-controls,.atlas-institution-results{margin:0 22px;display:grid;gap:14px}
+.atlas-investor-tabs{display:flex;flex-wrap:wrap;gap:12px}
+.atlas-institution-controls,.atlas-institution-results{padding:16px;border:1px solid #466b85;background:#142b40;border-radius:12px}
+.atlas-institution-controls>strong,.atlas-institution-results>strong{font-size:20px}
+.atlas-institution-presets{display:flex;flex-wrap:wrap;gap:10px}
+.atlas-institution-controls .atlas-ranking-controls,.atlas-institution-results .atlas-ranking-controls{padding:0;margin:0}
+.atlas-institution-select{display:grid;gap:8px;font-weight:700;font-size:16px}
+.atlas-institution-select input,.atlas-institution-select select{font:inherit;min-height:46px;padding:10px 13px;max-width:100%;background:#142d44;color:#f1f9ff;border:1px solid #6b8ba3;border-radius:8px}
+.atlas-institution-sources{background:#1a354b;border:1px solid #52728b;border-radius:10px;padding:16px;display:grid;gap:7px}
+.atlas-institution-sources>strong{font-size:22px}
+.atlas-institution-sources p,.atlas-institution-sources small{font-size:15px;margin:0;overflow-wrap:anywhere;line-height:1.55}
+.atlas-institution-sources a,.atlas-institution-row a{color:#9bdcff;text-underline-offset:3px}
+.atlas-institution-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.atlas-institution-stats>div{display:grid;gap:6px;padding:15px;background:#20384c;border:1px solid #4d708a;border-radius:10px}
+.atlas-institution-stats span{font-size:14px;color:#c5d9eb}
+.atlas-institution-stats strong{font-size:clamp(24px,3vw,34px);color:#f6faff}
+.atlas-institution-list{display:grid;gap:13px}
+.atlas-institution-row{display:grid;gap:12px;padding:18px;border:1px solid #4e6984;border-radius:12px;background:#1b3449}
+.atlas-institution-row-head{display:flex;align-items:start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.atlas-institution-row-head>div{display:grid;gap:5px;min-width:180px}
+.atlas-institution-row-head strong{font-size:23px;line-height:1.25}
+.atlas-institution-row-head span{font-size:15px;line-height:1.5;font-weight:750}
+.atlas-institution-values{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.atlas-institution-values>div{display:grid;gap:5px;padding:12px;border:1px solid #41617b;background:#152f45;border-radius:9px;min-width:0;overflow-wrap:anywhere}
+.atlas-institution-values span{font-size:14px;color:#bed2e4}
+.atlas-institution-values strong{font-size:clamp(17px,1.6vw,23px);color:#f4fbff}
+.atlas-institution-row .chart-note{font-size:14px;margin:0}
+.atlas-institution-pagination{display:flex;align-items:center;gap:12px;justify-content:center}
+.atlas-institution-results>.atlas-summary-line{font-size:16px;padding:0;margin:0}
+@media(max-width:930px){.atlas-institution-stats,.atlas-institution-values{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.atlas-investor-tabs,.atlas-institution-controls,.atlas-institution-results{margin:0 10px}.atlas-institution-stats,.atlas-institution-values{grid-template-columns:minmax(0,1fr)}.atlas-institution-row{padding:13px}}
