@@ -86,6 +86,7 @@ describe('SEC institutional loader',()=>{
   try{
    const result=await load13FManager('1743937');
    expect(result.manager).toBe('Test Reporting Manager LP');
+   expect(result.submissionUrl).toBe('https://data.sec.gov/submissions/CIK0001743937.json');
    expect(result.rows[0].change).toBe('reported_increase');
    expect(result.rows[0].changeShares).toBe(80);
    expect(result.latest.period).toBe('2026-06-30');
