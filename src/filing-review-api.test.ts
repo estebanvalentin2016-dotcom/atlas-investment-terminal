@@ -1,6 +1,6 @@
 import {describe,expect,it,vi} from 'vitest';
 // @ts-ignore Node-only SEC filing review adapter
-import {permittedFilingUrl,extractFilingText,assessFilingEvidence,handleFilingReview} from '../server/filing-review-api.mjs';
+import {permittedFilingUrl,extractFilingText,assessFilingEvidence,handleFilingReview,readBoundedFiling} from '../server/filing-review-api.mjs';
 describe('SEC source evidence review',()=>{
  const url='https://www.sec.gov/Archives/edgar/data/1819994/0001819994-26-000067.txt';
  it('accepts canonical SEC archive URLs and rejects other hosts, queries and unsupported paths',()=>{
@@ -35,6 +35,38 @@ describe('SEC source evidence review',()=>{
   let code=0,body='';
   await handleFilingReview({url:'/api/opportunities/review?url='+encodeURIComponent('https://elsewhere.example/filing.txt'),method:'GET'},{writeHead(c:number){code=c},end(v:string){body=v}});
   expect(code).toBe(400);expect(JSON.parse(body).error).toContain('valid SEC');
+ });
+ it('reads only a bounded prefix when SEC declares an oversized full submission',async()=>{
+  const raw='<SEC-DOCUMENT><DOCUMENT><TYPE>8-K\n<TEXT>The company raises annual guidance.</TEXT></DOCUMENT>'+'z'.repeat(120);
+  const response=new Response(raw,{headers:{'content-length':'5000000'}});
+  const extracted=await readBoundedFiling(response,120);
+  expect(extracted.truncated).toBe(true);
+  expect(extracted.declaredBytes).toBe(5000000);
+  expect(extracted.bytesRead).toBe(120);
+  expect(extracted.text.length).toBe(120);
+  expect(extracted.text).toContain('raises annual guidance');
+ });
+ it('reads normal complete filings without falsely declaring partial coverage',async()=>{
+  const content='<SEC-DOCUMENT><DOCUMENT><TYPE>8-K\n<TEXT>Ordinary corporate disclosure.</TEXT></DOCUMENT>';
+  const result=await readBoundedFiling(new Response(content),200);
+  expect(result.truncated).toBe(false);
+  expect(result.declaredBytes).toBeNull();
+  expect(result.bytesRead).toBe(new TextEncoder().encode(content).byteLength);
+ });
+ it('does not classify large filings as inaccessible when a valid initial 8-K section was read',async()=>{
+  vi.stubEnv('SEC_USER_AGENT','ATLAS tests tests@example.com');
+  const other='https://www.sec.gov/Archives/edgar/data/1819994/0001819994-26-000102.txt';
+  const content='<SEC-DOCUMENT><DOCUMENT><TYPE>8-K\n<TEXT>The company raises annual guidance.</TEXT></DOCUMENT>';
+  vi.stubGlobal('fetch',vi.fn(async()=>new Response(content,{status:200,headers:{'content-length':'5000000'}})));
+  let code=0,body='';
+  try{
+   await handleFilingReview({url:'/api/opportunities/review?url='+encodeURIComponent(other),method:'GET'},{writeHead(c:number){code=c},end(v:string){body=v}});
+   const result=JSON.parse(body);
+   expect(code).toBe(200);
+   expect(result.sourceStatus).toBe('partial_text');
+   expect(result.evidence.status).toBe('potential_language');
+   expect(result.note).toContain('Partial review only');
+  }finally{vi.unstubAllGlobals();vi.unstubAllEnvs()}
  });
  it('handles SEC access restrictions without fabricating classification',async()=>{
   vi.stubEnv('SEC_USER_AGENT','ATLAS tests tests@example.com');
