@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {assessPriceHistory,combineResearchPriority,type HistoricalPriceResponse} from './price-history-model';
+import {assessPriceHistory,combineResearchPriority,trailingPriceWindow,type HistoricalPriceResponse} from './price-history-model';
 import PriceHistoryPanel from './PriceHistoryPanel';
 
 const asOf='2026-10-15';
@@ -27,6 +27,40 @@ describe('Long-horizon historical stock-price evidence',()=>{
   expect(a.returns.sinceAvailable).toBeGreaterThan(100);
   expect(a.coverageNote).toContain('not the verified IPO');
   expect(a.trendScore).not.toBeNull();
+ });
+ it('computes the 5Y metric from the exact first weekly bar displayed on the 5Y chart',()=>{
+  const data=fixture(1);
+  const latest=data.bars.at(-1)!;
+  const target=new Date(latest.date+'T00:00:00Z');
+  target.setUTCFullYear(target.getUTCFullYear()-5);
+  const anniversary=target.toISOString().slice(0,10);
+  const before=data.bars.filter(b=>b.date<anniversary).at(-1);
+  const firstAfter=data.bars.find(b=>b.date>=anniversary)!;
+  expect(before).toBeDefined();
+  before!.close=12;
+  firstAfter.close=36;
+  latest.close=60;
+  const window=trailingPriceWindow(data.bars,asOf,5)!;
+  const result=assessPriceHistory(data,asOf);
+  expect(window[0].date).toBe(firstAfter.date);
+  expect(result.returnStartDates.year5).toBe(firstAfter.date);
+  expect(result.returns.year5).toBeCloseTo(Math.round((latest.close/firstAfter.close-1)*10000)/100,2);
+  expect(result.returns.year5).not.toBeCloseTo(Math.round((latest.close/before!.close-1)*10000)/100,1);
+  const html=renderToStaticMarkup(createElement(PriceHistoryPanel,{ticker:'AEYE',history:data,asOf}));
+  expect(html).toContain('from '+firstAfter.date+' to '+latest.date);
+  expect(html).toContain('+66.7% in selected window');
+  expect(html).toContain('5-year price change');
+ });
+ it('rejects sparse weekly endpoints as a credible full-period price return',()=>{
+  const old=fixture(1);
+  const sparse={...old,bars:[old.bars[0],old.bars[100],old.bars[200],old.bars.at(-1)!]};
+  const e=assessPriceHistory(sparse,asOf);
+  expect(e.returns.year1).toBeNull();
+  expect(e.returns.year3).toBeNull();
+  expect(e.returns.year5).toBeNull();
+  expect(e.trendScore).toBeNull();
+  expect(trailingPriceWindow(sparse.bars,asOf,5)).toBeNull();
+  expect(combineResearchPriority(75,e)).toEqual({score:75,priceWeighted:false});
  });
  it('exposes a long-duration flat price despite positive fundamental returns',()=>{
   const trend=assessPriceHistory(fixture(1),asOf);
