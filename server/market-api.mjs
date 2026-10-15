@@ -69,13 +69,39 @@ export async function handleValuationPriceRequest(req,res){
 }
 const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data))};
 export async function handleMarketRequest(req,res){
- const u=new URL(req.url,'http://localhost');if(!['/api/market/daily','/api/market/event'].includes(u.pathname))return false;
+ const u=new URL(req.url,'http://localhost');if(!['/api/market/daily','/api/market/event','/api/market/long-history'].includes(u.pathname))return false;
  if(req.method!=='GET'){json(res,405,{error:'Method not allowed'});return true}
  const ticker=(u.searchParams.get('ticker')||'').trim().toUpperCase();
  if(!/^[A-Z0-9.-]{1,12}$/.test(ticker)){json(res,400,{error:'Invalid ticker'});return true}
  const key=process.env.ALPACA_API_KEY_ID,secret=process.env.ALPACA_API_SECRET_KEY;
  if(!key||!secret){json(res,503,{error:'Free Alpaca market data is not configured. See MARKET_DATA.md'});return true}
  try{
+  if(u.pathname==='/api/market/long-history'){
+   const now=Date.now();
+   const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(now));
+   const date=Object.fromEntries(parts.filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+   const monday=new Date(date.year+'-'+date.month+'-'+date.day+'T00:00:00Z');
+   monday.setUTCDate(monday.getUTCDate()-(monday.getUTCDay()+6)%7);
+   const currentWeek=monday.toISOString().slice(0,10);
+   const target=new URL(HOST+encodeURIComponent(ticker)+'/bars');
+   for(const [name,value] of Object.entries({timeframe:'1Week',start:new Date(now-11*365.25*86400000).toISOString(),end:new Date(now-20*60000).toISOString(),feed:'iex',adjustment:'split',limit:'1000',sort:'asc'}))target.searchParams.set(name,value);
+   const history=[];let token=null;let partial=false;
+   for(let page=0;page<4;page++){
+    if(token)target.searchParams.set('page_token',token);
+    const response=await fetch(target,{headers:{'APCA-API-KEY-ID':key,'APCA-API-SECRET-KEY':secret,Accept:'application/json'},signal:AbortSignal.timeout(12000)});
+    if(!response.ok)throw Error('Alpaca IEX history HTTP '+response.status);
+    const body=await response.json();
+    history.push(...normalizeBars(body).filter(b=>b.date<currentWeek));
+    token=typeof body.next_page_token==='string'&&body.next_page_token?body.next_page_token:null;
+    if(!token)break;
+    if(page===3)partial=true;
+   }
+   const unique=new Map(history.map(bar=>[bar.date,{date:bar.date,close:bar.close}]));
+   const bars=[...unique.values()].sort((a,b)=>a.date.localeCompare(b.date));
+   if(!bars.length)throw Error('No completed split-adjusted weekly IEX bars available');
+   json(res,200,{ticker,provider:'Alpaca',feed:'IEX',timeframe:'1Week',adjustment:'split',completedWeeksOnly:true,requestedYears:11,partialHistory:partial,retrievedAt:new Date().toISOString(),coverageStart:bars[0].date,coverageEnd:bars.at(-1).date,bars,note:'Weekly split-adjusted IEX price history; dividends excluded. First bar is not a verified IPO date.'});
+   return true;
+  }
   const eventMode=u.pathname==='/api/market/event';
   const eventDate=u.searchParams.get('eventDate');
   if(eventMode&&(!/^\d{4}-\d{2}-\d{2}$/.test(eventDate||'')||new Date(eventDate+'T00:00:00Z').toISOString().slice(0,10)!==eventDate)){json(res,400,{error:'Valid eventDate (YYYY-MM-DD) required'});return true}
