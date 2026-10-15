@@ -19,6 +19,20 @@ export function mostRecentCompletedDaily(bars,asofDate,maxAgeDays=10){
  const age=(Date.parse(asofDate+'T00:00:00Z')-Date.parse(latest.date+'T00:00:00Z'))/86400000;
  return Number.isFinite(age)&&age>=0&&age<=maxAgeDays?latest:null;
 }
+// This is observed Alpaca IEX activity, never consolidated exchange volume
+// or a tradability/float/spread assessment. Exclude today's incomplete bar.
+export function iexCompletedLiquidity(bars,asofDate){
+ const completed=bars.filter(b=>b.date<asofDate&&Number.isFinite(b.volume)&&b.volume>0&&Number.isFinite(b.close)&&b.close>0).sort((a,b)=>a.date.localeCompare(b.date));
+ const selected=completed.slice(-20);
+ if(selected.length!==20||new Set(selected.map(b=>b.date)).size!==20)return null;
+ const totalShares=selected.reduce((sum,b)=>sum+b.volume,0);
+ const totalDollars=selected.reduce((sum,b)=>sum+b.volume*b.close,0);
+ if(!Number.isFinite(totalDollars)||totalShares<=0)return null;
+ return {sessionCount:20,startDate:selected[0].date,endDate:selected[19].date,
+  avgDailyIexShares:Math.round(totalShares/20),
+  avgDailyIexDollarVolume:Math.round(totalDollars/20),
+  coverage:'Alpaca IEX only, not consolidated volume, free float or bid-ask spread'};
+}
 export async function handleValuationPriceRequest(req,res){
  const u=new URL(req.url,'http://localhost');
  if(u.pathname!=='/api/market/valuation-close')return false;
@@ -34,10 +48,10 @@ export async function handleValuationPriceRequest(req,res){
   const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(now));
   const dateParts=Object.fromEntries(parts.filter(p=>p.type!=='literal').map(p=>[p.type,p.value]));
   const easternToday=dateParts.year+'-'+dateParts.month+'-'+dateParts.day;
-  const start=new Date(now-25*86400000).toISOString();
+  const start=new Date(now-50*86400000).toISOString();
   const end=new Date(now-20*60000).toISOString();
   const target=new URL(HOST+encodeURIComponent(ticker)+'/bars');
-  for(const [name,val] of Object.entries({timeframe:'1Day',start,end,feed:'iex',limit:'40',adjustment:'raw'}))target.searchParams.set(name,val);
+  for(const [name,val] of Object.entries({timeframe:'1Day',start,end,feed:'iex',limit:'80',adjustment:'raw'}))target.searchParams.set(name,val);
   const upstream=await fetch(target,{headers:{'APCA-API-KEY-ID':key,'APCA-API-SECRET-KEY':secret,Accept:'application/json'},signal:AbortSignal.timeout(12000)});
   if(!upstream.ok){json(res,502,{error:'Alpaca valuation close HTTP '+upstream.status});return true}
   const incoming=await upstream.json();
@@ -46,7 +60,7 @@ export async function handleValuationPriceRequest(req,res){
   // partial IEX bar with SEC annual EPS and call it an intraday P/E.
   const quote=mostRecentCompletedDaily(bars,easternToday);
   if(!quote){json(res,503,{error:'No recent completed IEX trading session is available'});return true}
-  const body={ticker,price:quote.close,sessionDate:quote.date,feed:'IEX',provider:'Alpaca',adjustment:'raw',completedSession:true,splitValidation:'unverified',retrievedAt:new Date().toISOString()};
+  const body={ticker,price:quote.close,sessionDate:quote.date,feed:'IEX',provider:'Alpaca',adjustment:'raw',completedSession:true,splitValidation:'unverified',iex20:iexCompletedLiquidity(bars,easternToday),retrievedAt:new Date().toISOString()};
   valuationCache.set(ticker,{at:Date.now(),body});
   if(valuationCache.size>80)valuationCache.clear();
   json(res,200,body);
