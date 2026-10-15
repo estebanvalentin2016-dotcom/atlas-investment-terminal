@@ -1,6 +1,6 @@
-type Destination='Screener'|'Opportunity Radar'|'Company Research'|'Conviction Lab'|'Watchlist'|'Discovery Feed';
+type Destination='Autonomous Discovery'|'Screener'|'Opportunity Radar'|'Company Research'|'Conviction Lab'|'Watchlist'|'Discovery Feed';
 const stages:{number:string;title:string;purpose:string;cta:string;destination:Destination;status:string}[]=[
- {number:'01',title:'Discover',purpose:'Surface real SEC filings and companies worth investigating, not just fashionable tickers.',cta:'Find investment candidates',destination:'Opportunity Radar',status:'Real SEC event queue'},
+ {number:'01',title:'Discover',purpose:'Surface real SEC filings and companies worth investigating, not just fashionable tickers.',cta:'Discover Opportunities',destination:'Autonomous Discovery',status:'Zero ticker input · SEC universe scan'},
  {number:'02',title:'Investigate',purpose:'Check reported growth, free cash flow, balance-sheet signals and original public sources.',cta:'Research a company',destination:'Company Research',status:'Real SEC financial facts'},
  {number:'03',title:'Value',purpose:'Compare financial strength and current FY P/E before building full dilution-aware outcomes.',cta:'Open fundamentals ranking',destination:'Screener',status:'Weighted research ranking'},
  {number:'04',title:'Decide',purpose:'Ask whether a source-backed thesis and real valuation justify conviction—or whether evidence is missing.',cta:'Open Conviction Lab',destination:'Conviction Lab',status:'Evidence gates, not buy signals'},
@@ -12,7 +12,7 @@ export default function ResearchHome({navigate}:{navigate:(page:Destination)=>vo
    <span className="eyebrow">ASYMMETRIC ALPHA / LONG-HORIZON RESEARCH</span>
    <h2>Find what could become <em>much more valuable.</em></h2>
    <p><strong>3–7 years. Evidence first. Price matters.</strong> ATLAS is being rebuilt around the difference between a great business and an attractive investment at today's valuation.</p>
-   <button type="button" className="button primary" onClick={()=>navigate('Opportunity Radar')}>Start finding real companies →</button>
+   <button type="button" className="button primary" onClick={()=>navigate('Autonomous Discovery')}>Discover Opportunities →</button>
   </div>
   <div className="atlas-home-journey">
    {stages.map(stage=><article className="atlas-home-stage" key={stage.number}>
