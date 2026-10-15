@@ -1,6 +1,8 @@
 import {useState} from 'react';
 // @ts-ignore JavaScript-only research helpers.
 import {eventStudy,easternClock} from './event-study.mjs';
+// @ts-ignore JS-only benchmark comparator.
+import {benchmarkRelative} from './benchmark-relative.mjs';
 type Bar={date:string;close:number;high:number;low:number;volume:number};
 type Response={bars:Bar[];adjustment:string;feed:string;partialHistory:boolean;completedSessionsOnly:boolean;error?:string};
 type Study={status:string;reason:string;firstSession?:string;baselineSession?:string;returns:{day1:number|null;day3:number|null;day5:number|null};continuation?:{day3:number|null;day5:number|null};excursions?:{day1:{highPct:number;lowPct:number}|null;day3:{highPct:number;lowPct:number}|null;day5:{highPct:number;lowPct:number}|null}};
@@ -9,9 +11,10 @@ const tone=(n:number|null)=>n===null?'unavailable':n>0?'positive':n<0?'negative'
 const horizons=[['day1','First session'],['day3','Third session'],['day5','Fifth session']] as const;
 export default function EventReaction({ticker,acceptedAt}:{ticker:string;acceptedAt:string|null}){
  const [study,setStudy]=useState<Study|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+ const [benchmark,setBenchmark]=useState<any>(null),[benchmarkNote,setBenchmarkNote]=useState('');
  async function analyze(){
   if(!acceptedAt)return;
-  setBusy(true);setError('');setStudy(null);
+  setBusy(true);setError('');setStudy(null);setBenchmark(null);setBenchmarkNote('');
   try{
    const eventDate=easternClock(acceptedAt)?.date;
    if(!eventDate)throw Error('Accepted timestamp lacks an explicit timezone');
@@ -20,6 +23,13 @@ export default function EventReaction({ticker,acceptedAt}:{ticker:string;accepte
    if(!r.ok)throw Error(data.error||'Historical prices unavailable');
    if(data.partialHistory||data.adjustment!=='split'||data.feed!=='IEX'||!data.completedSessionsOnly)throw Error('Market history is incomplete or lacks the expected safeguards');
    setStudy(eventStudy(acceptedAt,data.bars) as Study);
+   try {
+    const br=await fetch('/api/market/event?'+new URLSearchParams({ticker:'SPY',eventDate}));
+    const bd=await br.json() as Response;
+    if(!br.ok)throw Error(bd.error||'SPY history unavailable');
+    if(bd.partialHistory||bd.adjustment!=='split'||bd.feed!=='IEX'||!bd.completedSessionsOnly)throw Error('Incomplete SPY history');
+    setBenchmark(benchmarkRelative(acceptedAt,data.bars,bd.bars,eventStudy));
+   }catch(e){setBenchmarkNote(e instanceof Error?e.message:'SPY comparison unavailable')}
   }catch(e){setError(e instanceof Error?e.message:'Could not analyze filing');}
   finally{setBusy(false)}
  }
@@ -33,6 +43,9 @@ export default function EventReaction({ticker,acceptedAt}:{ticker:string;accepte
      <strong>Continuation after the first session close</strong>
      <p>Separate returns measured from the first eligible session closing price. They are not added to the initial return.</p>
      <div className="event-reaction-grid event-continuation-grid">{([["day3","Through session 3"],["day5","Through session 5"]] as const).map(([key,label])=><div className={`event-reaction-card event-reaction-${tone(study.continuation?.[key]??null)}`} key={key}><span>{label}</span><strong>{pct(study.continuation?.[key]??null)}</strong></div>)}</div>
+     <strong>Performance relative to SPY (percentage points)</strong>
+     <p>ATLAS subtracts SPY's simple return over matching sessions. Positive means outperformance, not necessarily a positive stock return.</p>
+     {benchmark?<><div className="event-reaction-grid">{horizons.map(([key,label])=><div className={`event-reaction-card event-reaction-${tone(benchmark.relative[key])}`} key={key}><span>{label} vs SPY</span><strong>{pct(benchmark.relative[key])}</strong></div>)}</div><p>Post-first-close relative to SPY: Session 3 <b>{pct(benchmark.continuation.day3)}</b> · Session 5 <b>{pct(benchmark.continuation.day5)}</b></p></>:<p>SPY comparison unavailable{benchmarkNote?': '+benchmarkNote:''}.</p>}
      <strong>Observed intraday range relative to reference close</strong>
      <div className="event-excursion-grid">{horizons.map(([key,label])=><div className="event-excursion-card" key={key}><span>{label}</span><div><span>Highest high</span><b className={`event-${tone(study.excursions?.[key]?.highPct??null)}`}>{pct(study.excursions?.[key]?.highPct??null)}</b></div><div><span>Lowest low</span><b className={`event-${tone(study.excursions?.[key]?.lowPct??null)}`}>{pct(study.excursions?.[key]?.lowPct??null)}</b></div></div>)}</div></>:<p>{study.reason}</p>}
     <p>Split-adjusted single-exchange prices; completed sessions only. Cumulative returns use the pre-event close; continuation returns use the first-session close. High/low ranges are measured against the pre-event close; they are not entry-based MFE/MAE or achievable trade returns. Results are descriptive, not executable trade returns or evidence the filing caused the price move. A filing may have been announced elsewhere first.</p>
