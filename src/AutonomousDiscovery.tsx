@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {annualPeFromSec,defaultRankWeights,rankCompanies,type AnnualPe,type MarketValuationClose,type SecCompany} from './ranking-model';
+import {annualPeFromSec,defaultRankWeights,rankCompanies,deriveRankingMetrics,type AnnualPe,type MarketValuationClose,type SecCompany} from './ranking-model';
 import {initialAutonomousScreen,scanCounts,type ScreenResult} from './autonomous-screen';
 import {flagIndicativeFyValuation} from './valuation-triage';
 type Listed={ticker:string;name:string;cik:number};
@@ -84,7 +84,7 @@ export default function AutonomousDiscovery({onResearch,onConviction}:{onResearc
    const sorted=rankCompanies(research.map(x=>x.company),defaultRankWeights,valuationMap);
    research.sort((a,b)=>flagIndicativeFyValuation(a.valuation).rank-flagIndicativeFyValuation(b.valuation).rank||sorted.findIndex(x=>x.ticker===a.company.ticker)-sorted.findIndex(x=>x.ticker===b.company.ticker));
    setCandidates(research);
-   setProgress('Completed this SEC-index batch. Ranked research leads are preliminary, not investment recommendations.');
+   setProgress('Completed this SEC-index run. Only preliminary SEC facts are screened; unsupported valuation claims and suspicious accounting remain gated.');
    setDone(true);
    setCursor(nextCursor);
    try{localStorage.setItem(CURSOR_KEY,String(nextCursor))}catch{}
@@ -113,7 +113,7 @@ export default function AutonomousDiscovery({onResearch,onConviction}:{onResearc
    {done&&<div className="atlas-autonomous-funnel">
     <strong>Screening audit · this run only</strong>
     <p><strong>{summary.enumerated}</strong> enumerated → <strong>{summary.financialRecordsChecked}</strong> annual SEC records checked → <strong>{summary.preliminary}</strong> preliminary financial passes → <strong>{quotesChecked}</strong> completed-price lookups attempted → <strong>0</strong> fully verified high-conviction investments.</p>
-    <p className="chart-note">Other financial-screen outcomes: {summary.failed} below provisional thresholds, {summary.incomplete} missing required accounting values, {summary.stale} stale annual financials, {summary.sourceFailures} blocked/failed SEC sources. Up to eight preliminarily eligible companies receive price follow-up.</p>
+    <p className="chart-note">Other financial-screen outcomes: {summary.failed} below provisional thresholds, {summary.incomplete} missing required accounting values, {summary.stale} stale annual financials, {summary.accountingReview} accounting-review flags, {summary.sourceFailures} blocked/failed SEC sources. Up to eight preliminarily eligible companies receive price follow-up.</p>
    </div>}
    {done&&<div className="atlas-autonomous-leads">
     <h4>Research priorities from this independently discovered run</h4>
@@ -122,11 +122,12 @@ export default function AutonomousDiscovery({onResearch,onConviction}:{onResearc
      <div className="atlas-autonomous-heading"><div><small>Research candidate {i+1} · not a buy rating</small><strong>{item.company.ticker} · {item.company.name}</strong></div><span>INSUFFICIENT EVIDENCE</span></div>
      <div className="atlas-key-return">
       <div><span className="atlas-glance-label">Reported annual revenue growth</span><strong className={'atlas-glance-value '+(item.screen.growth!==null&&item.screen.growth>=0?'atlas-tone-positive':'atlas-tone-negative')}>{pct(item.screen.growth)}</strong></div>
-      <div><span className="atlas-glance-label">Free cash flow margin</span><strong className="atlas-glance-value">{pct(item.screen.fcfMargin)}</strong></div>
+      <div><span className="atlas-glance-label">Free cash flow margin</span><strong className={'atlas-glance-value '+(item.screen.fcfMargin!==null&&item.screen.fcfMargin>=0?'atlas-tone-positive':'atlas-tone-negative')}>{pct(item.screen.fcfMargin)}</strong></div>
       <div><span className="atlas-glance-label">Indicative FY P/E</span><strong className="atlas-glance-value">{item.valuation?.pe==null?'N/A':item.valuation.pe.toFixed(1)+'×'}</strong></div>
       <div><span className="atlas-glance-label">Latest completed IEX close</span><strong className="atlas-glance-value">{money(item.quote?.price??null)}</strong><small>{item.quote?.sessionDate??'Price unavailable'}</small></div>
      </div>
      <div className={'atlas-autonomous-valuation '+(flagIndicativeFyValuation(item.valuation).level==='high_multiple'?'atlas-valuation-red':flagIndicativeFyValuation(item.valuation).level==='elevated_multiple'?'atlas-valuation-amber':'')}><strong>{flagIndicativeFyValuation(item.valuation).headline}</strong><p>{flagIndicativeFyValuation(item.valuation).explanation}</p></div>
+     <details className="atlas-details"><summary>Verify SEC revenue, cash flow and calculated margins</summary>{(()=>{const m=deriveRankingMetrics(item.company);const tag=item.company.metrics.find(x=>x.name==='Revenue');const annual=tag?.values.find(x=>x.year===m.year);const prior=tag?.values.find(x=>x.year===(m.year??0)-1);return <><p><strong>Selected revenue field:</strong> {tag?.tag??'Not identified'} · {tag?.selectionNote??'Original SEC source must be checked'}</p><p><strong>Same-tag consolidated-scale revenue:</strong> current FY {money(m.revenue)} · prior FY {money(prior?.value??null)} · period end {annual?.end??'unknown'}.</p><p><strong>Operating cash flow:</strong> {money(item.company.metrics.find(x=>x.name==='Operating cash flow')?.values.find(x=>x.end===annual?.end)?.value??null)} · <strong>Capex:</strong> {money(m.capex)} · <strong>FCF after capex:</strong> {money(m.fcf)}.</p><p><strong>Calculation:</strong> revenue growth = current annual revenue / prior annual revenue − 1; FCF margin = (operating cash flow − capex) / revenue. Values are SEC facts, not independently normalized recurring earnings.</p><p><a href={item.company.source} target="_blank" rel="noopener noreferrer">Inspect original SEC tagged financial facts ↗</a></p></>})()}</details>
      <p className="chart-note"><strong>FY filing:</strong> {item.screen.filed??'Unknown'}. <strong>Reason surfaced:</strong> {item.screen.reasons.join('; ')}. {item.priceIssue||item.valuation?.reason||'Price-sensitive earnings valuation incomplete.'}</p>
      <p className="opportunity-uncertainty"><strong>Still not validated:</strong> market cap, exchange, liquidity, dilution, debt/runway, sector durability, institutional consensus, original news timing and 5-year valuation scenarios. These are NOT investment recommendations.</p>
      <div className="atlas-ranking-controls"><a href={item.company.source} target="_blank" rel="noopener noreferrer">Inspect original SEC financial data ↗</a>{onResearch&&<button className="button secondary" type="button" onClick={()=>onResearch(item.company.ticker)}>Research company →</button>}{onConviction&&<button className="button secondary" type="button" onClick={()=>onConviction(item.company.ticker)}>Check conviction gates →</button>}</div>
