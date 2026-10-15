@@ -3,7 +3,7 @@ import {assessPriceHistory,type HistoricalBar,type HistoricalPriceResponse,type 
 
 const percent=(n:number|null)=>n===null?'Unknown':(n>0?'+':'')+n.toFixed(1)+'%';
 const dollar=(n:number)=>'$'+n.toFixed(2);
-const day=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s+'T00:00:00Z'));
+const day=(s:string)=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s+'T00:00:00Z'));
 const elapsed=(a:string,b:string)=>(Date.parse(a+'T00:00:00Z')-Date.parse(b+'T00:00:00Z'))/86400000;
 
 function TrendChart({bars,asOf}:{bars:HistoricalBar[];asOf:string}){
