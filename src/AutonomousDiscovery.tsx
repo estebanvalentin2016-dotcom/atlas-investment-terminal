@@ -8,7 +8,7 @@ type Candidate={company:SecCompany;screen:ScreenResult;valuation:AnnualPe|null;q
 const BATCH=24,CURSOR_KEY='atlas.autonomous.sec.cursor.v1';
 const initialCursor=()=>{try{const n=Number(localStorage.getItem(CURSOR_KEY)||0);return Number.isSafeInteger(n)&&n>=0?n:0}catch{return 0}};
 const money=(n:number|null)=>n===null?'N/A':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',notation:'compact',maximumFractionDigits:2}).format(n);
-const dollars=(n:number|null)=>n===null?'N/A':'
+const dollars=(n:number|null)=>n===null?'N/A':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(n);
 const pct=(n:number|null)=>n===null?'N/A':(n>=0?'+':'')+n.toFixed(1)+'%';
 const easternDate=()=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const x=Object.fromEntries(p.filter(k=>k.type!=='literal').map(k=>[k.type,k.value]));return x.year+'-'+x.month+'-'+x.day};
 export default function AutonomousDiscovery({onResearch,onConviction}:{onResearch?:(ticker:string)=>void;onConviction?:(ticker:string)=>void}){
