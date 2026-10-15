@@ -39,6 +39,37 @@ describe('ATLAS conviction-readiness evidence gate',()=>{
   expect(result.observed.revenueGrowthPct).toBeNull();
   expect(result.verdict).toBe('INSUFFICIENT EVIDENCE');
  });
+ it('labels unfinished ATLAS engines separately from source data not retrieved',()=>{
+  const result=assessConvictionReadiness(sec(),close(),'2026-10-15');
+  expect(result.requirements.find(x=>x.key==='market-cap')?.progress).toBe('engine_pending');
+  expect(result.requirements.find(x=>x.key==='scenarios')?.progress).toBe('engine_pending');
+  expect(result.requirements.find(x=>x.key==='ownership')?.progress).toBe('engine_pending');
+  expect(result.requirements.find(x=>x.key==='monitoring')?.progress).toBe('partially_sourced');
+  expect(result.requirements.find(x=>x.key==='cash-flow')?.progress).toBe('verified');
+  expect(result.verifiedCount).toBe(4);
+ });
+ it('identifies rapidly growing negative-FCF optical suppliers as a financing question, not a buy signal',()=>{
+  const data=sec();
+  data.ticker='AAOI';
+  data.metrics.find(x=>x.name==='Operating cash flow')!.values=[annual(2025,-250)];
+  data.metrics.find(x=>x.name==='Capital expenditures')!.values=[annual(2025,103.576)];
+  const cash=annual(2025,6.389);
+  data.metrics.push({name:'Cash and cash equivalents',values:[cash]});
+  const result=assessConvictionReadiness(data,{...close(),ticker:'AAOI'},'2026-10-15');
+  expect(result.observed.freeCashFlow).toBeCloseTo(-353.576);
+  expect(result.fundingRisk.status).toBe('growth_with_negative_fcf');
+  expect(result.fundingRisk.headline).toContain('negative free cash flow');
+  expect(result.requirements.find(x=>x.key==='survival')?.progress).toBe('partially_sourced');
+  expect(result.requirements.find(x=>x.key==='survival')?.status).toBe('missing');
+  expect(result.verdict).toBe('INSUFFICIENT EVIDENCE');
+ });
+ it('does not reclassify missing SEC cash-flow evidence as healthy funding',()=>{
+  const data=sec();
+  data.metrics.find(x=>x.name==='Operating cash flow')!.values=[];
+  const result=assessConvictionReadiness(data,close(),'2026-10-15');
+  expect(result.fundingRisk.status).toBe('unknown');
+  expect(result.requirements.find(x=>x.key==='cash-flow')?.progress).toBe('source_unavailable');
+ });
  it('reports no verified public sources when no issuer has been retrieved',()=>{
   const result=assessConvictionReadiness(null,null,'2026-10-15');
   expect(result.verifiedCount).toBe(0);
