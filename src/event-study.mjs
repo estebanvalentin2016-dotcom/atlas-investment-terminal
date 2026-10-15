@@ -6,6 +6,13 @@ export function easternClock(iso) {
   const p = Object.fromEntries(parts.filter(x => x.type !== 'literal').map(x => [x.type,x.value]));
   return {date:`${p.year}-${p.month}-${p.day}`, minute:Number(p.hour)*60+Number(p.minute)};
 }
+export function formatSecAcceptedEastern(iso) {
+  if (!easternClock(iso)) return 'Time unavailable';
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone:'America/New_York', year:'numeric',month:'numeric',day:'numeric',
+    hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true,timeZoneName:'short'
+  }).format(new Date(iso));
+}
 export function alignEvent(acceptedAt, bars) {
   const clock = easternClock(acceptedAt);
   if (!clock) return {status:'timestamp-unavailable', firstSession:null, reason:'Precise acceptance time unavailable'};
