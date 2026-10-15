@@ -1,5 +1,6 @@
 import {describe,expect,it} from 'vitest';
 import {draftIssuerThesis} from './automatic-thesis';
+import {assessPriceHistory} from './price-history-model';
 import {assessConvictionReadiness} from './conviction-readiness';
 import type {SecCompany,MarketValuationClose} from './ranking-model';
 const annual=(year:number,value:number)=>({year,end:year+'-12-31',filed:(year+1)+'-02-01',form:'10-K',accession:'0000123456-26-000001',value});
@@ -36,4 +37,31 @@ describe('Autonomous Conviction Lab research draft',()=>{
   expect(t.thesis).toContain('stock close: unavailable');
   expect(t.note).toContain('not a verified investment thesis');
  });
+ it('adds comparable historical stock-price weakness to the draft rather than mistaking growth for shareholder returns',()=>{
+  const start=Date.UTC(2022,9,3),end=Date.UTC(2026,9,5);
+  const bars=[];for(let t=start;t<=end;t+=7*86400000){
+   const years=(t-start)/86400000/365.25;
+   bars.push({date:new Date(t).toISOString().slice(0,10),close:100*Math.pow(0.90,years)});
+  }
+  const trend=assessPriceHistory({ticker:'UNSEEN',provider:'Alpaca',feed:'IEX',timeframe:'1Week',adjustment:'split',completedWeeksOnly:true,partialHistory:false,coverageStart:bars[0].date,coverageEnd:bars.at(-1)!.date,bars,note:'Weekly IEX close'},'2026-10-15');
+  expect(trend.status).toBe('usable');
+  expect(trend.returns.year1).toBeLessThan(0);
+  const issuer=c(),a=assessConvictionReadiness(issuer,q,'2026-10-15');
+  const draft=draftIssuerThesis(issuer,a,q,'2026-10-15',trend);
+  expect(draft.thesis).toContain('SHAREHOLDER PRICE HISTORY');
+  expect(draft.thesis).toContain('DIVERGENCE TO INVESTIGATE');
+  expect(draft.thesis).toContain('annual SEC revenue grew 50.0%');
+  expect(draft.thesis).toContain('Not verified IPO-to-date');
+  expect(draft.invalidation).toContain('split-adjusted 1Y/3Y');
+  expect(draft.thesis).not.toContain('guaranteed');
+ });
+ it('withholds unverified historical trends and future-date quotes in generated text',()=>{
+  const issuer=c(),future={...q,sessionDate:'2026-10-20'};
+  const a=assessConvictionReadiness(issuer,future,'2026-10-15');
+  const draft=draftIssuerThesis(issuer,a,future,'2026-10-15');
+  expect(draft.thesis).toContain('stock close: unavailable');
+  expect(draft.thesis).toContain('Comparable long-term split-adjusted stock-price history is unavailable');
+  expect(draft.invalidation).toContain('unavailable / unavailable');
+ });
+
 });
