@@ -8,7 +8,7 @@ type IndexDiagnostic={date:string;bytes:number;matched:number;status:number;cont
 type FallbackDiagnostic={ticker:string;error?:string;latestFiling?:string|null;latest8K?:string|null;returnedRows?:number;matchingRecent8K?:number};
 type ScanResponse={rows:Lead[];matchedFilings:number;returnedFilings?:number;truncated?:boolean;successfulDays:number;coverageStatus:string;source:string;fallbackChecked:number;fallbackFailed:number;diagnostics:IndexDiagnostic[];fallbackDiagnostics:FallbackDiagnostic[];errorDays:string[];retrievedAt:string;note:string;error?:string};
 const PAGE_SIZE=20;
-export default function OpportunityRadar(){
+export default function OpportunityRadar({onResearch}:{onResearch?:(ticker:string)=>void}={}){
  const [result,setResult]=useState<ScanResponse|null>(null);
  const [error,setError]=useState('');
  const [loading,setLoading]=useState(false);
@@ -97,6 +97,7 @@ export default function OpportunityRadar(){
     <p>{r.discoveredOn?'Index day '+r.discoveredOn+' · Filing date '+(r.filed||'unverified'):'Filing date '+(r.filed||'unverified')+' · company submissions'}</p>
     <p className="opportunity-uncertainty"><strong>What we know:</strong> An SEC disclosure exists. <strong>What we don't know yet:</strong> Whether it's bullish, priced in, or available to trade.</p>
     <a href={r.url} target="_blank" rel="noopener noreferrer">Inspect SEC source ↗</a>
+    {onResearch&&<button type="button" className="button secondary" onClick={()=>onResearch(r.ticker)}>Research company financials →</button>}
     <FilingEvidence data={reviews[r.url]} loading={reviewing.includes(r.url)} onReview={()=>void reviewSource(r.url)}/>
     <FilingPriceContext key={r.url} ticker={r.ticker} eventDate={r.filed} sourceUrl={r.url}/>
    </article>)}</div>:<p className="chart-note">No filings match these filters. Try clearing the search or changing the date.</p>}
