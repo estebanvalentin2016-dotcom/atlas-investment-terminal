@@ -1,3 +1,4 @@
+import {toneForReturn} from './filing-metric-tone';
 import {useState} from 'react';
 import {filingPriceContext,type PriceBar,type PriceContext,type PriceLeg} from './filing-price-context';
 import {acceptanceSessionContext,type AcceptanceClock,type AcceptanceSessionResult} from './acceptance-session-context';
@@ -65,8 +66,8 @@ export default function FilingPriceContext({ticker,eventDate,sourceUrl}:{ticker:
   {review&&<div className="filing-price-body">
    <strong>Price movement at a glance</strong>
    <div className="atlas-key-return">
-    <div><span className="atlas-glance-label">{headlineLabel}</span><strong className="atlas-glance-value">{headline?fmtPct(headline.returnPct):'Waiting for data'}</strong>{headline&&<span>{headline.date} · close {fmtPrice(headline.close)}</span>}</div>
-    <div><span className="atlas-glance-label">Compared with SPY (same sessions)</span><strong className="atlas-glance-value">{headline?fmtPoints(headline.vsSpyPercentagePoints):'Unavailable'}</strong><span>Difference in returns, NOT statistical alpha</span></div>
+    <div><span className="atlas-glance-label">{headlineLabel}</span><strong className={"atlas-glance-value atlas-tone-"+toneForReturn(headline?.returnPct??null)}>{headline?fmtPct(headline.returnPct):'Waiting for data'}</strong>{headline&&<span>{headline.date} · close {fmtPrice(headline.close)}</span>}</div>
+    <div><span className="atlas-glance-label">Compared with SPY (same sessions)</span><strong className={"atlas-glance-value atlas-tone-"+toneForReturn(headline?.vsSpyPercentagePoints??null)}>{headline?fmtPoints(headline.vsSpyPercentagePoints):'Unavailable'}</strong><span>Difference in returns, NOT statistical alpha</span></div>
    </div>
    <p className="atlas-summary-line"><strong>What this tells us:</strong> {review.accepted?.sessionWindow==='after_regular_close'&&!aligned?'The SEC accepted this filing after the close. We need the next completed trading session before checking the post-acceptance move.':aligned?'This is a completed-session move after SEC acceptance. The actual news might have been public earlier.':'These are observed daily returns. Without a reliable initial release time, we cannot say the filing caused the movement.'}</p>
    {review.accepted?<p className="atlas-summary-line"><strong>SEC received it:</strong> {review.accepted.acceptedEasternClock} · {review.accepted.sessionWindow==='after_regular_close'?'AFTER the market closed':review.accepted.sessionWindow==='before_regular_open'?'BEFORE the market opened':'DURING the trading day'}</p>:<p className="opportunity-uncertainty"><strong>SEC acceptance time unavailable.</strong> The filing-date move isn't proof of a catalyst reaction.</p>}
