@@ -90,6 +90,11 @@ describe('SEC source evidence review',()=>{
   expect(values).toContain('38% increase in year-over-year as adjusted diluted EPS');
   expect(assessFilingEvidence(release).status).toBe('no_positive_phrase_detected');
  });
+ it('extracts reported revenue/EPS declines and cash outflows without calling them positive',()=>{
+  const report=researchFilingContext('13% decrease in revenue. 8% decline in adjusted diluted EPS. $25 billion of net outflows.');
+  expect(report.metrics.map((m:{label:string})=>m.label)).toEqual(['Reported revenue growth','Reported EPS growth','Reported net outflows']);
+  expect(report.metrics[0].reportedValue).toBe('13% decrease in revenue');
+ });
  it('recognizes 8-K event subjects separately from operating performance',()=>{
   const report=researchFilingContext('Item 2.02. Results of Operations and Financial Condition. Item 7.01. Regulation FD Disclosure. Item 9.01. Financial Statements and Exhibits.');
   expect(report.topics.map((x:{code:string})=>x.code)).toEqual(['2.02','7.01','9.01']);
