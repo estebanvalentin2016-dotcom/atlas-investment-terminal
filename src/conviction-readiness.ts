@@ -42,43 +42,7 @@ export function assessConvictionReadiness(company:SecCompany|null,price:MarketVa
   {key:'market-price',progress:recentClose?'verified':'source_unavailable',label:'Recent completed stock-price reference',status:recentClose?'verified':'missing',detail:recentClose?price!.sessionDate+' completed IEX close · $'+price!.price.toFixed(2):'Recent completed price unavailable; not a live quote'},
   {key:'financial-history',progress:current?'verified':'source_unavailable',label:'Recent annual company financials',status:current?'verified':'missing',detail:current?'Fiscal '+metrics?.year+' · filed '+financialDate:'Recent comparable annual statements not established'},
   {key:'cash-flow',progress:current&&observedFcf!==null?'verified':'source_unavailable',label:'Operating FCF after capital expenditure',status:current&&observedFcf!==null?'verified':'missing',detail:observedFcf!==null?'Derived SEC FY FCF · $'+observedFcf.toLocaleString('en-US'):'Need both same-period operating cash flow and capex'},
-  {key:'market-cap',progress:capital.estimate!==null?'partially_sourced':'engine_pending',label:'Verified current market cap, share count and liquidity',status:'missing',detail:capital.estimate!==null?'Indicative only: SEC DEI shares as of '+capital.shares?.end+' (filed '+capital.shares?.filed+') × completed IEX close '+capital.priceDate+' = 
-  {key:'survival',progress:survival&&(survival.cash||survival.weightedDilutedShares||survival.currentDebt||survival.noncurrentDebt||survival.shortBorrowings)?'partially_sourced':'engine_pending',label:'Cash runway, debt maturity, funding and dilution risk',status:'missing',detail:survivalNote},
-  {key:'scenarios',progress:'engine_pending',label:'Four dilution-aware valuation scenarios with sensitivity',status:'missing',detail:'ATLAS scenario engine not built: must model five-year revenue, margins, capex, debt, new financing, share dilution, exit values and downside before forecasting per-share returns'},
-  {key:'mispricing',progress:'engine_pending',label:'Testable market mispricing thesis and counterevidence',status:'missing',detail:'ATLAS mispricing analysis not connected: compare today\'s dated share price and valuation with explicit, falsifiable future business assumptions and counterevidence'},
-  {key:'durability',progress:'engine_pending',label:'Cited competitive durability and obsolescence research',status:'missing',detail:'ATLAS competitive-research integration not connected: source product/industry filings, customer exposure, switching costs, substitution threats and AI-infrastructure beneficiaries'},
-  {key:'ownership',progress:'engine_pending',label:'Institutional/VC ownership with reporting dates',status:'missing',detail:'Institutional 13F/consensus dashboards exist, but ATLAS has not yet resolved this issuer\'s CUSIP, manager affiliations, reporting delays and independent active holdings within the Conviction Lab'},
-  {key:'monitoring',progress:'partially_sourced',label:'Versioned thesis and explicit invalidation triggers',status:'missing',detail:'Timestamped manual thesis drafts work now; automatic filing/price monitoring, evidence-triggered invalidation, version comparisons and alerts are not connected'}
- ];
- return {
-  fundingRisk,
-  verdict:'INSUFFICIENT EVIDENCE',
-  summary:'A fundamental candidate is not yet a defensible investment recommendation. Price-sensitive, source-backed return scenarios and the risk evidence remain incomplete.',
-  verifiedCount:requirements.filter(x=>x.status==='verified').length,
-  totalCount:requirements.length,
-  observed:{revenueGrowthPct:current?metrics?.growth??null:null,freeCashFlow:current?metrics?.fcf??null:null,fcfMarginPct:current?metrics?.fcfMargin??null:null,netMarginPct:current?metrics?.profitMargin??null:null,fyPe:pe?.pe??null,asOfDate:recentClose?price!.sessionDate:null,fiscalYear:current?metrics?.year??null:null},
-  requirements
- };
-}
-+capital.estimate.toLocaleString('en-US')+'. IEX 20-session turnover: '+(capital.iex20?'
-  {key:'survival',progress:survival&&(survival.cash||survival.weightedDilutedShares||survival.currentDebt||survival.noncurrentDebt||survival.shortBorrowings)?'partially_sourced':'engine_pending',label:'Cash runway, debt maturity, funding and dilution risk',status:'missing',detail:survivalNote},
-  {key:'scenarios',progress:'engine_pending',label:'Four dilution-aware valuation scenarios with sensitivity',status:'missing',detail:'ATLAS scenario engine not built: must model five-year revenue, margins, capex, debt, new financing, share dilution, exit values and downside before forecasting per-share returns'},
-  {key:'mispricing',progress:'engine_pending',label:'Testable market mispricing thesis and counterevidence',status:'missing',detail:'ATLAS mispricing analysis not connected: compare today\'s dated share price and valuation with explicit, falsifiable future business assumptions and counterevidence'},
-  {key:'durability',progress:'engine_pending',label:'Cited competitive durability and obsolescence research',status:'missing',detail:'ATLAS competitive-research integration not connected: source product/industry filings, customer exposure, switching costs, substitution threats and AI-infrastructure beneficiaries'},
-  {key:'ownership',progress:'engine_pending',label:'Institutional/VC ownership with reporting dates',status:'missing',detail:'Institutional 13F/consensus dashboards exist, but ATLAS has not yet resolved this issuer\'s CUSIP, manager affiliations, reporting delays and independent active holdings within the Conviction Lab'},
-  {key:'monitoring',progress:'partially_sourced',label:'Versioned thesis and explicit invalidation triggers',status:'missing',detail:'Timestamped manual thesis drafts work now; automatic filing/price monitoring, evidence-triggered invalidation, version comparisons and alerts are not connected'}
- ];
- return {
-  fundingRisk,
-  verdict:'INSUFFICIENT EVIDENCE',
-  summary:'A fundamental candidate is not yet a defensible investment recommendation. Price-sensitive, source-backed return scenarios and the risk evidence remain incomplete.',
-  verifiedCount:requirements.filter(x=>x.status==='verified').length,
-  totalCount:requirements.length,
-  observed:{revenueGrowthPct:current?metrics?.growth??null:null,freeCashFlow:current?metrics?.fcf??null:null,fcfMarginPct:current?metrics?.fcfMargin??null:null,netMarginPct:current?metrics?.profitMargin??null:null,fyPe:pe?.pe??null,asOfDate:recentClose?price!.sessionDate:null,fiscalYear:current?metrics?.year??null:null},
-  requirements
- };
-}
-+capital.iex20.avgDailyIexDollarVolume.toLocaleString('en-US'):'unavailable')+'. Share classes, splits, float and consolidated liquidity remain unverified.':'No date-compatible SEC DEI shares and completed price available for an indicative market cap. '+capital.notes.join(' ')+' Current share classes, corporate actions, free float and consolidated liquidity are still unverified.'},
+  {key:'market-cap',progress:capital.estimate!==null?'partially_sourced':'engine_pending',label:'Verified current market cap, share count and liquidity',status:'missing',detail:capital.estimate!==null?'Indicative only: SEC DEI shares as of '+capital.shares?.end+' (filed '+capital.shares?.filed+') x completed IEX close '+capital.priceDate+' = $'+capital.estimate.toLocaleString('en-US')+'. IEX 20-session turnover: '+(capital.iex20?'$'+capital.iex20.avgDailyIexDollarVolume.toLocaleString('en-US'):'unavailable')+'. Share classes, splits, float and consolidated liquidity remain unverified.':'No date-compatible SEC DEI shares and completed price available for an indicative market cap. '+capital.notes.join(' ')+' Current share classes, corporate actions, free float and consolidated liquidity are still unverified.'},
   {key:'survival',progress:survival&&(survival.cash||survival.weightedDilutedShares||survival.currentDebt||survival.noncurrentDebt||survival.shortBorrowings)?'partially_sourced':'engine_pending',label:'Cash runway, debt maturity, funding and dilution risk',status:'missing',detail:survivalNote},
   {key:'scenarios',progress:'engine_pending',label:'Four dilution-aware valuation scenarios with sensitivity',status:'missing',detail:'ATLAS scenario engine not built: must model five-year revenue, margins, capex, debt, new financing, share dilution, exit values and downside before forecasting per-share returns'},
   {key:'mispricing',progress:'engine_pending',label:'Testable market mispricing thesis and counterevidence',status:'missing',detail:'ATLAS mispricing analysis not connected: compare today\'s dated share price and valuation with explicit, falsifiable future business assumptions and counterevidence'},
