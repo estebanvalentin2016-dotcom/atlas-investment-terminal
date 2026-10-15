@@ -9,7 +9,7 @@ const STORE='atlas.real.watch.v1',NOTES='atlas.real.notes.v1';
 const load=<T,>(key:string,fallback:T):T=>{try{const raw=localStorage.getItem(key);return raw?JSON.parse(raw) as T:fallback}catch{return fallback}};
 const money=(n:number|null)=>n===null?'N/A':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',notation:'compact',maximumFractionDigits:2}).format(n);
 const change=(n:number|null)=>n===null?'N/A':(n>0?'+':'')+n.toFixed(1)+'%';
-export default function RealWorkspace({mode,defaultTicker='BLK',onView}:{mode:Mode;defaultTicker?:string;onView?:(ticker:string)=>void}){
+export default function RealWorkspace({mode,defaultTicker='BLK',onView,onConviction}:{mode:Mode;defaultTicker?:string;onView?:(ticker:string)=>void;onConviction?:(ticker:string)=>void}){
  const [query,setQuery]=useState(mode==='watchlist'?'':defaultTicker);
  const [matches,setMatches]=useState<CompanyEntry[]>([]);
  const [selected,setSelected]=useState(defaultTicker);
@@ -69,6 +69,7 @@ export default function RealWorkspace({mode,defaultTicker='BLK',onView}:{mode:Mo
     </div>
     <p className="chart-note"><strong>Fiscal year {fundamentals?.year??'unavailable'}.</strong> Financial statements may lag current prices. Some companies have nonstandard GAAP tags; missing values remain N/A.</p>
     <label className="atlas-research-note"><strong>Your investment thesis · {company.ticker}</strong><textarea rows={4} value={notes[company.ticker]||''} onChange={e=>setNotes(n=>({...n,[company.ticker]:e.target.value}))} placeholder="Why might this grow? What could go wrong? What would change my mind?"/></label>
+    {onConviction&&<button className="button secondary" type="button" onClick={()=>onConviction(company.ticker)}>Evaluate conviction →</button>}
     <a href={company.source} target="_blank" rel="noopener noreferrer">Read SEC company financial facts ↗</a>
    </>}
   </div>}
@@ -80,6 +81,7 @@ export default function RealWorkspace({mode,defaultTicker='BLK',onView}:{mode:Mo
     <label className="atlas-research-note"><strong>Research note</strong><textarea rows={2} value={notes[entry.ticker]||''} onChange={e=>setNotes(n=>({...n,[entry.ticker]:e.target.value}))} placeholder="Write or update your thesis…"/></label>
     <div className="atlas-ranking-controls">
      <button className="button secondary" type="button" onClick={()=>onView?.(entry.ticker)}>Research company →</button>
+     {onConviction&&<button className="button secondary" type="button" onClick={()=>onConviction(entry.ticker)}>Evaluate conviction →</button>}
      <button className="button secondary" type="button" onClick={()=>selectCompare(entry.ticker)}>{comparison.includes(entry.ticker)?'Selected ✓':'Select for comparison'}</button>
     </div>
    </article>)}
