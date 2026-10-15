@@ -56,8 +56,8 @@ export default function InvestmentRankings(){
   {loaded&&<div className="atlas-ranking-results">
    <strong>Research priority list</strong>
    {ranked.length===0&&<p className="opportunity-uncertainty"><strong>Not enough verified factors yet.</strong> No company meets the coverage requirements. Try other tickers or check the missing figures.</p>}
-   {scores.map((entry,i)=><article className="atlas-ranking-row" key={entry.ticker}>
-    <div className="atlas-ranking-row-head"><div><span className="atlas-rank-number">{entry.score===null?'—':'#'+(ranked.findIndex(x=>x.ticker===entry.ticker)+1)}</span><div><strong>{entry.ticker}</strong><p>{entry.name} · fiscal {entry.year??'unknown'}</p></div></div><div><strong className="atlas-rank-score">{entry.score===null?'Unranked':entry.score+'/100'}</strong><small>{entry.coverage}% weighted coverage</small></div></div>
+   {scores.map(entry=><article className="atlas-ranking-row" key={entry.ticker}>
+    <div className="atlas-ranking-row-head"><div><span className="atlas-rank-number">{entry.score===null?'—':'#'+(ranked.findIndex(x=>x.ticker===entry.ticker)+1)}</span><div><strong>{entry.ticker}</strong><p>{entry.name} · fiscal {entry.year??'unknown'} · filed {entry.annualFiled??'unknown'}</p></div></div><div><strong className="atlas-rank-score">{entry.score===null?'Unranked':entry.score+'/100'}</strong><small>{entry.coverage}% weighted coverage</small></div></div>
     <div className="atlas-ranking-metrics">
      <div><span>Revenue growth</span><strong className={entry.metrics.growth!==null?(entry.metrics.growth>=0?'atlas-tone-positive':'atlas-tone-negative'):''}>{displayPct(entry.metrics.growth)}</strong></div>
      <div><span>FCF margin</span><strong className={entry.metrics.fcfMargin!==null?(entry.metrics.fcfMargin>=0?'atlas-tone-positive':'atlas-tone-negative'):''}>{displayPct(entry.metrics.fcfMargin)}</strong></div>
