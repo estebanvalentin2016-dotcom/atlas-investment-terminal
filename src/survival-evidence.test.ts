@@ -67,6 +67,13 @@ describe('Annual balance sheet and share-count evidence, without false valuation
   expect(s.simpleCashToBurnYears).toBe(10.5);
   expect(s.notes.some(n=>n.includes('NOT a forecast'))).toBe(true);
  });
+ it('recognizes a negative operating cash flow number as a genuine financing warning, not missing data',()=>{
+  const c=sample();
+  c.metrics.find(m=>m.name==='Operating cash flow')!.values=[period(2025,-5000000)];
+  const s=deriveSurvivalEvidence(c,'2026-10-14');
+  expect(s.freeCashFlow).toBe(-10000000);
+  expect(s.simpleCashToBurnYears).toBe(2.1);
+ });
  it('does not promote a strong reported balance sheet into a buy rating',()=>{
   const q:MarketValuationClose={ticker:'UNSEEN',price:12,sessionDate:'2026-10-14',feed:'IEX',provider:'Alpaca',completedSession:true};
   const assessed=assessConvictionReadiness(sample(),q,'2026-10-15');
