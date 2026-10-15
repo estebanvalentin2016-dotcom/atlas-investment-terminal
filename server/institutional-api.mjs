@@ -3,8 +3,8 @@
 import {readBoundedFiling} from './filing-review-api.mjs';
 
 export const RESEARCH_MANAGERS=[
- {cik:'1743937',name:'TOMS Capital Investment Management LP',category:'Active manager',role:'Illustrative 13F research manager'},
- {cik:'1418814',name:'ValueAct Holdings, L.P.',category:'Active manager',role:'Illustrative specialist manager'}
+ {cik:'1743937',name:'13F manager research seed 1743937',category:'Classification unverified',role:'Verify reporting manager via SEC response'},
+ {cik:'1418814',name:'13F manager research seed 1418814',category:'Classification unverified',role:'Verify reporting manager via SEC response'}
 ];
 const root='https://www.sec.gov';
 const memory=new Map();
@@ -119,6 +119,9 @@ export async function load13FManager(cik,opts={}){
  const choice=select13FReports(submission);
  if(choice.issue)throw Error(choice.issue);
  const [latest,previous]=choice.reports;
+ const latestQuarter=Number(latest.period.slice(0,4))*4+Math.floor((Number(latest.period.slice(5,7))-1)/3);
+ const priorQuarter=Number(previous.period.slice(0,4))*4+Math.floor((Number(previous.period.slice(5,7))-1)/3);
+ if(latestQuarter-priorQuarter!==1)throw Error('Two consecutive reporting quarters not available. Holdings changes would span multiple quarters; comparison withheld.');
  const latestHoldings=await retrieve13FInformationTable(latest,normalized,headers);
  const previousHoldings=await retrieve13FInformationTable(previous,normalized,headers);
  const rows=compare13FHoldings(latestHoldings.holdings,previousHoldings.holdings);
