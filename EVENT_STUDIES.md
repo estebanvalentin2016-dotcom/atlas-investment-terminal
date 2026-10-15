@@ -23,3 +23,8 @@ Run `npm.cmd run build` and `npm.cmd run test` on Windows before merging.
 - The endpoint does not paginate. A provider continuation token prevents the browser from presenting incomplete results.
 - The project still needs provider data checks, real-market spot checks and more comprehensive event-window test cases before treating results as quantitatively reliable.
 
+
+### Intraday high/low excursion ranges (research-only)
+The event study now also displays the highest `high` and lowest `low` recorded over each fully observed 1-, 3-, and 5-session window, as percentages of the pre-event reference **close**. Missing or invalid OHLC bars and incomplete horizons produce N/A rather than invented results.
+
+These values describe the price range following a filing; they are **not** a backtested trading strategy's maximum favorable/adverse excursion (MFE/MAE). Actual MFE/MAE require an explicitly defined tradable entry time/price, side (long or short), position and exit rules. The ordering of the high and low inside a daily bar is also unknown. Do not assume either extreme was achievable or that an SEC filing caused it.
