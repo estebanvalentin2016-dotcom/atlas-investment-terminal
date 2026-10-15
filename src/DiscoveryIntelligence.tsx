@@ -66,7 +66,7 @@ export default function DiscoveryIntelligence(){
   {progress&&<p role="status" className="atlas-summary-line">{progress}</p>}
   {marketErrors.length>0&&<details className="atlas-details"><summary>Unavailable market sources ({marketErrors.length})</summary>{marketErrors.map((error,i)=><p key={i}>{error}</p>)}</details>}
   {ranked.length>0&&<div className="atlas-topic-ranked"><h4>Five-session relative momentum · strongest first</h4>
-   {ranked.map((item,i)=><div key={item.ticker} className="atlas-topic-row"><div><strong>{item.ticker}</strong><span>{item.name}</span></div><div><strong className={item.value.relative5===null?'atlas-tone-neutral':item.value.relative5>=0?'atlas-tone-positive':'atlas-tone-negative'}>{pct(item.value.relative5)} vs SPY</strong><small>Stock/ETF {pct(item.value.return5)} · SPY {pct(item.value.spyReturn5)} · {item.value.asOf||'Date unknown'}</small></div></div>)}
+   {ranked.map(item=><div key={item.ticker} className="atlas-topic-row"><div><strong>{item.ticker}</strong><span>{item.name}</span></div><div><strong className={item.value.relative5===null?'atlas-tone-neutral':item.value.relative5>=0?'atlas-tone-positive':'atlas-tone-negative'}>{pct(item.value.relative5)} vs SPY</strong><small>Stock/ETF {pct(item.value.return5)} · SPY {pct(item.value.spyReturn5)} · {item.value.asOf||'Date unknown'}</small></div></div>)}
    <p className="chart-note"><strong>Research direction only:</strong> A high 5-session return is not an entry signal or proof of remaining upside. Topic news results are not causally linked to these returns. IEX data can differ from consolidated prices.</p>
   </div>}
  </section>;
