@@ -1,6 +1,6 @@
 // Dated SEC annual balance-sheet observations. This is NOT a credit model,
 // a complete debt schedule or a dilution-adjusted share valuation.
-import {deriveRankingMetrics,type Annual,type SecCompany,type SecMetric} from './ranking-model';
+import type {Annual,SecCompany,SecMetric} from './ranking-model';
 
 export type SourcedFigure={value:number;fiscalEnd:string;filed:string;tag:string|null;accession:string|null};
 export type SurvivalEvidence={
@@ -39,10 +39,11 @@ export function deriveSurvivalEvidence(company:SecCompany,asOf:string):SurvivalE
  const previousWeightedDilutedShares=previous?{value:previous.value,fiscalEnd:previous.end,filed:previous.filed,tag:metrics.get('Weighted-average diluted shares')?.tag??previous.tag??null,accession:previous.accession??null}:null;
  const weightedShareChangePct=weightedDilutedShares&&previousWeightedDilutedShares&&previousWeightedDilutedShares.value>0?
   round((weightedDilutedShares.value/previousWeightedDilutedShares.value-1)*100):null;
- // Reuse the same-year operating FCF calculation, but ONLY if the model's
- // revenue observation is the exact period available by the chosen as-of date.
- const computed=deriveRankingMetrics(company);
- const fcf=computed.year===revenue.year&&end===metrics.get('Revenue')?.values[0]?.end?computed.fcf:null;
+ // Source matched to the same fiscal period and *actually filed by* asOf.
+ // Historical SEC restatements received later cannot leak into old snapshots.
+ const opCash=observation(metrics.get('Operating cash flow'),end,asOf);
+ const capex=observation(metrics.get('Capital expenditures'),end,asOf);
+ const fcf=opCash&&capex?opCash.value-capex.value:null;
  const simpleCashToBurnYears=cash&&fcf!==null&&fcf<0?round(cash.value/-fcf):null;
  const missing:string[]=[];
  if(!cash)missing.push('Same-period unrestricted cash and cash equivalents');
