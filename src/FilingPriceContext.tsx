@@ -1,8 +1,16 @@
 import {useState} from 'react';
 import {filingPriceContext,type PriceBar,type PriceContext,type PriceLeg} from './filing-price-context';
+import {acceptanceSessionContext,type AcceptanceClock,type AcceptanceSessionResult} from './acceptance-session-context';
 
 type MarketResult={bars:PriceBar[];ticker:string;feed:string;provider:string;adjustment:string;retrievedAt:string;partialHistory:boolean;completedSessionsOnly:boolean;error?:string};
-type Review={context:PriceContext;feed:string;adjustment:string;retrievedAt:string;partialHistory:boolean;benchmarkUnavailable:string|null};
+type Review={context:PriceContext;feed:string;adjustment:string;retrievedAt:string;partialHistory:boolean;benchmarkUnavailable:string|null;accepted:AcceptanceClock|null;acceptedContext:AcceptanceSessionResult|null;acceptedUnavailable:string|null};
+type AcceptedResponse={sourceStatus:'verified_header'|'unavailable';accepted:AcceptanceClock|null;note:string;error?:string};
+async function getRawSecAcceptance(sourceUrl:string):Promise<AcceptedResponse>{
+ const response=await fetch('/api/opportunities/acceptance?url='+encodeURIComponent(sourceUrl));
+ const result=await response.json() as AcceptedResponse;
+ if(!response.ok)throw Error(result.error||'SEC acceptance-time service failed');
+ return result;
+}
 const fmtPrice=(n:number)=>'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtPct=(n:number|null)=>n===null?'Unavailable':(n>0?'+':'')+n.toFixed(2)+'%';
 const fmtPoints=(n:number|null)=>n===null?'Unavailable':(n>0?'+':'')+n.toFixed(2)+' percentage points';
@@ -20,7 +28,7 @@ function Leg({heading,value}:{heading:string;value:PriceLeg|null}){
   {value?<><p>{value.date} · Close {fmtPrice(value.close)}</p><p>Stock vs baseline: {fmtPct(value.returnPct)}</p><p>SPY over matching sessions: {fmtPct(value.spyReturnPct)}</p><p>Difference from SPY: {fmtPoints(value.vsSpyPercentagePoints)}</p></>:<p>Completed matching session unavailable</p>}
  </div>;
 }
-export default function FilingPriceContext({ticker,eventDate}:{ticker:string;eventDate:string|null}){
+export default function FilingPriceContext({ticker,eventDate,sourceUrl}:{ticker:string;eventDate:string|null;sourceUrl:string}){
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
  const [review,setReview]=useState<Review|null>(null);
@@ -33,7 +41,14 @@ export default function FilingPriceContext({ticker,eventDate}:{ticker:string;eve
    try{benchmark=(await getBars('SPY',eventDate)).bars}
    catch(e){benchmarkUnavailable=e instanceof Error?e.message:'SPY benchmark unavailable'}
    const context=filingPriceContext(primary.bars,benchmark,eventDate);
-   setReview({context,feed:primary.feed,adjustment:primary.adjustment,retrievedAt:primary.retrievedAt,partialHistory:primary.partialHistory,benchmarkUnavailable});
+   let accepted:AcceptanceClock|null=null,acceptedUnavailable:string|null=null;
+   try{
+    const sec=await getRawSecAcceptance(sourceUrl);
+    if(sec.sourceStatus==='verified_header'&&sec.accepted)accepted=sec.accepted;
+    else acceptedUnavailable=sec.note||'SEC header acceptance time unavailable';
+   }catch(e){acceptedUnavailable=e instanceof Error?e.message:'SEC header acceptance time unavailable'}
+   const acceptedContext=accepted?acceptanceSessionContext(primary.bars,benchmark,accepted):null;
+   setReview({context,feed:primary.feed,adjustment:primary.adjustment,retrievedAt:primary.retrievedAt,partialHistory:primary.partialHistory,benchmarkUnavailable,accepted,acceptedContext,acceptedUnavailable});
   }catch(e){setError(e instanceof Error?e.message:'Unable to assess price context')}
   finally{setBusy(false)}
  }
@@ -49,6 +64,15 @@ export default function FilingPriceContext({ticker,eventDate}:{ticker:string;eve
     <Leg heading="Filing-date close" value={review.context.filingDay}/>
     <Leg heading="First completed close after filing date" value={review.context.followingSession}/>
     <Leg heading="Last completed close in available window" value={review.context.lastCompletedInWindow}/>
+   </div>
+   <div className="filing-acceptance-context">
+    <strong>SEC acceptance-clock alignment</strong>
+    {review.accepted?<><p>{review.accepted.acceptedEasternClock} · {review.accepted.sessionWindow==='after_regular_close'?'After the 4 PM ET regular close':review.accepted.sessionWindow==='before_regular_open'?'Before the 9:30 AM ET regular open':'During the regular session'}</p><p className="chart-note">Source: raw EDGAR SGML acceptance header (accession matched). This is when the SEC accepted the filing, NOT verified first-public issuer disclosure.</p>
+      {review.acceptedContext?.baseline&&<p>Pre-alignment reference close: {review.acceptedContext.baseline.date} · {fmtPrice(review.acceptedContext.baseline.close)}</p>}
+      {review.acceptedContext?.status==='aligned'?<div className="filing-price-legs"><Leg heading="First completed close eligible after SEC acceptance" value={review.acceptedContext.firstEligible}/><Leg heading="Next completed close after that" value={review.acceptedContext.following}/><p>First eligible-session opening gap: {fmtPct(review.acceptedContext.gapPct)} · Open-to-close: {fmtPct(review.acceptedContext.regularSessionPct)}</p></div>:<p className="opportunity-uncertainty">{review.acceptedContext?.status==='pending_completed_session'?'No completed session eligible after SEC acceptance is available yet.':'Not enough completed-session history to align the SEC acceptance clock.'}</p>}
+      {review.acceptedContext?.firstSessionMayIncludePriorTrading&&<p className="opportunity-uncertainty">SEC accepted this filing during regular trading. A previous-close-to-session-close return includes trading that occurred BEFORE SEC acceptance; it must not be read as the filing's impact.</p>}
+      {review.accepted.sessionWindow==='after_regular_close'&&<p className="chart-note">The filing-date close occurred before SEC acceptance. It is a pre-acceptance reference, not an event reaction.</p>}
+    </>:<p className="chart-note">SEC acceptance clock unavailable: {review.acceptedUnavailable||'No validated header time'}. Filing-date context above remains descriptive only.</p>}
    </div>
    {review.benchmarkUnavailable&&<p className="chart-note">SPY comparison unavailable: {review.benchmarkUnavailable}</p>}
    {review.partialHistory&&<p className="opportunity-uncertainty">The Alpaca response indicated partial history. Missing bars may affect this comparison.</p>}
