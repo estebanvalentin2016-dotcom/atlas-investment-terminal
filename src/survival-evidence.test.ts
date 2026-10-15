@@ -46,6 +46,13 @@ describe('Annual balance sheet and share-count evidence, without false valuation
   expect(s.weightedDilutedShares).toBeNull();
   expect(s.weightedShareChangePct).toBeNull();
  });
+ it('prevents SEC operating cash flow filed after as-of date from leaking into old snapshots',()=>{
+  const c=sample();
+  c.metrics.find(m=>m.name==='Operating cash flow')!.values=[period(2025,15000000,'2026-10-16')];
+  const s=deriveSurvivalEvidence(c,'2026-10-14');
+  expect(s.freeCashFlow).toBeNull();
+  expect(s.simpleCashToBurnYears).toBeNull();
+ });
  it('does not substitute an unrelated fiscal period for matching liquidity balances',()=>{
   const c=sample();
   c.metrics.find(x=>x.name==='Cash and cash equivalents')!.values=[{...period(2025,21000000),end:'2025-09-30'}];
