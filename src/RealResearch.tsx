@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useState,type FormEvent} from 'react';
 type Annual = {year:number;end:string;filed:string;value:number;form:string;accession:string};
 type Metric = {name:string;unit:string;values:Annual[];tag:string|null};
 type Payload = {ticker:string;name:string;cik:string;source:string;retrievedAt:string;metrics:Metric[]};
@@ -8,7 +8,7 @@ export default function RealResearch(){
  const [data,setData]=useState<Payload|null>(null);
  const [loading,setLoading]=useState(false);
  const [error,setError]=useState('');
- async function lookup(e:React.FormEvent){
+ async function lookup(e:FormEvent){
   e.preventDefault();setLoading(true);setError('');setData(null);
   try{
    const response=await fetch('/api/sec/company?ticker='+encodeURIComponent(ticker.trim().toUpperCase()));
