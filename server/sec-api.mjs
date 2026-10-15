@@ -40,6 +40,34 @@ export function selectFact(facts,tags,unit='USD'){
  const values=[...byYear.values()].sort((a,b)=>b.year-a.year).slice(0,4);
  return {tag:values.length?values[0].tag:null,values};
 }
+// Never splice an issuer's smaller business segment into another year's
+// total-revenue series. Prefer the largest eligible standardized annual revenue
+// concept and keep ALL comparison years from that SAME SEC tag.
+export function selectConsolidatedRevenue(facts){
+ const tags=['Revenues','RevenueFromContractWithCustomerExcludingAssessedTax','RevenueFromContractWithCustomerIncludingAssessedTax','RevenueFromContractWithCustomer','SalesRevenueNet'];
+ const available=tags.map(tag=>({tag,values:annualValues(facts?.['us-gaap']?.[tag])})).filter(x=>x.values.length);
+ if(!available.length)return {tag:null,values:[],quality:'missing',selectionNote:'No supported US-GAAP revenue fact found'};
+ const year=Math.max(...available.flatMap(x=>x.values.map(v=>v.year)));
+ const current=available.filter(x=>x.values.some(v=>v.year===year));
+ current.sort((a,b)=>{
+  const va=a.values.find(v=>v.year===year)?.value??0;
+  const vb=b.values.find(v=>v.year===year)?.value??0;
+  return vb-va||tags.indexOf(a.tag)-tags.indexOf(b.tag);
+ });
+ const chosen=current[0];
+ const value=chosen.values.find(v=>v.year===year)?.value??0;
+ const conflicting=current.filter(x=>{
+  if(x.tag===chosen.tag)return false;
+  const other=x.values.find(v=>v.year===year)?.value??0;
+  return other>0&&value>0&&other/value<0.7;
+ });
+ return {
+  tag:chosen.tag,values:chosen.values,
+  quality:conflicting.length?'alternative_revenue_concepts':'selected_standard_revenue_tag',
+  selectionNote:conflicting.length?'Other SEC revenue tags report materially smaller amounts for the same fiscal year. Those may be business segments, not consolidated sales. Review the source filing.':'One consistently tagged annual revenue series; still verify issuer totals against the 10-K',
+  alternativeTags:conflicting.map(x=>x.tag)
+ };
+}
 function json(res,status,data){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));}
 // Stable, broad ticker enumeration. No seed list or ticker inputs. The
 // multiplicative CIK+symbol sort scatters batch order rather than exclusively
@@ -105,14 +133,15 @@ export async function handleSecRequest(req,res){
   const cik=String(match.cik_str).padStart(10,'0');
   const source=SEC_ROOT+'/api/xbrl/companyfacts/CIK'+cik+'.json';
   const facts=await cached(cik,()=>secJson(source));
+  const revenueSelection=selectConsolidatedRevenue(facts.facts);
   const metrics=[
-   ['Revenue',['RevenueFromContractWithCustomerExcludingAssessedTax','RevenueFromContractWithCustomerIncludingAssessedTax','RevenueFromContractWithCustomer','Revenues','SalesRevenueNet']],
+   ['Revenue',['Revenues']],
    ['Net income',['NetIncomeLoss']],
    ['Diluted EPS',['EarningsPerShareDiluted','EarningsPerShareBasicAndDiluted']],
    ['Operating cash flow',['NetCashProvidedByUsedInOperatingActivities']],
    ['Capital expenditures',['PaymentsToAcquirePropertyPlantAndEquipment']],
    ['Total assets',['Assets']],
-  ].map(([name,tags])=>{const unit=name==='Diluted EPS'?'USD/shares':'USD';const result=selectFact(facts.facts,tags,unit);return {name,unit,...result};});
+  ].map(([name,tags])=>{const unit=name==='Diluted EPS'?'USD/shares':'USD';const result=name==='Revenue'?revenueSelection:selectFact(facts.facts,tags,unit);return {name,unit,...result};});
   json(res,200,{ticker,name:facts.entityName||match.title,cik,source,retrievedAt:new Date().toISOString(),metrics});
  }catch(e){json(res,503,{error:e instanceof Error?e.message:'SEC data temporarily unavailable'});}
  return true;
