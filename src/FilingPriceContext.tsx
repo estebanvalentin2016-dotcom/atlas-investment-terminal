@@ -52,31 +52,51 @@ export default function FilingPriceContext({ticker,eventDate,sourceUrl}:{ticker:
   }catch(e){setError(e instanceof Error?e.message:'Unable to assess price context')}
   finally{setBusy(false)}
  }
+ const aligned=review?.acceptedContext?.status==='aligned';
+ const primaryLeg=aligned?review?.acceptedContext?.firstEligible:review?.context.filingDay;
+ const headline=primaryLeg??null;
+ const headlineLabel=aligned?'First completed close eligible after SEC acceptance':review?.accepted?.sessionWindow==='after_regular_close'?'Filing-date close (BEFORE SEC acceptance)':'Filing-date close (timing not verified)';
  return <div className="filing-price-context">
-  <button type="button" className="button secondary" onClick={()=>void inspect()} disabled={busy||!eventDate}>{busy?'Retrieving completed IEX sessions…':review?'Refresh price context':'Check filing-date price context'}</button>
-  {!eventDate&&<p className="chart-note">Filing date is unavailable; price context cannot be aligned.</p>}
+  <button type="button" className="button secondary" onClick={()=>void inspect()} disabled={busy||!eventDate}>
+   {busy?'Checking SEC time and market prices…':review?'Refresh price context':'Show the key price moves'}
+  </button>
+  {!eventDate&&<p className="chart-note">No filing date available for comparison.</p>}
   {error&&<p className="real-error" role="alert">{error}</p>}
   {review&&<div className="filing-price-body">
-   <strong>Observed market-price context</strong>
-   <p className="chart-note">Daily bars from Alpaca {review.feed}, split-adjusted, completed sessions only. Filing date {review.context.eventDate} is NOT a verified public-announcement timestamp. Price changes cannot be attributed to the filing.</p>
-   {review.context.baseline?<p>Reference close: {review.context.baseline.date} · {fmtPrice(review.context.baseline.close)}</p>:<p className="opportunity-uncertainty">No preceding completed close was returned. Price comparisons unavailable.</p>}
-   <div className="filing-price-legs">
-    <Leg heading="Filing-date close" value={review.context.filingDay}/>
-    <Leg heading="First completed close after filing date" value={review.context.followingSession}/>
-    <Leg heading="Last completed close in available window" value={review.context.lastCompletedInWindow}/>
+   <strong>Price movement at a glance</strong>
+   <div className="atlas-key-return">
+    <div><span className="atlas-glance-label">{headlineLabel}</span><strong className="atlas-glance-value">{headline?fmtPct(headline.returnPct):'Waiting for data'}</strong>{headline&&<span>{headline.date} · close {fmtPrice(headline.close)}</span>}</div>
+    <div><span className="atlas-glance-label">Compared with SPY (same sessions)</span><strong className="atlas-glance-value">{headline?fmtPoints(headline.vsSpyPercentagePoints):'Unavailable'}</strong><span>Difference in returns, NOT statistical alpha</span></div>
    </div>
-   <div className="filing-acceptance-context">
-    <strong>SEC acceptance-clock alignment</strong>
-    {review.accepted?<><p>{review.accepted.acceptedEasternClock} · {review.accepted.sessionWindow==='after_regular_close'?'After the 4 PM ET regular close':review.accepted.sessionWindow==='before_regular_open'?'Before the 9:30 AM ET regular open':'During the regular session'}</p><p className="chart-note">Source: raw EDGAR SGML acceptance header (accession matched). This is when the SEC accepted the filing, NOT verified first-public issuer disclosure.</p>
-      {review.acceptedContext?.baseline&&<p>Pre-alignment reference close: {review.acceptedContext.baseline.date} · {fmtPrice(review.acceptedContext.baseline.close)}</p>}
-      {review.acceptedContext?.status==='aligned'?<div className="filing-price-legs"><Leg heading="First completed close eligible after SEC acceptance" value={review.acceptedContext.firstEligible}/><Leg heading="Next completed close after that" value={review.acceptedContext.following}/><p>First eligible-session opening gap: {fmtPct(review.acceptedContext.gapPct)} · Open-to-close: {fmtPct(review.acceptedContext.regularSessionPct)}</p></div>:<p className="opportunity-uncertainty">{review.acceptedContext?.status==='pending_completed_session'?'No completed session eligible after SEC acceptance is available yet.':'Not enough completed-session history to align the SEC acceptance clock.'}</p>}
-      {review.acceptedContext?.firstSessionMayIncludePriorTrading&&<p className="opportunity-uncertainty">SEC accepted this filing during regular trading. A previous-close-to-session-close return includes trading that occurred BEFORE SEC acceptance; it must not be read as the filing's impact.</p>}
-      {review.accepted.sessionWindow==='after_regular_close'&&<p className="chart-note">The filing-date close occurred before SEC acceptance. It is a pre-acceptance reference, not an event reaction.</p>}
-    </>:<p className="chart-note">SEC acceptance clock unavailable: {review.acceptedUnavailable||'No validated header time'}. Filing-date context above remains descriptive only.</p>}
-   </div>
-   {review.benchmarkUnavailable&&<p className="chart-note">SPY comparison unavailable: {review.benchmarkUnavailable}</p>}
-   {review.partialHistory&&<p className="opportunity-uncertainty">The Alpaca response indicated partial history. Missing bars may affect this comparison.</p>}
-   <p className="chart-note">SPY comparison is a simple return difference in percentage points, not statistical alpha or beta-adjusted performance. IEX-only pricing may differ from consolidated market prices. No earnings-surprise estimate, release-time verification, remaining-upside forecast, or trade signal is produced.</p>
+   <p className="atlas-summary-line"><strong>What this tells us:</strong> {review.accepted?.sessionWindow==='after_regular_close'&&!aligned?'The SEC accepted this filing after the close. We need the next completed trading session before checking the post-acceptance move.':aligned?'This is a completed-session move after SEC acceptance. The actual news might have been public earlier.':'These are observed daily returns. Without a reliable initial release time, we cannot say the filing caused the movement.'}</p>
+   {review.accepted?<p className="atlas-summary-line"><strong>SEC received it:</strong> {review.accepted.acceptedEasternClock} · {review.accepted.sessionWindow==='after_regular_close'?'AFTER the market closed':review.accepted.sessionWindow==='before_regular_open'?'BEFORE the market opened':'DURING the trading day'}</p>:<p className="opportunity-uncertainty"><strong>SEC acceptance time unavailable.</strong> The filing-date move isn't proof of a catalyst reaction.</p>}
+   {review.acceptedContext?.firstSessionMayIncludePriorTrading&&<p className="opportunity-uncertainty"><strong>Timing warning:</strong> This day's return includes trading that happened before SEC acceptance.</p>}
+   <details className="atlas-details">
+    <summary>See every completed-day price comparison</summary>
+    {review.context.baseline&&<p><strong>Reference close:</strong> {review.context.baseline.date} · {fmtPrice(review.context.baseline.close)}</p>}
+    <div className="filing-price-legs">
+     <Leg heading="On filing date" value={review.context.filingDay}/>
+     <Leg heading="First completed day after filing date" value={review.context.followingSession}/>
+     <Leg heading="Last completed day in available window" value={review.context.lastCompletedInWindow}/>
+    </div>
+   </details>
+   <details className="atlas-details">
+    <summary>See SEC acceptance alignment and opening gap</summary>
+    {review.accepted?<div className="atlas-technical-meta">
+      <p><strong>Accepted:</strong> {review.accepted.acceptedEasternClock}</p>
+      {review.acceptedContext?.baseline&&<p><strong>Reference before aligned session:</strong> {review.acceptedContext.baseline.date} · {fmtPrice(review.acceptedContext.baseline.close)}</p>}
+      {review.acceptedContext?.status==='aligned'?<div className="filing-price-legs"><Leg heading="First eligible session" value={review.acceptedContext.firstEligible}/><Leg heading="Next completed session" value={review.acceptedContext.following}/><p><strong>Opening gap:</strong> {fmtPct(review.acceptedContext.gapPct)} · <strong>Open to close:</strong> {fmtPct(review.acceptedContext.regularSessionPct)}</p></div>:<p>{review.acceptedContext?.status==='pending_completed_session'?'No eligible completed session yet.':'Insufficient completed-session history.'}</p>}
+    </div>:<p>SEC header could not be validated: {review.acceptedUnavailable||'Source unavailable'}.</p>}
+   </details>
+   <details className="atlas-details">
+    <summary>Data quality and interpretation limits</summary>
+    <p>Provider: Alpaca {review.feed}; {review.adjustment} adjusted daily bars. Only completed sessions.</p>
+    <p>SEC acceptance is <strong>not</strong> verified first public announcement time. Any news may have been disclosed earlier.</p>
+    <p>SPY comparison is a percentage-point difference, <strong>not</strong> an alpha estimate or expected future return. IEX prices may differ from consolidated trading.</p>
+    {review.partialHistory&&<p><strong>Incomplete history:</strong> Alpaca reported a partial response.</p>}
+    {review.benchmarkUnavailable&&<p><strong>SPY missing:</strong> {review.benchmarkUnavailable}</p>}
+    <p>No earnings consensus surprise, valuation, or remaining-upside forecast is provided.</p>
+   </details>
   </div>}
  </div>;
 }
