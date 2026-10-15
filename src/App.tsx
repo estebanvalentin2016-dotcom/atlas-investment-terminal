@@ -6,6 +6,7 @@ import CatalystRadar from './CatalystRadar';
 import MarketData from './MarketData';
 import MomentumScanner from './MomentumScanner';
 import './scanner.css';
+import './event-reaction.css';
 import './market.css';
 import './catalyst.css';
 import './discovery.css';
