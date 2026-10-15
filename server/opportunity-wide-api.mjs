@@ -61,7 +61,7 @@ export function rankFreshFilings(rows,limit=40){
   if(!r?.url||!/^https:\/\/www\.sec\.gov\/Archives\/edgar\/data\//.test(r.url))continue;
   unique.set(r.url,r);
  }
- return [...unique.values()].sort((a,b)=>(b.discoveredOn||b.filed).localeCompare(a.discoveredOn||a.filed)||b.filed.localeCompare(a.filed)||a.ticker.localeCompare(b.ticker)).slice(0,limit);
+ return [...unique.values()].sort((a,b)=>(b.discoveredOn||b.filed).localeCompare(a.discoveredOn||a.filed)||(b.filed||'').localeCompare(a.filed||'')||a.ticker.localeCompare(b.ticker)).slice(0,limit);
 }
 const send=(res,status,body)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(body))};
 let cache=null;
