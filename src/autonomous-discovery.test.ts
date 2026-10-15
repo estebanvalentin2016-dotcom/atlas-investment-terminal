@@ -64,6 +64,17 @@ describe('Autonomous first-stage evidence screening',()=>{
   data.metrics.find(x=>x.name==='Operating cash flow')!.values=[fy(2025,-30)];
   expect(initialAutonomousScreen(data,'2026-10-15').status).toBe('failed_thresholds');
  });
+ it('screens net margin using the underlying SEC profitMargin metric',()=>{
+  const losing=company();
+  losing.metrics.find(x=>x.name==='Net income')!.values=[fy(2025,-18)];
+  const rejected=initialAutonomousScreen(losing,'2026-10-15');
+  expect(rejected.netMargin).toBe(-12);
+  expect(rejected.status).toBe('failed_thresholds');
+  expect(rejected.reasons).toContain('Net margin below provisional −10% threshold');
+  const missing=company();
+  missing.metrics.find(x=>x.name==='Net income')!.values=[];
+  expect(initialAutonomousScreen(missing,'2026-10-15').status).toBe('incomplete_financials');
+ });
  it('keeps missing and stale financials separate from genuine screening failures',()=>{
   const data=company();
   data.metrics.find(x=>x.name==='Capital expenditures')!.values=[];
