@@ -1,4 +1,5 @@
 import {useState,type FormEvent} from 'react';
+import CompanyComparison from './CompanyComparison';
 import {financialAnalysis,type FinancialMetric} from './financial-analysis';
 type Annual = {year:number;end:string;filed:string;value:number;form:string;accession:string;tag?:string};
 type Metric = FinancialMetric & {values:Annual[]};
@@ -19,6 +20,7 @@ function Trend({metric}:{metric:Metric}){
  </div>
 }
 export default function RealResearch(){
+ const [mode,setMode]=useState<'single'|'compare'>('single');
  const [ticker,setTicker]=useState('CRWD');
  const [data,setData]=useState<Payload|null>(null);
  const [loading,setLoading]=useState(false);
@@ -36,7 +38,7 @@ export default function RealResearch(){
  }
  const derived=data?financialAnalysis(data.metrics):[];
  const chosen=data?.metrics.find(m=>m.name===chart);
- return <section className="panel real-panel">
+ return <><div className="real-mode"><button className={mode==='single'?'active':''} onClick={()=>setMode('single')}>Single company</button><button className={mode==='compare'?'active':''} onClick={()=>setMode('compare')}>Compare companies</button></div>{mode==='compare'?<CompanyComparison/>:<section className="panel real-panel">
   <div className="panel-head"><div><span className="eyebrow">PUBLIC COMPANY FILINGS / SEC EDGAR</span><h3>Real company financials</h3></div><span className="tag">SEC reported · no stock quotes</span></div>
   <p className="description">Research actual US public companies using reported annual financial data from SEC filings. These figures are separate from ATLAS's fictional demo screener and valuation lab.</p>
   <form className="real-search" onSubmit={lookup}><label htmlFor="real-ticker">Ticker</label><input id="real-ticker" value={ticker} onChange={e=>setTicker(e.target.value.toUpperCase())} maxLength={12} placeholder="CRWD" pattern="[A-Za-z0-9.-]{1,12}" required/><button className="button primary" disabled={loading} type="submit">{loading?'Loading SEC data…':'Fetch company filings'}</button></form>
@@ -49,5 +51,5 @@ export default function RealResearch(){
    <p className="chart-note">Source: <a href={data.source} target="_blank" rel="noreferrer">SEC EDGAR company facts</a>. Growth rates and margins are ATLAS calculations, not values reported by the SEC. They use matched fiscal periods where possible. Historical financial results may be amended or restated. Operating cash flow excludes deductions for capital expenditure; it is not free cash flow. No prices or investment recommendations are inferred.</p>
   </div>}
   {!data&&!error&&!loading&&<p className="chart-note">Enter a real ticker and select “Fetch company filings.” Configuration requires a SEC contact identifier, described in README. Data is only requested when you press the button.</p>}
- </section>;
+ </section>}</>;
 }
