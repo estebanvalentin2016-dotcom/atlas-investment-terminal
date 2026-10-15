@@ -1,6 +1,26 @@
+describe('SEC DEI point-in-time common share counts',()=>{
+ const item=(end:string,filed:string,val:number,form='10-Q')=>({end,filed,val,form,accn:'0000123456-26-000003'});
+ it('accepts only dated, sourced instant share counts rather than weighted-average facts',()=>{
+  const facts={dei:{EntityCommonStockSharesOutstanding:{units:{shares:[
+   item('2026-08-01','2026-08-08',41000000),
+   {...item('2026-08-01','2026-08-08',41000000)},
+   {...item('2026-02-01','2026-02-08',39000000),'start':'2025-02-01'},
+   item('2025-08-01','2025-08-08',35000000),
+   item('2026-09-01','2026-08-08',60000000)
+  ]}}}};
+  const result=instantOutstandingShares(facts);
+  expect(result.values.map((x:{value:number})=>x.value)).toEqual([41000000,35000000]);
+  expect(result.quality).toBe('unreconciled_sec_entity_shares');
+  expect(result.selectionNote).toContain('not verified');
+ });
+ it('does not invent missing or accessionless DEI counts',()=>{
+  expect(instantOutstandingShares({}).values).toEqual([]);
+  expect(instantOutstandingShares({dei:{EntityCommonStockSharesOutstanding:{units:{shares:[{...item('2026-08-01','2026-08-09',42000000),accn:undefined}]}}}}).values).toEqual([]);
+ });
+});
 import {describe,expect,it} from 'vitest';
 // @ts-ignore JavaScript-only SEC backend module is tested directly.
-import {annualValues,selectFact,selectConsolidatedRevenue} from '../server/sec-api.mjs';
+import {annualValues,selectFact,selectConsolidatedRevenue,instantOutstandingShares} from '../server/sec-api.mjs';
 describe('SEC annual fact normalization',()=>{
  it('uses reported annual durations and latest filing for each fiscal ending year',()=>{
   const values=annualValues({units:{USD:[
