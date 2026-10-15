@@ -77,7 +77,7 @@ export async function handleWideDiscovery(req,res){
      const parsed=parseMasterIndex(raw,day,symbols);
      diag.valid=true;diag.matched=parsed.length;successfulDays++;
      found.push(...parsed);
-    }catch(e){errors.push(day+': '+(e instanceof Error?e.message:'Invalid SEC index format')))}
+    }catch(e){errors.push(day+': '+(e instanceof Error?e.message:'Invalid SEC index format'))}
    }catch(e){errors.push(day+': '+(e instanceof Error?e.message:'Feed failed'))}
   }
   let fallbackChecked=0,fallbackFailed=0;
