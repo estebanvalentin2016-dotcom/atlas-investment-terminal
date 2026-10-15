@@ -34,3 +34,13 @@
 .filing-evidence-metrics{display:grid;gap:9px;border:1px solid #4b657f;background:#152d44;border-radius:9px;padding:12px;min-width:0}
 .filing-evidence-metrics>strong{color:#e3f3ff;font-size:15px}
 .filing-evidence-metrics .filing-evidence-excerpt{background:#1a364e}
+
+.filing-price-context{display:grid;gap:10px;margin-top:4px;padding-top:12px;border-top:1px solid #34526c}
+.filing-price-context>.button{justify-self:start}
+.filing-price-body{padding:12px;display:grid;gap:12px;border-radius:9px;border:1px solid #526c82;background:#152a40;color:#e3f1ff}
+.filing-price-body>strong{font-size:15px}
+.filing-price-body>p{margin:0;font-size:13px;line-height:1.55}
+.filing-price-legs{display:grid;gap:10px;grid-template-columns:1fr}
+.filing-price-leg{padding:10px;background:#1e364c;border:1px solid #47657e;border-radius:8px;overflow-wrap:anywhere}
+.filing-price-leg>strong{font-size:13px;color:#d4eaff}
+.filing-price-leg p{font-size:13px;margin:6px 0 0;line-height:1.5}
