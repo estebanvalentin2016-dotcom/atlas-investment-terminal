@@ -10,47 +10,50 @@ export function decodeIndexBytes(bytes){
  const utf16=unpacked[0]===0xff&&unpacked[1]===0xfe;
  return {text:new TextDecoder(utf16?'utf-16le':'utf-8').decode(unpacked),encoding:gz?'gzip':utf16?'utf-16le':'utf-8'};
 }
-export function parseMasterIndex(text,indexDate,tickers){
- if(typeof text!=='string'||!Array.isArray(tickers))throw Error('Invalid index response');
- const cikMap=new Map(tickers.filter(t=>Number.isSafeInteger(Number(t.cik_str))&&typeof t.ticker==='string').map(t=>[String(Number(t.cik_str)),t]));
- const rows=[];
- let validRecords=0;
- for(const line of text.split(/\r?\n/)){
-  const fields=line.split('|').map(x=>x.trim());
-  if(fields.length!==5)continue;
-  const [cik,name,form,filed,relative]=fields;
-  if(!/^\d{1,10}$/.test(cik)||!/^[A-Z0-9][A-Z0-9/-]{0,24}$/.test(form)||!/^\d{4}-\d{2}-\d{2}$/.test(filed)||!/^edgar\/data\/\d+\/[\w./-]+\.txt$/.test(relative)||relative.includes('..'))continue;
-  validRecords++;
-  if(!['8-K','8-K/A'].includes(form))continue;
-  const matchTicker=cikMap.get(String(Number(cik)));
-  if(!matchTicker)continue;
-  // The legal filed date may precede the daily index dissemination date.
-  rows.push({ticker:matchTicker.ticker,name:matchTicker.title||name,form,filed,discoveredOn:indexDate,url:'https://www.sec.gov/Archives/'+relative,cik,kind:'8-K (contents unreviewed)'});
- }
- // Require either parseable genuine index records or recognizable column headers.
- // Never treat an access-denied HTML page or binary garbage as a zero-filing day.
- const recognizableHeader=/CIK\s*\|.*Company.*\|.*Form.*\|.*Date.*\|.*File/i.test(text.slice(0,4096));
- if(!validRecords&&!recognizableHeader)throw Error('Unrecognized SEC master index content');
- return rows;
-}
-// A small, bounded parser audit helps distinguish missing 8-K forms, malformed
-// paths, and missing ticker mappings. Never mistake an empty parse for a quiet market.
-export function diagnoseMasterIndex(text,tickers){
- const cikMap=new Map(tickers.filter(x=>typeof x?.ticker==='string'&&Number.isSafeInteger(Number(x.cik_str))).map(x=>[String(Number(x.cik_str)),x.ticker]));
- let records=0,eightKRows=0,validEightKPaths=0,tickerMatchedEightK=0;
- const samples=[];
+// Both the discovery parser and its diagnostics consume the SAME decoded
+// records; extra validation must not silently discard valid 8-K ticker matches.
+function indexRecords(text){
+ const records=[];
  for(const line of text.split(/\r?\n/)){
   const fields=line.split('|').map(x=>x.trim());
   if(fields.length!==5||!/^\d{1,10}$/.test(fields[0]))continue;
-  records++;
-  const [cik,,form,,relative]=fields;
-  if(!['8-K','8-K/A'].includes(form))continue;
-  eightKRows++;
-  if(/^edgar\/data\/\d+\/[\w./-]+\.txt$/.test(relative)&&!relative.includes('..'))validEightKPaths++;
-  if(cikMap.has(String(Number(cik))))tickerMatchedEightK++;
-  if(samples.length<2)samples.push({cik,form,path:relative.slice(0,110),mappedTicker:cikMap.get(String(Number(cik)))||null});
+  const [cik,name,form,filed,path]=fields;
+  records.push({cik,name,form,filed,path});
  }
- return {records,eightKRows,validEightKPaths,tickerMatchedEightK,samples};
+ return records;
+}
+const archivePath=path=>/^edgar\/data\/\d+\/[\w./-]+\.txt$/.test(path)&&!path.includes('..');
+const tickerIndex=tickers=>new Map(tickers.filter(x=>typeof x?.ticker==='string'&&Number.isSafeInteger(Number(x.cik_str))).map(x=>[String(Number(x.cik_str)),x]));
+export function parseMasterIndex(text,indexDate,tickers){
+ if(typeof text!=='string'||!Array.isArray(tickers))throw Error('Invalid index response');
+ const records=indexRecords(text);
+ const header=/CIK\s*\|.*Company.*\|.*Form.*\|.*Date.*\|.*File/i.test(text.slice(0,4096));
+ if(!records.length&&!header)throw Error('Unrecognized SEC master index content');
+ const tickerMap=tickerIndex(tickers),rows=[];
+ for(const x of records){
+  if(!['8-K','8-K/A'].includes(x.form)||!archivePath(x.path))continue;
+  const ticker=tickerMap.get(String(Number(x.cik)));
+  if(!ticker)continue;
+  const dateValid=/^\d{4}-\d{2}-\d{2}$/.test(x.filed)&&Number.isFinite(Date.parse(x.filed+'T00:00:00Z'));
+  // Never suppress discovery because the raw legal filing-date field is unexpected.
+  // Unknown filing dates stay unknown; the public index's date remains separately labeled.
+  rows.push({ticker:ticker.ticker,name:ticker.title||x.name,form:x.form,filed:dateValid?x.filed:null,discoveredOn:indexDate,url:'https://www.sec.gov/Archives/'+x.path,cik:x.cik,kind:'8-K (contents unreviewed)'});
+ }
+ return rows;
+}
+export function diagnoseMasterIndex(text,tickers){
+ const records=indexRecords(text),tickerMap=tickerIndex(tickers),samples=[];
+ let eightKRows=0,validEightKPaths=0,tickerMatchedEightK=0,undatedEightK=0;
+ for(const x of records){
+  if(!['8-K','8-K/A'].includes(x.form))continue;
+  eightKRows++;
+  if(archivePath(x.path))validEightKPaths++;
+  const match=tickerMap.get(String(Number(x.cik)));
+  if(match)tickerMatchedEightK++;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(x.filed))undatedEightK++;
+  if(samples.length<2)samples.push({cik:x.cik,form:x.form,filedRaw:x.filed.slice(0,30),path:x.path.slice(0,110),mappedTicker:match?.ticker||null});
+ }
+ return {records:records.length,eightKRows,validEightKPaths,tickerMatchedEightK,undatedEightK,samples};
 }
 export function rankFreshFilings(rows,limit=40){
  const unique=new Map();
