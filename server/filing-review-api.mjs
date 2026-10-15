@@ -46,7 +46,8 @@ export function assessFilingEvidence(sourceText){
 // SEC full-submission files can contain large exhibits. Inspect a strictly
 // bounded prefix instead of rejecting an otherwise reachable filing by size.
 export async function readBoundedFiling(response,maxBytes=4000000){
- const declared=Number(response.headers.get('content-length'));
+ const headerLength=response.headers.get('content-length');
+ const declared=headerLength===null?NaN:Number(headerLength);
  const declaredBytes=Number.isSafeInteger(declared)&&declared>=0?declared:null;
  if(!response.body)throw Error('SEC filing body unavailable');
  const reader=response.body.getReader(),decoder=new TextDecoder();
