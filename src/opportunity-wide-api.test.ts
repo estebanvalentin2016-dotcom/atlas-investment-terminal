@@ -1,6 +1,6 @@
 import {describe,it,expect,vi} from 'vitest';
 // @ts-ignore Node-only SEC index parser
-import {parseMasterIndex,rankFreshFilings,handleWideDiscovery,recentSubmissions} from '../server/opportunity-wide-api.mjs';
+import {parseMasterIndex,rankFreshFilings,handleWideDiscovery,recentSubmissions,summarizeSubmissions} from '../server/opportunity-wide-api.mjs';
 describe('market-wide SEC filing discovery',()=>{
  const tickers=[{cik_str:1535527,ticker:'CRWD',title:'CrowdStrike Holdings'}];
  const line='1535527|CrowdStrike Holdings|8-K|2026-10-14|edgar/data/1535527/0001535527-26-000029.txt';
@@ -11,6 +11,13 @@ describe('market-wide SEC filing discovery',()=>{
  it('parses real master index padding around form and issuer fields',()=>{const padded='1535527|CrowdStrike Holdings             |8-K     |2026-10-14|edgar/data/1535527/0001535527-26-000029.txt';expect(parseMasterIndex(index(padded),'2026-10-14',tickers)).toHaveLength(1)});
  it('rejects responses lacking a recognizable SEC index header',()=>expect(()=>parseMasterIndex('<html>Access denied</html>','2026-10-14',tickers)).toThrow('Unrecognized SEC master index header'));
  it('extracts recent 8-K fallback rows without inventing bullishness',()=>{const rows=recentSubmissions({cik:1535527,name:'CrowdStrike',filings:{recent:{form:['8-K','10-Q'],filingDate:['2026-10-14','2026-10-14'],accessionNumber:['0001535527-26-000029','0001535527-26-000030']}}},'CRWD',Date.parse('2026-10-15T12:00:00Z'));expect(rows).toHaveLength(1);expect(rows[0].url).toContain('000153552726000029')});
+ it('reports stale fallback dates explicitly instead of classifying them as zero-market opportunities',()=>{
+  const data={cik:1535527,filings:{recent:{form:['10-Q','8-K'],filingDate:['2026-09-29','2026-09-10'],accessionNumber:['0001535527-26-000030','0001535527-26-000029']}}};
+  const audit=summarizeSubmissions(data,'CRWD',Date.parse('2026-10-15T12:00:00Z'));
+  expect(audit.latestFiling).toBe('2026-09-29');
+  expect(audit.latest8K).toBe('2026-09-10');
+  expect(audit.matchingRecent8K).toBe(0);
+ });
  it('returns diagnostics and fallback results without a runtime error',async()=>{
   vi.stubEnv('SEC_USER_AGENT','Atlas test atlas-test@example.com');
   const day=new Date().toISOString().slice(0,10);
@@ -31,6 +38,7 @@ describe('market-wide SEC filing discovery',()=>{
    expect(data.diagnostics.length).toBeGreaterThan(0);
    expect(data.fallbackChecked).toBe(1);
    expect(data.rows[0].ticker).toBe('CRWD');
+   expect(data.fallbackDiagnostics[0].ticker).toBe('CRWD');
   }finally{
    vi.unstubAllGlobals();
    vi.unstubAllEnvs();
