@@ -18,7 +18,7 @@ export default function FilingEvidence({data,loading,onReview}:{data?:FilingEvid
  const reviewed=data?.sourceStatus!=='unavailable';
  return <div className="filing-evidence">
   <button type="button" className="button secondary" disabled={loading} onClick={onReview}>
-   {loading?'Reading SEC documents…':data?'Refresh filing evidence':'Show the important numbers'}
+   {loading?'Reading SEC documents…':data?'Refresh filing evidence':'Show the key takeaways'}
   </button>
   {data&&<div className="filing-evidence-body">
    {!reviewed?<p className="opportunity-uncertainty"><strong>Could not read the SEC document.</strong> {data.note} {data.httpStatus?'(HTTP '+data.httpStatus+')':''} The filing is not classified.</p>:
