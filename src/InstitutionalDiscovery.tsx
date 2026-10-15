@@ -7,6 +7,7 @@ const examples=[{name:'TOMS Capital Investment Management',cik:'1743937',type:'A
 const labels:Record<Change,string>={newly_reported:'Newly reported',reported_increase:'Reported shares increased',reported_decrease:'Reported shares decreased',no_longer_reported:'No longer reported',unchanged:'No share-count change'};
 const money=(n:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',notation:'compact',maximumFractionDigits:1}).format(n);
 const shares=(n:number)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(n);
+const normalizeIssuer=(v:string)=>v.toUpperCase().replace(/[^A-Z0-9]/g,'');
 const limit=70;
 export default function InstitutionalDiscovery(){
  const [managerCik,setManagerCik]=useState('1743937');
@@ -53,7 +54,7 @@ export default function InstitutionalDiscovery(){
   if(mode==='investor')return activeManager?.rows.map(row=>({...row,manager:activeManager.manager,cik:activeManager.cik,period:activeManager.latest.period,filed:activeManager.latest.filed,source:activeManager.latest.sourceUrl,previousSource:activeManager.previous.sourceUrl}))||[];
   return results.flatMap(manager=>manager.rows.map(row=>({...row,manager:manager.manager,cik:manager.cik,period:manager.latest.period,filed:manager.latest.filed,source:manager.latest.sourceUrl,previousSource:manager.previous.sourceUrl})));
  },[mode,activeManager,loaded]);
- const visible=combined.filter(row=>(kind==='all'||row.change===kind)&&(!term||(row.issuer+' '+row.cusip+' '+row.className).toLowerCase().includes(term.toLowerCase()))).sort((a,b)=>(b.valueDollars-a.valueDollars));
+ const visible=combined.filter(row=>(kind==='all'||row.change===kind)&&(!term||normalizeIssuer(row.issuer+' '+row.cusip+' '+row.className).includes(normalizeIssuer(term)))).sort((a,b)=>(b.valueDollars-a.valueDollars));
  const current=visible.slice((page-1)*limit,page*limit),pages=Math.max(1,Math.ceil(visible.length/limit));
  const overview=combined.reduce((m,row)=>{m[row.change]++;return m}, {newly_reported:0,reported_increase:0,reported_decrease:0,no_longer_reported:0,unchanged:0} as Record<Change,number>);
  function setModeSafe(next:'investor'|'company'){setMode(next);setPage(1);setKind('all');setTerm('');setIssuerHint('')}
@@ -81,6 +82,7 @@ export default function InstitutionalDiscovery(){
     {issuerHint&&<p className="opportunity-uncertainty">{issuerHint}</p>}
     <p className="chart-note"><strong>Coverage:</strong> only institutions you loaded. Finding zero rows is not evidence that institutions do not own the company. Names must be checked against SEC-issued security identifiers.</p>
    </>}
+   <p className="chart-note"><strong>Loaded reports:</strong> these counts describe the selected reporting manager{"(s)"}, not verified holders of the company you're searching. Apply the issuer filter to find relevant rows.</p>
    <div className="atlas-institution-stats">
     <div><span>Newly reported</span><strong>{overview.newly_reported}</strong></div>
     <div><span>Share increases</span><strong>{overview.reported_increase}</strong></div>
