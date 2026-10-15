@@ -76,3 +76,15 @@ th{font-size:12px}td{font-size:14px}
  .atlas-glance-cards,.atlas-key-return{grid-template-columns:minmax(0,1fr)}
  .opportunity-radar .opportunity-top strong{font-size:27px}
 }
+
+/* Three numbers answer the scan-status question without a paragraph of logs. */
+.atlas-scan-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 22px}
+.atlas-scan-grid>div{display:grid;align-content:start;gap:5px;padding:17px;border:1px solid #456d88;background:#162c42;border-radius:12px;min-width:0}
+.atlas-scan-grid span{font-size:15px;font-weight:700;color:#c8dbe9}
+.atlas-scan-grid strong{font-size:clamp(28px,3.5vw,40px);font-weight:800;line-height:1.1;color:#f3f9ff}
+.atlas-scan-grid small{font-size:14px;color:#d0dce7}
+.opportunity-radar>.atlas-summary-line{padding:0 22px}
+.opportunity-radar .opportunity-results-head{padding:0 2px}
+.opportunity-radar .opportunity-uncertainty strong{color:#fff4da}
+.opportunity-radar .atlas-details .filing-evidence-excerpt{margin:10px 0}
+@media(max-width:780px){.atlas-scan-grid{grid-template-columns:1fr;margin:14px 16px}}
