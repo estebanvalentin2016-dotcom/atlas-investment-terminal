@@ -3,6 +3,7 @@ import {assessConvictionReadiness,type ConvictionAssessment} from './conviction-
 import SurvivalEvidencePanel from './SurvivalEvidencePanel';
 import MarketCapEvidencePanel from './MarketCapEvidencePanel';
 import FinancingAutomationPanel from './FinancingAutomationPanel';
+import {draftIssuerThesis} from './automatic-thesis';
 import type {MarketValuationClose,SecCompany} from './ranking-model';
 type ThesisVersion={ticker:string;createdAt:string;thesis:string;invalidation:string;verdict:'INSUFFICIENT EVIDENCE'};
 const KEY='atlas.conviction.theses.v1';
@@ -29,7 +30,7 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
  async function investigate(e:FormEvent){
   e.preventDefault();
   const symbol=ticker.trim().toUpperCase();
-  setError('');setMarketIssue('');setCompany(null);setMarketQuote(null);setAssessment(null);setSavedMessage('');
+  setError('');setMarketIssue('');setCompany(null);setMarketQuote(null);setAssessment(null);setSavedMessage('');setThesis('');setInvalidation('');
   if(!/^[A-Z0-9.-]{1,12}$/.test(symbol)){setError('Enter a valid stock ticker.');return}
   setLoading(true);
   try{
@@ -43,9 +44,15 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
     if(!response.ok)throw Error(body.error||'IEX close unavailable');
     market=body;
    }catch(e){setMarketIssue(e instanceof Error?e.message:'IEX close unavailable')}
+   const asOf=nyToday();
+   const check=assessConvictionReadiness(sec,market,asOf);
+   const draft=draftIssuerThesis(sec,check,market,asOf);
    setCompany(sec);
    setMarketQuote(market);
-   setAssessment(assessConvictionReadiness(sec,market,nyToday()));
+   setAssessment(check);
+   setThesis(draft.thesis);
+   setInvalidation(draft.invalidation);
+   setSavedMessage('ATLAS automatically prepared a dated research draft from SEC evidence. Review or edit it before saving. It is not verified or monitored.');
   }catch(e){setError(e instanceof Error?e.message:'Research source unavailable')}
   finally{setLoading(false)}
  }
@@ -90,7 +97,8 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
     <div className="atlas-conviction-gates">{assessment.requirements.map(item=><div key={item.key}><div className="atlas-gate-heading"><strong>{item.status==='verified'?'✓':'○'} {item.label}</strong><span className={'atlas-gate-progress atlas-progress-'+item.progress}>{item.progress==='verified'?'Source checked':item.progress==='partially_sourced'?'Partial evidence':item.progress==='engine_pending'?'Automation pending':'Source unavailable'}</span></div><p>{item.detail}</p></div>)}</div>
    </details>
    <div className="atlas-conviction-thesis">
-    <strong>Write your own testable investment thesis</strong>
+    <strong>ATLAS automatically prepared a research thesis and invalidation checklist</strong>
+    <p className="chart-note">These editable notes come from available issuer evidence and known research gaps, not from an independently verified fair-value or competitive-moat engine. Saving remains optional; automatic monitoring is not enabled.</p>
     <label>What might the market be missing?<textarea rows={3} value={thesis} onChange={e=>setThesis(e.target.value)} placeholder="A documented business change, valuation disconnect, or credible growth catalyst…"/></label>
     <label>What would prove you wrong?<textarea rows={3} value={invalidation} onChange={e=>setInvalidation(e.target.value)} placeholder="Financial thresholds, dilution, loss of a major customer or failed commercialization…"/></label>
     <button className="button secondary" type="button" disabled={!thesis.trim()||!invalidation.trim()} onClick={saveThesis}>Save timestamped thesis draft</button>
