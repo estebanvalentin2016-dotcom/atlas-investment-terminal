@@ -42,7 +42,8 @@ describe('ATLAS conviction-readiness evidence gate',()=>{
  it('labels unfinished ATLAS engines separately from source data not retrieved',()=>{
   const result=assessConvictionReadiness(sec(),close(),'2026-10-15');
   expect(result.requirements.find(x=>x.key==='market-cap')?.progress).toBe('engine_pending');
-  expect(result.requirements.find(x=>x.key==='scenarios')?.progress).toBe('engine_pending');
+  expect(result.requirements.find(x=>x.key==='scenarios')?.progress).toBe('partially_sourced');
+  expect(result.requirements.find(x=>x.key==='scenarios')?.status).toBe('missing'); // Operating sensitivities are NOT per-share valuation
   expect(result.requirements.find(x=>x.key==='ownership')?.progress).toBe('engine_pending');
   expect(result.requirements.find(x=>x.key==='monitoring')?.progress).toBe('partially_sourced');
   expect(result.requirements.find(x=>x.key==='cash-flow')?.progress).toBe('verified');
