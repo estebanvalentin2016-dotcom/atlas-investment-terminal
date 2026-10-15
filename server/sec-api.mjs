@@ -23,9 +23,22 @@ export function annualValues(fact,unit='USD'){
  }
  return [...byYear.values()].sort((a,b)=>b.year-a.year).slice(0,4);
 }
+// Prefer a consistent accounting concept, but fill genuinely missing fiscal years
+// with lower-priority concepts. Never add distinct revenue tags together.
 export function selectFact(facts,tags,unit='USD'){
- for(const tag of tags){const annual=annualValues(facts?.['us-gaap']?.[tag],unit);if(annual.length)return {tag,values:annual};}
- return {tag:null,values:[]};
+ const byYear=new Map();
+ let chosenTag=null;
+ for(const tag of tags){
+  const annual=annualValues(facts?.['us-gaap']?.[tag],unit);
+  for(const item of annual){
+   if(!byYear.has(item.year)){
+    byYear.set(item.year,{...item,tag});
+    if(chosenTag===null)chosenTag=tag;
+   }
+  }
+ }
+ const values=[...byYear.values()].sort((a,b)=>b.year-a.year).slice(0,4);
+ return {tag:values.length?values[0].tag:null,values};
 }
 function json(res,status,data){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));}
 export async function handleSecRequest(req,res){
@@ -42,7 +55,7 @@ export async function handleSecRequest(req,res){
   const source=SEC_ROOT+'/api/xbrl/companyfacts/CIK'+cik+'.json';
   const facts=await cached(cik,()=>secJson(source));
   const metrics=[
-   ['Revenue',['RevenueFromContractWithCustomerExcludingAssessedTax','Revenues','SalesRevenueNet']],
+   ['Revenue',['RevenueFromContractWithCustomerExcludingAssessedTax','RevenueFromContractWithCustomerIncludingAssessedTax','RevenueFromContractWithCustomer','Revenues','SalesRevenueNet','SalesRevenueGoodsNet','SalesRevenueServicesNet']],
    ['Net income',['NetIncomeLoss']],
    ['Operating cash flow',['NetCashProvidedByUsedInOperatingActivities']],
    ['Total assets',['Assets']],
