@@ -1,6 +1,6 @@
 import {describe,expect,it,vi} from 'vitest';
 // @ts-ignore Node-only SEC filing review adapter
-import {permittedFilingUrl,extractFilingText,assessFilingEvidence,handleFilingReview,readBoundedFiling} from '../server/filing-review-api.mjs';
+import {permittedFilingUrl,extractFilingText,assessFilingEvidence,handleFilingReview,readBoundedFiling,parseArchiveFiling,selectFilingDocuments} from '../server/filing-review-api.mjs';
 describe('SEC source evidence review',()=>{
  const url='https://www.sec.gov/Archives/edgar/data/1819994/0001819994-26-000067.txt';
  it('accepts canonical SEC archive URLs and rejects other hosts, queries and unsupported paths',()=>{
@@ -35,6 +35,46 @@ describe('SEC source evidence review',()=>{
   let code=0,body='';
   await handleFilingReview({url:'/api/opportunities/review?url='+encodeURIComponent('https://elsewhere.example/filing.txt'),method:'GET'},{writeHead(c:number){code=c},end(v:string){body=v}});
   expect(code).toBe(400);expect(JSON.parse(body).error).toContain('valid SEC');
+ });
+ it('validates accession paths for direct SEC master-index and company-submissions URLs',()=>{
+  const master=parseArchiveFiling('https://www.sec.gov/Archives/edgar/data/2012383/0001193125-26-420979.txt');
+  expect(master?.root).toBe('https://www.sec.gov/Archives/edgar/data/2012383/000119312526420979/');
+  const submission=parseArchiveFiling('https://www.sec.gov/Archives/edgar/data/2012383/000119312526420979/0001193125-26-420979.txt');
+  expect(submission?.accession).toBe('0001193125-26-420979');
+  expect(parseArchiveFiling('https://www.sec.gov/Archives/edgar/data/2012383/00011931250000000000/0001193125-26-420979.txt')).toBeNull();
+ });
+ it('selects a verified primary 8-K and familiar SEC Exhibit 99 naming variants',()=>{
+  const meta={filings:{recent:{accessionNumber:['0001193125-26-420979'],form:['8-K'],primaryDocument:['d100d8k.htm']}}};
+  const index={directory:{item:[{name:'d100d8k.htm'},{name:'d100dex991.htm'},{name:'ex99_2.htm'},{name:'cover.jpg'}]}};
+  const selection=selectFilingDocuments(meta,index,'0001193125-26-420979');
+  expect(selection.documents.map((x:{name:string})=>x.name)).toEqual(['d100d8k.htm','d100dex991.htm','ex99_2.htm']);
+  expect(selection.primaryLocated).toBe(true);
+  expect(selection.selectedExhibits).toBe(2);
+ });
+ it('retrieves primary 8-K and Exhibit 99 language as attributed source documents',async()=>{
+  vi.stubEnv('SEC_USER_AGENT','ATLAS tests tests@example.com');
+  const other='https://www.sec.gov/Archives/edgar/data/2012383/0001193125-26-420979.txt';
+  const calls:string[]=[];
+  vi.stubGlobal('fetch',vi.fn(async (request:string)=>{
+   const target=String(request);calls.push(target);
+   if(target.includes('/submissions/CIK'))return new Response(JSON.stringify({filings:{recent:{accessionNumber:['0001193125-26-420979'],form:['8-K'],primaryDocument:['d100d8k.htm']}}}),{status:200});
+   if(target.endsWith('/index.json'))return new Response(JSON.stringify({directory:{item:[{name:'d100d8k.htm'},{name:'d100dex991.htm'}]}}),{status:200});
+   if(target.endsWith('/d100d8k.htm'))return new Response('<html>The company furnished its earnings release as exhibit 99.1.</html>',{status:200});
+   if(target.endsWith('/d100dex991.htm'))return new Response('<html>The company raises full-year guidance.</html>',{status:200});
+   throw Error('Unexpected target: '+target);
+  }));
+  let code=0,body='';
+  try{
+   await handleFilingReview({url:'/api/opportunities/review?url='+encodeURIComponent(other),method:'GET'},{writeHead(c:number){code=c},end(v:string){body=v}});
+   const result=JSON.parse(body);
+   expect(code).toBe(200);
+   expect(result.reviewMethod).toBe('selected_documents');
+   expect(result.sourceStatus).toBe('partial_text');
+   expect(result.documents).toHaveLength(2);
+   expect(result.evidence.potential[0].sourceName).toBe('d100dex991.htm');
+   expect(result.evidence.potential[0].sourceUrl).toContain('/d100dex991.htm');
+   expect(calls).not.toContain(other); // no 4.99 MB combined download
+  }finally{vi.unstubAllGlobals();vi.unstubAllEnvs()}
  });
  it('reads only a bounded prefix when SEC declares an oversized full submission',async()=>{
   const raw='<SEC-DOCUMENT><DOCUMENT><TYPE>8-K\n<TEXT>The company raises annual guidance.</TEXT></DOCUMENT>'+'z'.repeat(120);
