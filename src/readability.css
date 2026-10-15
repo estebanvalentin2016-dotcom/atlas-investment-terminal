@@ -134,3 +134,36 @@ th{font-size:12px}td{font-size:14px}
 .atlas-rank-missing{color:#f4d2a6!important}
 @media(max-width:900px){.atlas-ranking-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:610px){.atlas-ranking-weights,.atlas-ranking-metrics{grid-template-columns:minmax(0,1fr)}.atlas-ranking-row-head{flex-wrap:wrap}.atlas-ranking-entry{margin:14px 10px}}
+
+/* Real-company navigation: bigger text, clear actions, no fictional score crossover. */
+.atlas-live-workspace,.atlas-topic-lab{padding-bottom:18px}
+.atlas-live-entry{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;padding:16px;border:1px solid #3e6783;background:#122b41;border-radius:12px}
+.atlas-live-entry strong{font-size:20px;margin-right:auto}
+.atlas-live-workspace .atlas-company-search{margin:18px 22px}
+.atlas-live-workspace .atlas-company-search label{font-size:17px}
+.atlas-live-matches{display:grid;gap:9px;margin:15px 22px}
+.atlas-live-matches>strong,.atlas-live-saved>h4{font-size:23px}
+.atlas-live-matches>div{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#152c40;border:1px solid #476681;padding:12px;border-radius:9px}
+.atlas-live-matches>div>span{flex:1;min-width:180px;font-size:16px}
+.atlas-live-details,.atlas-live-saved{display:grid;gap:16px;margin:18px 22px;padding:16px;background:#14293f;border:1px solid #466783;border-radius:12px}
+.atlas-live-details .atlas-ranking-row-head strong{font-size:25px}
+.atlas-live-details>a{font-size:16px;color:#9ddcff}
+.atlas-research-note{display:grid;gap:11px;font-size:17px;font-weight:700}
+.atlas-research-note textarea{width:100%;font:inherit;font-weight:500;line-height:1.5;min-height:80px;padding:13px;border-radius:8px;background:#172d43;color:#eaf5ff;border:1px solid #6083a1;resize:vertical}
+.atlas-live-saved .atlas-ranking-controls{align-items:center}
+.atlas-demo-separator{margin:22px 0;padding:14px 20px;background:#292317;border-color:#715a37}
+.atlas-demo-separator>summary{font-size:18px;color:#f4d29b}
+.atlas-topic-lab .atlas-ranking-controls{padding:0 22px;margin:14px 0}
+.atlas-topic-lab .description{font-size:16px}
+.atlas-topic-news,.atlas-topic-ranked{display:grid;gap:12px;margin:16px 22px;padding:15px;border:1px solid #3e6583;background:#142a40;border-radius:12px}
+.atlas-topic-news>h4,.atlas-topic-ranked>h4{font-size:24px;margin:0}
+.atlas-topic-news>article{display:grid;gap:5px;padding:13px;border:1px solid #405e78;border-radius:9px}
+.atlas-topic-news a{font-size:17px;font-weight:700;color:#a5ddff}
+.atlas-topic-news p{font-size:14px;line-height:1.5;margin:0}
+.atlas-topic-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px;border-radius:9px;background:#1a354b;border:1px solid #40657f}
+.atlas-topic-row>div{display:grid;gap:5px}
+.atlas-topic-row>div:last-child{text-align:right}
+.atlas-topic-row strong{font-size:20px}
+.atlas-topic-row span,.atlas-topic-row small{font-size:14px;color:#bed5e6}
+.atlas-topic-lab .atlas-summary-line{padding:0 22px}
+@media(max-width:750px){.atlas-live-details,.atlas-live-saved,.atlas-live-matches,.atlas-topic-news,.atlas-topic-ranked{margin-left:12px;margin-right:12px}.atlas-topic-row{flex-wrap:wrap}.atlas-topic-row>div:last-child{text-align:left}}
