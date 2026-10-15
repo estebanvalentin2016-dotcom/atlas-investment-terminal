@@ -27,6 +27,22 @@ describe('market-wide SEC filing discovery',()=>{
   expect(audit.validEightKPaths).toBe(0);
   expect(audit.tickerMatchedEightK).toBe(1);
  });
+ it('keeps ticker-matched 8-Ks when raw filing dates are not ISO formatted',()=>{
+  const odd='1535527|CrowdStrike|8-K|10/14/2026|edgar/data/1535527/0001535527-26-000029.txt';
+  const rows=parseMasterIndex(index(odd),'2026-10-14',tickers);
+  expect(rows).toHaveLength(1);
+  expect(rows[0].filed).toBeNull();
+  expect(rows[0].discoveredOn).toBe('2026-10-14');
+  expect(rankFreshFilings(rows)).toHaveLength(1);
+ });
+ it('keeps audit and parser consistent when raw filing dates are unusable',()=>{
+  const odd='1535527|CrowdStrike|8-K|NA|edgar/data/1535527/0001535527-26-000029.txt';
+  const audit=diagnoseMasterIndex(index(odd),tickers);
+  expect(audit.undatedEightK).toBe(1);
+  expect(audit.samples[0].filedRaw).toBe('NA');
+  expect(audit.tickerMatchedEightK).toBe(1);
+  expect(parseMasterIndex(index(odd),'2026-10-14',tickers)).toHaveLength(1);
+ });
  it('extracts recent 8-K fallback rows without inventing bullishness',()=>{const rows=recentSubmissions({cik:1535527,name:'CrowdStrike',filings:{recent:{form:['8-K','10-Q'],filingDate:['2026-10-14','2026-10-14'],accessionNumber:['0001535527-26-000029','0001535527-26-000030']}}},'CRWD',Date.parse('2026-10-15T12:00:00Z'));expect(rows).toHaveLength(1);expect(rows[0].url).toContain('000153552726000029')});
  it('reports stale fallback dates explicitly instead of classifying them as zero-market opportunities',()=>{
   const data={cik:1535527,filings:{recent:{form:['10-Q','8-K'],filingDate:['2026-09-29','2026-09-10'],accessionNumber:['0001535527-26-000030','0001535527-26-000029']}}};
