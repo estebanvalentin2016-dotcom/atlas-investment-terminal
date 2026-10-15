@@ -33,6 +33,25 @@ export function parseMasterIndex(text,indexDate,tickers){
  if(!validRecords&&!recognizableHeader)throw Error('Unrecognized SEC master index content');
  return rows;
 }
+// A small, bounded parser audit helps distinguish missing 8-K forms, malformed
+// paths, and missing ticker mappings. Never mistake an empty parse for a quiet market.
+export function diagnoseMasterIndex(text,tickers){
+ const cikMap=new Map(tickers.filter(x=>typeof x?.ticker==='string'&&Number.isSafeInteger(Number(x.cik_str))).map(x=>[String(Number(x.cik_str)),x.ticker]));
+ let records=0,eightKRows=0,validEightKPaths=0,tickerMatchedEightK=0;
+ const samples=[];
+ for(const line of text.split(/\r?\n/)){
+  const fields=line.split('|').map(x=>x.trim());
+  if(fields.length!==5||!/^\d{1,10}$/.test(fields[0]))continue;
+  records++;
+  const [cik,,form,,relative]=fields;
+  if(!['8-K','8-K/A'].includes(form))continue;
+  eightKRows++;
+  if(/^edgar\/data\/\d+\/[\w./-]+\.txt$/.test(relative)&&!relative.includes('..'))validEightKPaths++;
+  if(cikMap.has(String(Number(cik))))tickerMatchedEightK++;
+  if(samples.length<2)samples.push({cik,form,path:relative.slice(0,110),mappedTicker:cikMap.get(String(Number(cik)))||null});
+ }
+ return {records,eightKRows,validEightKPaths,tickerMatchedEightK,samples};
+}
 export function rankFreshFilings(rows,limit=40){
  const unique=new Map();
  for(const r of rows){
@@ -92,7 +111,7 @@ export async function handleWideDiscovery(req,res){
     let raw='',encoding='unreadable';
     try{const decoded=decodeIndexBytes(wire);raw=decoded.text;encoding=decoded.encoding}
     catch(e){errors.push(day+': index decoding failed: '+(e instanceof Error?e.message:'unknown error'))}
-    const diag={date:day,status:r.status,contentType:r.headers.get('content-type')||'unknown',bytes:wire.byteLength,encoding,firstChars:raw.slice(0,160).replace(/[\x00-\x1f\x7f]/g,' '),matched:0,valid:false};
+    const diag={date:day,status:r.status,contentType:r.headers.get('content-type')||'unknown',bytes:wire.byteLength,encoding,firstChars:raw.slice(0,160).replace(/[\x00-\x1f\x7f]/g,' '),audit:diagnoseMasterIndex(raw,symbols),matched:0,valid:false};
     diagnostics.push(diag);
     try{
      const parsed=parseMasterIndex(raw,day,symbols);
