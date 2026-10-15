@@ -48,10 +48,23 @@ describe('SEC source evidence review',()=>{
    expect(result.evidence).toBeNull();
   }finally{vi.unstubAllGlobals();vi.unstubAllEnvs()}
  });
+ it('does not classify successful HTTP responses that are not recognizable SEC filings',async()=>{
+  vi.stubEnv('SEC_USER_AGENT','ATLAS tests tests@example.com');
+  const other='https://www.sec.gov/Archives/edgar/data/1819994/0001819994-26-000101.txt';
+  vi.stubGlobal('fetch',vi.fn(async()=>new Response('<html>Access problem</html>',{status:200})));
+  let code=0,body='';
+  try{
+   await handleFilingReview({url:'/api/opportunities/review?url='+encodeURIComponent(other),method:'GET'},{writeHead(c:number){code=c},end(v:string){body=v}});
+   const result=JSON.parse(body);
+   expect(code).toBe(200);
+   expect(result.sourceStatus).toBe('unavailable');
+   expect(result.evidence).toBeNull();
+  }finally{vi.unstubAllGlobals();vi.unstubAllEnvs()}
+ });
  it('reports extracted evidence when a valid filing is accessible',async()=>{
   vi.stubEnv('SEC_USER_AGENT','ATLAS tests tests@example.com');
   const other='https://www.sec.gov/Archives/edgar/data/1819994/0001819994-26-000099.txt';
-  vi.stubGlobal('fetch',vi.fn(async()=>new Response('The company raises annual guidance.',{status:200,headers:{'Content-Type':'text/plain'}})));
+  vi.stubGlobal('fetch',vi.fn(async()=>new Response('<SEC-DOCUMENT>0001819994-26-000099\n<DOCUMENT><TYPE>8-K\n<TEXT>The company raises annual guidance.</TEXT></DOCUMENT>',{status:200,headers:{'Content-Type':'text/plain'}})));
   let code=0,body='';
   try{
    await handleFilingReview({url:'/api/opportunities/review?url='+encodeURIComponent(other),method:'GET'},{writeHead(c:number){code=c},end(v:string){body=v}});
