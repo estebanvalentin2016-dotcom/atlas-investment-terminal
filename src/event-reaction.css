@@ -1,0 +1,13 @@
+
+/* Event reaction metrics: signed percentage changes, not trading recommendations. */
+.event-reaction-panel{margin-top:12px}
+.event-reaction-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0 16px}
+.event-reaction-card{display:flex;flex-direction:column;gap:8px;min-width:0;padding:14px 12px;border:1px solid #344d69;border-radius:10px;background:#112139}
+.event-reaction-card span{color:#b8cbdf;font-size:12px;font-weight:600}
+.event-reaction-card strong{font-size:clamp(21px,2.4vw,30px);line-height:1.12;font-weight:750;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.event-reaction-positive strong{color:#65e2a1}
+.event-reaction-negative strong{color:#ff8383}
+.event-reaction-flat strong,.event-reaction-unavailable strong{color:#e1eaf5}
+.event-reaction-positive{border-color:#28654d}
+.event-reaction-negative{border-color:#824348}
+@media(max-width:700px){.event-reaction-grid{grid-template-columns:1fr}}
