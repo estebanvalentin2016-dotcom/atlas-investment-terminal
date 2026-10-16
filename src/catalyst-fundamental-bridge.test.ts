@@ -68,6 +68,23 @@ describe('Point-in-time catalyst + SEC fundamental + valuation bridge',()=>{
   expect(x.status).toBe('caution');
   expect(x.priority).toBeNull();
  });
+ it('blocks provisional bullish promotion when a disclosed EPS decline offsets favorable guidance language',()=>{
+  const filing=review();
+  filing.evidence!.metrics=[{label:'Reported EPS growth',reportedValue:'8% decline in adjusted diluted EPS',excerpt:'8% decline in adjusted diluted EPS',
+   sourceUrl:'https://www.sec.gov/Archives/edgar/data/1234567/000123456726000001/ex991.htm'}];
+  const r=assessCatalystFundamentalBridge({...inputs(),review:filing});
+  expect(r.economicStatus).toBe('adverse_or_mixed');
+  expect(r.status).toBe('caution');
+  expect(r.priority).toBeNull();
+  expect(r.gaps.join(' ')).toContain('adverse or mixed company-reported');
+  const positive=review();
+  positive.evidence!.metrics=[{label:'Reported revenue growth',reportedValue:'19% increase in revenue',excerpt:'19% increase in revenue',
+   sourceUrl:'https://www.sec.gov/Archives/edgar/data/1234567/000123456726000001/ex991.htm'}];
+  const candidate=assessCatalystFundamentalBridge({...inputs(),review:positive});
+  expect(candidate.economicStatus).toBe('quantified_improvement');
+  expect(candidate.status).toBe('provisional_alignment');
+  expect(candidate.interpretation).toContain('NOT verified article corroboration');
+ });
  it('blocks rich annual P/E, negative FCF, partial filing and source failure separately',()=>{
   const high=assessCatalystFundamentalBridge({...inputs(),quote:{...quote(),price:180}});
   expect(high.status).toBe('not_aligned');
