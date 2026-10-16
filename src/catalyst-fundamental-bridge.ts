@@ -30,8 +30,17 @@ export function assessCatalystFundamentalBridge(args:{
 }):BridgeResult{
  const {ticker,name,filed,filingUrl,review,headlines,company,quote,asOf}=args;
  const gaps:string[]=[];
- const issuerFiling=!!review&&review.url===filingUrl&&review.sourceStatus==='reviewed_text'&&!!review.evidence;
- if(!issuerFiling)gaps.push('Selected SEC 8-K documents were not completely reviewed; phrase absence is inconclusive.');
+ const selectedDocumentCoverage=!!review&&review.url===filingUrl&&review.reviewMethod==='selected_documents'&&
+  review.selection?.primaryLocated===true&&review.selection.exhibitsListed===review.selection.selectedExhibits&&
+  Array.isArray(review.documents)&&review.documents.length>0&&review.documents.some(d=>d.role==='Primary 8-K'&&d.status==='reviewed')&&
+  review.documents.every(d=>d.status==='reviewed')&&(!review.sourceProblems||review.sourceProblems.length===0);
+ // A correctly retrieved primary 8-K plus ALL *listed Exhibit 99* files
+ // supports provisional source-text triage. It does NOT mean the full SEC
+ // submission, other exhibits, or the article were comprehensively reviewed.
+ const issuerFiling=!!review&&review.url===filingUrl&&!!review.evidence&&
+  (review.sourceStatus==='reviewed_text'||selectedDocumentCoverage);
+ if(!issuerFiling)gaps.push('Selected SEC 8-K source coverage cannot be established; missing text and exhibits may contain opposing facts.');
+ if(selectedDocumentCoverage)gaps.push('Primary 8-K and listed Exhibit 99 documents were read, but other exhibits and context are not comprehensively reviewed; full-filing verification is still missing.');
  if(!validDate(asOf)||!filed||!validDate(filed)||filed>asOf||elapsed(asOf,filed)>95)gaps.push('8-K filing date unavailable or outside the supported lookback.');
  const positive=review?.url===filingUrl&&review?.sourceStatus!=='unavailable'?review?.evidence?.potential??[]:[];
  const cautions=review?.url===filingUrl?review?.evidence?.cautions??[]:[];
