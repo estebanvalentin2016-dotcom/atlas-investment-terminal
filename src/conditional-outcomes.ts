@@ -17,7 +17,11 @@ export function calculateConditionalOutcomes(history:HistoricalPriceResponse|nul
  if(!history||history.provider!=='Alpaca'||history.feed!=='IEX'||history.adjustment!=='split'||history.timeframe!=='1Week'||!history.completedWeeksOnly||history.partialHistory)return fail('Complete split-adjusted weekly Alpaca IEX history is unavailable.');
  const bars=[...history.bars].filter(b=>validDate(b.date)&&b.date<asOf&&Number.isFinite(b.close)&&b.close>0).sort((a,b)=>a.date.localeCompare(b.date));
  const w=weeks[horizonMonths];
- if(bars.length<w+31||bars.some((b,i)=>i>0&&(b.date===bars[i-1].date||(Date.parse(b.date+'T00:00:00Z')-Date.parse(bars[i-1].date+'T00:00:00Z'))>16*86400000))return fail('Insufficient continuous weekly observations for historical outcome bands.');
+ const noncontinuous=bars.some((bar,i)=>i>0&&(
+  bar.date===bars[i-1].date||
+  Date.parse(bar.date+'T00:00:00Z')-Date.parse(bars[i-1].date+'T00:00:00Z')>16*86400000
+ ));
+ if(bars.length<w+31||noncontinuous)return fail('Insufficient continuous weekly observations for historical outcome bands.');
  if((Date.parse(asOf+'T00:00:00Z')-Date.parse(bars.at(-1)!.date+'T00:00:00Z'))>21*86400000)return fail('Historical weekly price data are stale.');
  const values:number[]=[];
  for(let i=w;i<bars.length;i++){
