@@ -17,7 +17,7 @@ describe('Source-dated filing-led home and rolling SEC research ledger',()=>{
  it('filters unsupported forms, malicious URLs, dates and duplicate same-issuer cards',()=>{
   const rows=retainPickLeads([],[
    a('TEST','2026-10-12'),{...a('TEST','2026-10-13'),url:'https://evil.example/filing.txt'},
-   a('TEST','2026-10-11'),a('OTHER','2026-10-10','10-K'),a('OTHER','2026-10-09','8-K/A')
+   {...a('TEST','2026-10-11'),url:'https://www.sec.gov/Archives/edgar/data/1234/TEST-2026-2.txt'},a('OTHER','2026-10-10','10-K'),a('OTHER','2026-10-09','8-K/A')
   ],'2026-10-16');
   expect(rows).toHaveLength(3);
   expect(distinctIssuers(rows,3).map(x=>x.ticker)).toEqual(['TEST','OTHER']);
@@ -32,7 +32,7 @@ describe('Source-dated filing-led home and rolling SEC research ledger',()=>{
  });
  it('renders an amount slider that starts with $500 and a holding period without implying returns are assured',()=>{
   const html=renderToStaticMarkup(createElement(InvestmentOutcomeSimulator,{ticker:'TEST'}));
-  expect(html).toContain('What could $500 turn into?');
+  expect(html).toContain('What could $500.00 turn into?');
   expect(html).toContain('Hypothetical investment amount');
   expect(html).toContain('Historical outcome horizon');
   expect(html).toContain('not');
