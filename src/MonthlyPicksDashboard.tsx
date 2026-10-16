@@ -139,11 +139,23 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
      <p>{reviewProgress||'Review underway.'} {savedPasses.length} saved preliminary Autonomous Discovery pass(es) in this browser. This queue advances through the available issuer rows, not through the entire listed market.</p>
     </details>
     {top.length===0?<p className="opportunity-uncertainty"><strong>No current source-backed shortlist loaded.</strong> ATLAS has not identified any investable picks yet. Review Opportunity Radar or refresh the SEC discovery feed.</p>:
-    <div className="atlas-picks-cards">{top.map(({lead,assessment,historicalPass},i)=>{
+    <div className="atlas-picks-cards">{top.map(({lead,assessment,historicalPass,brief},i)=>{
      const e=evidence[lead.url],potential=e?.review?.evidence?.potential??[],cautions=e?.review?.evidence?.cautions??[];
      const filingTopics=e?.review?.evidence?.topics??[],reportedFigures=e?.review?.evidence?.metrics??[];
-     return <article className="atlas-picks-card" key={lead.url}>
-      <div className="atlas-picks-card-top"><div><span className="eyebrow">Research lead {i+1} · {assessment.status==='provisional_alignment'?'Provisional evidence alignment':historicalPass?'Autonomous Discovery crossover':'Evidence and valuation triage'}</span><h4>{lead.ticker} · {lead.name}</h4></div><span className="tag">Not a buy rating</span></div>
+     return <article className="atlas-picks-card atlas-brief-card" key={lead.url}>
+      <div className="atlas-picks-card-top">
+       <div><span className="eyebrow">Research question ${i+1} · {lead.filed??'filing date unavailable'}</span><h4>{lead.ticker} · {lead.name}</h4></div>
+       <span className={'atlas-action-label atlas-action-'+brief.action}>{brief.action==='investigate'?'Investigate':brief.action==='watch'?'Watch':brief.action==='checking'?'Checking':'Deprioritize'}</span>
+      </div>
+      <h5 className="atlas-brief-headline">{brief.headline}</h5>
+      <div className="atlas-brief-summary">
+       <div><span>What ATLAS found</span><p>{brief.finding}</p></div>
+       <div><span>What it means</span><p>{brief.interpretation}</p></div>
+       <div><span>Next research action</span><p><strong>{brief.nextStep}</strong></p></div>
+      </div>
+      <p className="atlas-brief-provenance">{brief.evidenceNote} · <a href={lead.url} target="_blank" rel="noopener noreferrer">SEC filing ↗</a></p>
+      <details className="atlas-brief-deep-dive">
+       <summary>Show full evidence, news, valuation and source limitations</summary>
       <p><strong>{lead.form}</strong> filed {lead.filed??'date unavailable'}. Filing existence does not establish bullish direction, novelty, or remaining upside.</p>
       <p><a href={lead.url} target="_blank" rel="noopener noreferrer">Original SEC 8-K ↗</a></p>
       <section className="atlas-picks-evidence-bridge" aria-label={'Catalyst and fundamental cross-check for '+lead.ticker}>
@@ -180,6 +192,7 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
        <EconomicSignificancePanel ticker={lead.ticker} filingUrl={lead.url} asOf={asOf} review={e.review} company={e.company}/>
        <CatalystVerificationPanel ticker={lead.ticker} issuerName={lead.name} filingDate={lead.filed} sourceUrl={lead.url} review={e.review} headlines={e.news} asOf={asOf}/>
       </>}
+      </details>
       <div className="atlas-picks-actions">
        <button type="button" className="button secondary" onClick={()=>setOpened(opened===lead.ticker?null:lead.ticker)} aria-expanded={opened===lead.ticker}>{opened===lead.ticker?'Close dollar scenarios':'Explore $500 dollar scenarios'}</button>
        {onConviction&&<button type="button" className="button secondary" onClick={()=>onConviction(lead.ticker)}>Open Conviction Lab →</button>}
