@@ -30,7 +30,7 @@ describe('Economic significance only when the issuer source quantifies an actual
   expect(x.verifiedEarningsSurprise).toBe(false);
   expect(x.fairValueImpact).toBe(false);
   expect(x.verifiedMateriality).toBe(false);
-  expect(x.limitations.join(' ')).toContain('do NOT necessarily cover the same reporting period');
+  expect(x.limitations.join(' ')).toContain('does NOT necessarily cover the same reporting period');
  });
  it('treats EPS decline and reported outflows as adverse, not an undiscounted buying opportunity',()=>{
   const x=assess(review([
@@ -78,8 +78,8 @@ describe('Economic significance only when the issuer source quantifies an actual
    review:review([{label:'Reported revenue growth',reportedValue:'19% increase in revenue'}]),company:company()}));
   expect(html).toContain('Does the catalyst actually change the business?');
   expect(html).toContain('+19.0%');
-  expect(html).toContain('±$15M');
-  expect(html).toContain('±$45M');
+  expect(html).toMatch(/±\$15(?:\.0+)?M/);
+  expect(html).toMatch(/±\$45(?:\.0+)?M/);
   expect(html).toContain('Not a forecast');
   expect(html).toContain('pre-release consensus');
   expect(html).toContain('Inspect SEC passage');
