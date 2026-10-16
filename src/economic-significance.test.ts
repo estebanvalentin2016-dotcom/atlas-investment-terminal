@@ -69,7 +69,7 @@ describe('Economic significance only when the issuer source quantifies an actual
  it('excludes annual SEC data filed after the assessment date and refuses a mismatched 8-K accession',()=>{
   const co=company();co.metrics.find(m=>m.name==='Revenue')!.values[0]=a(2025,1_500_000_000,'2026-10-17');
   const x=assess(review([{label:'Reported revenue growth',reportedValue:'19% increase in revenue'}]),co);
-  expect(x.annual?.fiscalYear).toBe(2024);
+  expect(x.annual).toBeNull(); // 2024 annual data are stale; a future-filed 2025 result cannot refresh them
   const wrong=review([]);wrong.url='https://www.sec.gov/Archives/edgar/data/9999999/0009999999-26-000001.txt';
   expect(assess(wrong).status).toBe('source_unavailable');
  });
