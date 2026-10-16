@@ -50,14 +50,18 @@ export function assessCatalystFundamentalBridge(args:{
  let topic:BridgeTopic|null=null,matchedHeadline:CandidateHeadline|null=null;
  for(const [kind,secRe,newsRe] of filingTopics){
   if(!positive.some(p=>secRe.test(p.label)))continue;
-  const hit=headlines.find(h=>h.link?.startsWith('https://news.google.com/')&&
-   headlineReferencesIssuer(h.title,name)&&newsRe.test(h.title)&&
-   (!!h.feedPublishedAt&&validDate(h.feedPublishedAt.slice(0,10))&&filed!==null&&
-    Math.abs(elapsed(h.feedPublishedAt.slice(0,10),filed))<=4||
-    !!h.feedDateOnly&&validDate(h.feedDateOnly)&&filed!==null&&Math.abs(elapsed(h.feedDateOnly,filed))<=4));
+  const hit=headlines.find(h=>{
+   if(!h.link?.startsWith('https://news.google.com/')||!headlineReferencesIssuer(h.title,name)||!newsRe.test(h.title))return false;
+   const rssDate=h.feedPublishedAt&&validDate(h.feedPublishedAt.slice(0,10))?h.feedPublishedAt.slice(0,10):h.feedDateOnly;
+   // An RSS headline before the SEC filing is valuable historical context,
+   // but not evidence of a fresh post-filing catalyst. Future news must not
+   // leak into an earlier source-dated research snapshot.
+   return !!rssDate&&validDate(rssDate)&&!!filed&&validDate(filed)&&validDate(asOf)&&
+    rssDate>=filed&&rssDate<=asOf&&elapsed(rssDate,filed)<=4;
+  });
   if(hit){topic=kind;matchedHeadline=hit;break}
  }
- if(!topic)gaps.push('No SEC positive-language topic also appears in an issuer-identified, date-near RSS headline. A ticker match alone does not count.');
+ if(!topic)gaps.push('No SEC positive-language topic also appears in an issuer-identified, same-or-later-date RSS headline. Pre-filing stories and ticker matches cannot certify a new SEC catalyst.');
  if(topic)gaps.push('SEC text and RSS headline have an unverified topic overlap; primary article substance, independent publisher and first-public time were NOT checked.');
  const secCurrent=!!company&&company.ticker===ticker&&company.source?.startsWith('https://data.sec.gov/')&&
   Array.isArray(company.metrics)&&validDate(asOf);
