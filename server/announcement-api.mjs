@@ -22,11 +22,17 @@ export async function handleAnnouncementRequest(req,res){
  if(req.method!=='GET'){send(res,405,{error:'Method not allowed'});return true}
  const ticker=(u.searchParams.get('ticker')||'').trim().toUpperCase();
  const day=u.searchParams.get('date')||'';
+ const company=(u.searchParams.get('company')||'').trim();
+ if(company&&(company.length>120||!/^[a-z0-9 ]+$/i.test(company))){send(res,400,{error:'Invalid company identity search phrase'});return true}
  if(!/^[A-Z0-9.-]{1,12}$/.test(ticker)||!/^\d{4}-\d{2}-\d{2}$/.test(day)||!Number.isFinite(Date.parse(day+'T12:00:00Z'))||new Date(day+'T12:00:00Z').toISOString().slice(0,10)!==day){send(res,400,{error:'Invalid ticker or date'});return true}
  try{
   const start=new Date(Date.parse(day+'T00:00:00Z')-2*86400000).toISOString().slice(0,10);
   const end=new Date(Date.parse(day+'T00:00:00Z')+4*86400000).toISOString().slice(0,10);
-  const query='"'+ticker+'" (earnings OR guidance OR results OR investor OR announcement) after:'+start+' before:'+end;
+  // Optional SEC issuer identity is much safer than ticker-only search for
+  // short/ambiguous symbols (e.g. AA also appears in American Airlines news).
+  // Callers still apply a headline identity check after discovery.
+  const searchIdentity=company?'"'+company+'"':'"'+ticker+'"';
+  const query=searchIdentity+' (earnings OR guidance OR results OR investor OR announcement) after:'+start+' before:'+end;
   const url=new URL('https://news.google.com/rss/search');url.searchParams.set('q',query);url.searchParams.set('hl','en-US');url.searchParams.set('gl','US');url.searchParams.set('ceid','US:en');
   const r=await fetch(url,{headers:{'User-Agent':'ATLAS-research/0.9 (historical public news discovery)','Accept':'application/rss+xml, application/xml, text/xml'},signal:AbortSignal.timeout(12000)});
   if(!r.ok)throw Error('Public news feed HTTP '+r.status);
