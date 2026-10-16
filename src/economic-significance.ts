@@ -50,7 +50,10 @@ function parseMetric(metric:{label:string;reportedValue:string;excerpt:string;so
   category=label==='Reported revenue growth'?'revenue_change':'eps_change';
   // The matched verb determines the sign. A bare "%" without its
   // surrounding directional assertion must never be interpreted as growth.
-  const matched=raw.match(/\b(\d{1,3}(?:\.\d+)?)\s*%\s+(increase|growth|decrease|decline|drop|reduction)\b/i);
+  const expression=category==='revenue_change'?
+   /\b(\d{1,3}(?:\.\d+)?)\s*%\s+(increase|growth|decrease|decline|drop|reduction)\s+in\s+revenue\b/i:
+   /\b(\d{1,3}(?:\.\d+)?)\s*%\s+(increase|growth|decrease|decline|drop|reduction)\s+in\s+(?:(?:year[- ]over[- ]year|as adjusted|adjusted|gaap|diluted|net)\s+){0,6}(?:eps|earnings\s+per\s+share)\b/i;
+  const matched=raw.match(expression);
   if(!matched)return null;
   const n=Number(matched[1]);if(!Number.isFinite(n)||n>200)return null;
   direction=/^(increase|growth)$/i.test(matched[2])?'improvement':'deterioration';
