@@ -25,3 +25,24 @@ export function distinctIssuers(leads:PickLead[],count:number):PickLead[]{
  const seen=new Set<string>();
  return leads.filter(r=>{if(seen.has(r.ticker))return false;seen.add(r.ticker);return true}).slice(0,count);
 }
+
+/** Inspect the rolling SEC queue in explicit, non-overlapping small batches.
+ *  Repeated refreshes previously rechecked the same eight alphabetical tickers
+ *  while hundreds of valid 8-K records remained unseen.
+ *  Sorting is the supplied SEC date/order, NOT a quality or opportunity score.
+ */
+export function selectIssuerReviewBatch(leads:PickLead[],offset:number,batchSize=8):{
+ rows:PickLead[];offset:number;nextOffset:number;totalIssuers:number
+}{
+ if(!Number.isSafeInteger(batchSize)||batchSize<1||batchSize>24)throw Error('Unsupported SEC review batch size');
+ const seen=new Set<string>();
+ const issuers=leads.filter(x=>{
+  if(!x||!x.ticker||seen.has(x.ticker)||!effectiveDate(x))return false;
+  seen.add(x.ticker);return true;
+ });
+ const totalIssuers=issuers.length;
+ if(!totalIssuers)return {rows:[],offset:0,nextOffset:0,totalIssuers:0};
+ const actual=Number.isSafeInteger(offset)&&offset>=0?offset%totalIssuers:0;
+ const rows=issuers.slice(actual,actual+batchSize);
+ return {rows,offset:actual,nextOffset:(actual+rows.length)%totalIssuers,totalIssuers};
+}
