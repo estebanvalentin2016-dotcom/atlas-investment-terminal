@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {distinctIssuers,retainPickLeads,thisMonth,type PickLead} from './picks-research';
+import {distinctIssuers,retainPickLeads,thisMonth,selectIssuerReviewBatch,type PickLead} from './picks-research';
 import ResearchHome from './ResearchHome';
 import InvestmentOutcomeSimulator from './InvestmentOutcomeSimulator';
 const a=(ticker:string,filed:string,form='8-K'):PickLead=>({ticker,name:'Issuer '+ticker,filed,form,kind:'8-K (unreviewed)',url:'https://www.sec.gov/Archives/edgar/data/1234/'+ticker+'-2026.txt'});
@@ -21,6 +21,26 @@ describe('Source-dated filing-led home and rolling SEC research ledger',()=>{
   ],'2026-10-16');
   expect(rows).toHaveLength(3);
   expect(distinctIssuers(rows,3).map(x=>x.ticker)).toEqual(['TEST','OTHER']);
+ });
+ it('cycles across source-indexed issuers instead of rechecking the same first eight every refresh',()=>{
+  const rows=Array.from({length:19},(_,i)=>a('S'+i,'2026-10-15'));
+  const one=selectIssuerReviewBatch(rows,0,8);
+  const two=selectIssuerReviewBatch(rows,one.nextOffset,8);
+  const three=selectIssuerReviewBatch(rows,two.nextOffset,8);
+  expect(one.rows).toHaveLength(8);
+  expect(two.rows).toHaveLength(8);
+  expect(three.rows).toHaveLength(3);
+  expect(new Set([...one.rows,...two.rows,...three.rows].map(x=>x.ticker)).size).toBe(19);
+  expect(three.nextOffset).toBe(0);
+  expect(selectIssuerReviewBatch(rows,0,8).rows[0].ticker).toBe('S0');
+ });
+ it('deduplicates a repeat issuer and counts unique companies, not just filings',()=>{
+  const rows=[a('AA','2026-10-15'),{...a('AA','2026-10-14'),url:'https://www.sec.gov/Archives/edgar/data/1234/AA-older.txt'},a('ABBV','2026-10-15')];
+  const batch=selectIssuerReviewBatch(rows,0,8);
+  expect(batch.rows.map(x=>x.ticker)).toEqual(['AA','ABBV']);
+  expect(batch.totalIssuers).toBe(2);
+  expect(selectIssuerReviewBatch([],0).rows).toEqual([]);
+  expect(()=>selectIssuerReviewBatch(rows,0,25)).toThrow('Unsupported SEC review batch size');
  });
  it('opens the real-home source research workflow instead of a fictional top-picks claim',()=>{
   const html=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{}}));
