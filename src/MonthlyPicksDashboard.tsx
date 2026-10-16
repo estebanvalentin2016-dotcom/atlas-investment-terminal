@@ -1,5 +1,6 @@
 import {useEffect,useState} from 'react';
 import InvestmentOutcomeSimulator from './InvestmentOutcomeSimulator';
+import CatalystVerificationPanel from './CatalystVerificationPanel';
 import {distinctIssuers,retainPickLeads,thisMonth,selectIssuerReviewBatch,type PickLead} from './picks-research';
 import {headlineReferencesIssuer,issuerSearchName} from './issuer-news-identity';
 import type {FilingEvidenceResult} from './FilingEvidence';
@@ -158,6 +159,7 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
          <p className="chart-note">{e.newsIssue?'News feed unavailable: '+e.newsIssue:'No issuer-name-matched news headlines retrieved. Unrelated ticker/acronym matches are withheld.'}</p>}
        </div>
        <p className="chart-note">Displayed headlines must match this SEC issuer name, not merely its ticker. News is still a Google RSS discovery candidate: the publisher, substance and first-public time have not been independently reconciled with the 8-K. This lead is not a news-corroborated investment pick.</p>
+       <CatalystVerificationPanel ticker={lead.ticker} filingDate={lead.filed} sourceUrl={lead.url} review={e.review} headlines={e.news} asOf={asOf}/>
       </>}
       <div className="atlas-picks-actions">
        <button type="button" className="button secondary" onClick={()=>setOpened(opened===lead.ticker?null:lead.ticker)} aria-expanded={opened===lead.ticker}>{opened===lead.ticker?'Close dollar scenarios':'Explore $500 dollar scenarios'}</button>
