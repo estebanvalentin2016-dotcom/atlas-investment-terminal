@@ -79,6 +79,17 @@ describe('Point-in-time catalyst + SEC fundamental + valuation bridge',()=>{
   expect(assessCatalystFundamentalBridge({...inputs(),review:partial}).status).toBe('not_aligned');
   expect(assessCatalystFundamentalBridge({...inputs(),company:null}).priority).toBeNull();
  });
+ it('does not mistake a pre-filing publisher headline for a new SEC-driven event',()=>{
+  const early=assessCatalystFundamentalBridge({...inputs(),headlines:[{...news(),feedPublishedAt:'2026-10-13T13:00:00.000Z'}]});
+  expect(early.status).toBe('not_aligned');
+  expect(early.topic).toBeNull();
+  expect(early.gaps.join(' ')).toContain('Pre-filing stories');
+  const future=assessCatalystFundamentalBridge({...inputs(),headlines:[{...news(),feedPublishedAt:'2026-10-17T13:00:00.000Z'}]});
+  expect(future.topic).toBeNull();
+  expect(future.priority).toBeNull();
+  const onDate=assessCatalystFundamentalBridge(inputs());
+  expect(onDate.topic).toBe('guidance');
+ });
  it('does not match stale/after-as-of news or a filing after the date of research',()=>{
   const far=assessCatalystFundamentalBridge({...inputs(),headlines:[{...news(),feedPublishedAt:'2026-09-01T11:00:00.000Z'}]});
   expect(far.status).toBe('not_aligned');
