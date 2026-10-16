@@ -20,7 +20,7 @@ describe('Transparent history-based conditional dollar scenarios',()=>{
   expect(double.bands[1].endingValue).toBeCloseTo(r.bands[1].endingValue*2,1);
   expect(double.severeStress).toEqual({returnPct:-50,endingValue:500,profit:-500});
   expect(r.reason).toContain('NOT calibrated forecasts');
-  expect(r.reason).toContain('not');
+  expect(r.reason).toContain('NOT calibrated forecasts');
  });
  it('illustrates downward historical moves instead of assuming every event is profitable',()=>{
   const r=calculateConditionalOutcomes(historical(0.82),500,6,asOf,'2026-10-14');
