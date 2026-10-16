@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react';
 import InvestmentOutcomeSimulator from './InvestmentOutcomeSimulator';
 import {distinctIssuers,retainPickLeads,thisMonth,type PickLead} from './picks-research';
+import {headlineReferencesIssuer,issuerSearchName} from './issuer-news-identity';
 import type {FilingEvidenceResult} from './FilingEvidence';
 
 type Scan={rows:PickLead[];source:string;coverageStatus:string;lookbackCalendarDays:number;retrievedAt:string;errorDays:string[];truncated?:boolean;error?:string};
@@ -43,12 +44,14 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
       review=await r.json() as FilingEvidenceResult;
       if(!r.ok||review.sourceStatus==='unavailable')reviewIssue=review.note||'SEC document review unavailable';
      }catch(e){reviewIssue=e instanceof Error?e.message:'SEC review unavailable'}
-     if(lead.filed)try{
-      const n=await fetch('/api/catalyst/announcements?ticker='+encodeURIComponent(lead.ticker)+'&date='+lead.filed);
+     const issuer=issuerSearchName(lead.name);
+     if(lead.filed&&issuer)try{
+      const n=await fetch('/api/catalyst/announcements?ticker='+encodeURIComponent(lead.ticker)+'&date='+lead.filed+'&company='+encodeURIComponent(issuer));
       const body=await n.json() as {candidates?:News[];error?:string};
       if(!n.ok)throw Error(body.error||'Public news search failed');
-      news=(body.candidates||[]).filter(x=>x.link&&x.title).slice(0,3);
+      news=(body.candidates||[]).filter(x=>x.link&&x.title&&headlineReferencesIssuer(x.title,lead.name)).slice(0,3);
      }catch(e){newsIssue=e instanceof Error?e.message:'News search unavailable'}
+     if(!issuer)newsIssue='SEC issuer name could not be safely resolved for headline filtering; ticker-only news is withheld.';
      if(!cancelled)setEvidence(prev=>({...prev,[lead.url]:{review,news,reviewIssue,newsIssue}}));
     }
    }catch(e){if(!cancelled)setMessage(e instanceof Error?e.message:'Could not retrieve SEC filings')}
@@ -83,11 +86,11 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
        {e.reviewIssue&&<p className="opportunity-uncertainty">Filing access limit: {e.reviewIssue}</p>}
        {potential.slice(0,2).map((p,j)=><p className="chart-note" key={j}><strong>Possible filing development:</strong> {p.label} · <a href={p.sourceUrl||lead.url} target="_blank" rel="noopener noreferrer">SEC passage ↗</a></p>)}
        {cautions.slice(0,1).map((p,j)=><p className="opportunity-uncertainty" key={j}><strong>Filing caution:</strong> {p.label}</p>)}
-       <div className="atlas-picks-news"><strong>Related news to verify (not corroborated)</strong>
+       <div className="atlas-picks-news"><strong>Issuer-name matched news to verify (not corroborated)</strong>
         {e.news.length?e.news.map((n,j)=><p key={j}><a href={n.link!} target="_blank" rel="noopener noreferrer">{n.title}</a> · {n.source||'Publisher unverified'} · RSS {n.feedPublishedAt?.slice(0,10)||n.feedDateOnly||'date unknown'}</p>):
-         <p className="chart-note">{e.newsIssue?'News feed unavailable: '+e.newsIssue:'No independently confirmed matching news retrieved.'}</p>}
+         <p className="chart-note">{e.newsIssue?'News feed unavailable: '+e.newsIssue:'No issuer-name-matched news headlines retrieved. Unrelated ticker/acronym matches are withheld.'}</p>}
        </div>
-       <p className="chart-note">News is a Google RSS *discovery candidate*; its publisher, article substance and original first-public time have not been reconciled with the 8-K. This lead is not a news-corroborated investment pick.</p>
+       <p className="chart-note">Displayed headlines must match this SEC issuer name, not merely its ticker. News is still a Google RSS discovery candidate: the publisher, substance and first-public time have not been independently reconciled with the 8-K. This lead is not a news-corroborated investment pick.</p>
       </>}
       <div className="atlas-picks-actions">
        <button type="button" className="button secondary" onClick={()=>setOpened(opened===lead.ticker?null:lead.ticker)} aria-expanded={opened===lead.ticker}>{opened===lead.ticker?'Close dollar scenarios':'Explore $500 dollar scenarios'}</button>
