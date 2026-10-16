@@ -6,7 +6,7 @@ export const KEY='atlas.autonomous.preliminary-passes.v1';
 const day=(s:string)=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s+'T00:00:00Z'))&&new Date(s+'T00:00:00Z').toISOString().slice(0,10)===s;
 export function mergeSavedPasses(previous:SavedPreliminaryPass[],current:SavedPreliminaryPass[],asOf:string):SavedPreliminaryPass[]{
  if(!day(asOf))return [];
- const fresh=asOf=>Date.parse(asOf+'T00:00:00Z');
+ const fresh=(date:string)=>Date.parse(date+'T00:00:00Z');
  const latest=new Map<string,SavedPreliminaryPass>();
  for(const x of [...previous,...current]){
   if(!x||!/^[A-Z0-9.-]{1,12}$/.test(x.ticker)||!day(x.observedAt)||!day(x.annualFiled)||
