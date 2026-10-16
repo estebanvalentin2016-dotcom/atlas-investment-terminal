@@ -28,6 +28,32 @@ describe('Point-in-time catalyst + SEC fundamental + valuation bridge',()=>{
   expect(x.interpretation).toContain('NOT verified article corroboration');
   expect(x.gaps.join(' ')).toContain('intrinsic value remain unverified');
  });
+ it('accepts full targeted primary and all listed Exhibit 99 files for provisional triage, without asserting whole-filing or article corroboration',()=>{
+  const targeted:FilingEvidenceResult={...review(),sourceStatus:'partial_text',reviewMethod:'selected_documents',
+   selection:{primaryLocated:true,exhibitsListed:1,selectedExhibits:1},sourceProblems:[],
+   documents:[
+    {role:'Primary 8-K',name:'form8k.htm',url:filingUrl,status:'reviewed'},
+    {role:'Exhibit 99',name:'ex99.htm',url:filingUrl,status:'reviewed'}
+   ]};
+  const result=assessCatalystFundamentalBridge({...inputs(),review:targeted});
+  expect(result.status).toBe('provisional_alignment');
+  expect(result.verified.issuerFiling).toBe(true);
+  expect(result.gaps.join(' ')).toContain('not comprehensively reviewed');
+  expect(result.interpretation).toContain('NOT verified article corroboration');
+  const incomplete={...targeted,selection:{primaryLocated:true,exhibitsListed:2,selectedExhibits:1}};
+  const blocked=assessCatalystFundamentalBridge({...inputs(),review:incomplete});
+  expect(blocked.status).toBe('not_aligned');
+  expect(blocked.verified.issuerFiling).toBe(false);
+  const trunc={...targeted,documents:[...targeted.documents!.slice(0,1),{role:'Exhibit 99',name:'ex99.htm',url:filingUrl,status:'partial'}]};
+  expect(assessCatalystFundamentalBridge({...inputs(),review:trunc}).priority).toBeNull();
+ });
+ it('does not promote a clean targeted SEC filing with no positive catalyst language',()=>{
+  const r=review();r.evidence!.potential=[];
+  const x=assessCatalystFundamentalBridge({...inputs(),review:r});
+  expect(x.status).toBe('not_aligned');
+  expect(x.priority).toBeNull();
+  expect(x.gaps.join(' ')).toContain('No SEC positive-language topic');
+ });
  it('rejects ticker-collision stories and unrelated positive news',()=>{
   const other=assessCatalystFundamentalBridge({...inputs(),name:'Alcoa Corp',headlines:[news('American Airlines raises its FY outlook')]});
   expect(other.status).toBe('not_aligned');
