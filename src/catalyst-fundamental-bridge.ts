@@ -6,6 +6,7 @@ import {initialAutonomousScreen,type ScreenResult} from './autonomous-screen';
 import {annualPeFromSec,scoreCompany,defaultRankWeights,type SecCompany,type MarketValuationClose} from './ranking-model';
 import {headlineReferencesIssuer} from './issuer-news-identity';
 import type {FilingEvidenceResult} from './FilingEvidence';
+import {assessEconomicSignificance,type EconomicSignificance} from './economic-significance';
 
 export type CandidateHeadline={title:string;source:string;link:string|null;feedPublishedAt:string|null;feedDateOnly:string|null};
 export type BridgeTopic='guidance'|'contract'|'regulatory approval'|'revenue';
@@ -13,6 +14,7 @@ export type BridgeResult={
  status:'provisional_alignment'|'incomplete'|'caution'|'not_aligned';
  priority:number|null;financialScore:number|null;screen:ScreenResult|null;
  fyPe:number|null;topic:BridgeTopic|null;matchedHeadline:CandidateHeadline|null;
+ economicStatus:EconomicSignificance['status'];
  verified:{issuerFiling:boolean;secAnnualFinancials:boolean;completedClose:boolean};
  gaps:string[];interpretation:string;
 };
@@ -29,6 +31,8 @@ export function assessCatalystFundamentalBridge(args:{
  headlines:CandidateHeadline[];company:SecCompany|null;quote:MarketValuationClose|null;asOf:string;autonomousPass?:boolean;
 }):BridgeResult{
  const {ticker,name,filed,filingUrl,review,headlines,company,quote,asOf}=args;
+ const economics=assessEconomicSignificance({ticker,filingUrl,asOf,review,company});
+ const hasAdverseEconomics=economics.status==='adverse_or_mixed';
  const gaps:string[]=[];
  const selectedDocumentCoverage=!!review&&review.url===filingUrl&&review.reviewMethod==='selected_documents'&&
   review.selection?.primaryLocated===true&&review.selection.exhibitsListed===review.selection.selectedExhibits&&
@@ -45,6 +49,7 @@ export function assessCatalystFundamentalBridge(args:{
  const positive=review?.url===filingUrl&&review?.sourceStatus!=='unavailable'?review?.evidence?.potential??[]:[];
  const cautions=review?.url===filingUrl?review?.evidence?.cautions??[]:[];
  if(cautions.length)gaps.push('Potential adverse language appears in the filing; investigate context before bullish interpretation.');
+ if(hasAdverseEconomics)gaps.push('Quantified adverse or mixed company-reported operating evidence is present; do not treat an isolated positive 8-K phrase as a clean bullish catalyst.');
  // We only let SEC-extracted positive development phrases qualify as the
  // potential catalyst. Issuer-name-only RSS stories earn no alignment.
  let topic:BridgeTopic|null=null,matchedHeadline:CandidateHeadline|null=null;
@@ -76,10 +81,10 @@ export function assessCatalystFundamentalBridge(args:{
  const rank=secCurrent&&completedClose?scoreCompany(company!,defaultRankWeights,pe):null;
  const financialScore=rank?.score??null;
  if(financialScore===null)gaps.push('The weighted source-dated fundamental score is not established.');
- const ready=!!topic&&issuerFiling&&cautions.length===0&&screen?.status==='preliminary_pass'&&completedClose&&pe!==null&&pe<40&&financialScore!==null&&
+ const ready=!!topic&&issuerFiling&&cautions.length===0&&!hasAdverseEconomics&&screen?.status==='preliminary_pass'&&completedClose&&pe!==null&&pe<40&&financialScore!==null&&
   !!filed&&validDate(filed)&&filed<=asOf&&elapsed(asOf,filed)<=95;
- const status:BridgeResult['status']=cautions.length?'caution':ready?'provisional_alignment':!company||!review?'incomplete':'not_aligned';
- return {status,priority:ready?financialScore:null,financialScore,screen,fyPe:pe,topic,matchedHeadline,
+ const status:BridgeResult['status']=cautions.length||hasAdverseEconomics?'caution':ready?'provisional_alignment':!company||!review?'incomplete':'not_aligned';
+ return {status,economicStatus:economics.status,priority:ready?financialScore:null,financialScore,screen,fyPe:pe,topic,matchedHeadline,
   verified:{issuerFiling,secAnnualFinancials:screen?.status==='preliminary_pass',completedClose},
   gaps,
   interpretation:ready?'Provisional research alignment: positive SEC wording, same-topic issuer news headline, annual financial threshold pass and indicative FY multiple below 40x. This is NOT verified article corroboration, intrinsic undervaluation, a buy rating or a calibrated return forecast.':'No source-gated bullish investment conclusion. A new filing, favorable earnings, interesting headline or good financials alone do not establish an attractive investment.'
