@@ -455,3 +455,21 @@ th{font-size:12px}td{font-size:14px}
 .atlas-catalyst-verification-details{display:grid;gap:14px;margin-top:14px;padding-top:14px;border-top:1px solid #3c5f7d}
 .atlas-catalyst-verification-details a{color:#99d1ff;overflow-wrap:anywhere}
 .atlas-catalyst-verification-details .filing-price-context{margin-top:8px}
+
+
+/* SEC 8-K operating impact: source-dated quantified facts and nonforecast FCF stress */
+.atlas-economic-impact{margin:16px 0;border:1px solid #466782;background:#132d43;border-radius:11px;padding:15px;display:grid;gap:10px}
+.atlas-economic-head{display:flex;gap:12px;justify-content:space-between;align-items:start;flex-wrap:wrap}
+.atlas-economic-head>div{display:grid;gap:5px}
+.atlas-economic-head strong{font-size:17px}
+.atlas-economic-impact p{margin:0}
+.atlas-economic-evidence{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.atlas-economic-evidence>div{display:grid;gap:5px;padding:11px;border-radius:9px;border:1px solid #42617e;background:#192f44}
+.atlas-economic-evidence span,.atlas-economic-evidence small{font-size:12px;color:#cee1f0}
+.atlas-economic-evidence strong{font-size:20px}
+.atlas-economic-evidence a{font-size:12px;color:#9fcfff;overflow-wrap:anywhere}
+.atlas-economic-sensitivity{display:grid;gap:8px;padding:12px;border-radius:9px;border:1px solid #375c78;background:#1b374d}
+.atlas-economic-sensitivity>div{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.atlas-economic-sensitivity>div span{font-size:13px}
+.atlas-economic-sensitivity small{line-height:1.5;color:#c2d5e4}
+@media(max-width:650px){.atlas-economic-evidence{grid-template-columns:1fr}.atlas-economic-sensitivity>div{display:grid;gap:4px}}
