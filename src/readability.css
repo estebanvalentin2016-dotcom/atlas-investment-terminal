@@ -444,3 +444,14 @@ th{font-size:12px}td{font-size:14px}
 .atlas-picks-bridge-metrics strong{font-size:17px;color:#f2f8ff}
 .atlas-picks-evidence-bridge .chart-note{margin:12px 0 8px}
 @media(max-width:660px){.atlas-picks-bridge-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* SEC 8-K catalyst chronology and optional time-aligned IEX reaction */
+.atlas-catalyst-verification{margin:16px 0;padding:14px;border:1px solid #52708a;background:#152f46;border-radius:10px}
+.atlas-catalyst-verification-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.atlas-catalyst-verification-head strong{font-size:15px}
+.atlas-catalyst-verification-head p{margin:5px 0}
+.atlas-catalyst-verification-head .button{white-space:normal}
+.atlas-catalyst-verification-details{display:grid;gap:14px;margin-top:14px;padding-top:14px;border-top:1px solid #3c5f7d}
+.atlas-catalyst-verification-details a{color:#99d1ff;overflow-wrap:anywhere}
+.atlas-catalyst-verification-details .filing-price-context{margin-top:8px}
