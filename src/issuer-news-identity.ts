@@ -6,7 +6,7 @@ const words=(text:string)=>text.toLowerCase().replace(/&/g,' and ').match(/[a-z0
 export function issuerSearchName(name:string):string|null{
  if(typeof name!=='string'||name.length>150)return null;
  const original=words(name);
- while(original.length&&legal.has(original[0]))original.shift();
+ while(original.length&&legal.has(original[0]!))original.shift();
  while(original.length&&legal.has(original.at(-1)!))original.pop();
  const meaningful=original.filter(x=>!['of','and','a','an'].includes(x));
  if(!meaningful.length||meaningful[0].length<4)return null;
