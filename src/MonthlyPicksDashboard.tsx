@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import InvestmentOutcomeSimulator from './InvestmentOutcomeSimulator';
-import {distinctIssuers,retainPickLeads,thisMonth,type PickLead} from './picks-research';
+import {distinctIssuers,retainPickLeads,thisMonth,selectIssuerReviewBatch,type PickLead} from './picks-research';
 import {headlineReferencesIssuer,issuerSearchName} from './issuer-news-identity';
 import type {FilingEvidenceResult} from './FilingEvidence';
 import {assessCatalystFundamentalBridge} from './catalyst-fundamental-bridge';
@@ -11,6 +11,8 @@ type Scan={rows:PickLead[];source:string;coverageStatus:string;lookbackCalendarD
 type News={title:string;source:string;link:string|null;feedPublishedAt:string|null;feedDateOnly:string|null};
 type Evidence={review:FilingEvidenceResult|null;news:News[];newsIssue:string|null;reviewIssue:string|null;company:SecCompany|null;quote:MarketValuationClose|null;fundamentalIssue:string|null};
 const KEY='atlas.monthly.sec-ledger.v1';
+const REVIEW_CURSOR='atlas.home.sec-review-offset.v1';
+const savedCursor=()=>{try{const n=Number(localStorage.getItem(REVIEW_CURSOR)||0);return Number.isSafeInteger(n)&&n>=0?n:0}catch{return 0}};
 const easternDate=()=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const v=Object.fromEntries(p.filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));return v.year+'-'+v.month+'-'+v.day};
 function stored():PickLead[]{try{const raw=localStorage.getItem(KEY);return raw?JSON.parse(raw) as PickLead[]:[]}catch{return []}}
 export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onConviction?:(ticker:string)=>void;onOpportunity?:()=>void}){
@@ -25,10 +27,13 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
  const [opened,setOpened]=useState<string|null>(null);
  const [period,setPeriod]=useState<'month'|'90d'>('month');
  const [generation,setGeneration]=useState(0);
+ const [batchCursor,setBatchCursor]=useState(savedCursor);
+ const [reviewBatch,setReviewBatch]=useState<PickLead[]>([]);
+ const [reviewRange,setReviewRange]=useState({start:0,end:0,total:0});
  useEffect(()=>{
   let cancelled=false;
   const run=async()=>{
-   setLoading(true);setMessage('');setEvidence({});setReviewProgress('');setSavedPasses(readSavedPasses(asOf));
+   setLoading(true);setMessage('');setEvidence({});setReviewBatch([]);setReviewProgress('');setSavedPasses(readSavedPasses(asOf));
    try{
     const response=await fetch('/api/opportunities/sec-wide');
     const data=await response.json() as Scan;
@@ -40,7 +45,12 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
     // This bounded source review is intentionally NOT a market-wide 90-day
     // validated recommendation engine. SEC phrases and news headlines do not
     // establish an earnings surprise or the exact original news timestamp.
-    const sample=distinctIssuers(thisMonth(incoming,asOf).length?thisMonth(incoming,asOf):incoming,8);
+    const pool=thisMonth(incoming,asOf).length?thisMonth(incoming,asOf):incoming;
+    const batch=selectIssuerReviewBatch(pool,batchCursor,8);
+    const sample=batch.rows;
+    setReviewBatch(sample);
+    setReviewRange({start:batch.totalIssuers?batch.offset+1:0,end:batch.offset+sample.length,total:batch.totalIssuers});
+    try{localStorage.setItem(REVIEW_CURSOR,String(batch.offset))}catch{/* No persistent cursor available */}
     let checked=0;
     for(const lead of sample){
      if(cancelled)break;
@@ -79,10 +89,10 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
   };
   void run();
   return ()=>{cancelled=true};
- },[asOf,generation]);
+ },[asOf,generation,batchCursor]);
  const monthly=thisMonth(leads,asOf);
  const visible=period==='month'?monthly:leads;
- const shortList=distinctIssuers(monthly.length?monthly:leads,8);
+ const shortList=reviewBatch;
  const annotated=shortList.map(lead=>{
   const e=evidence[lead.url];
   const historicalPass=savedPasses.find(s=>s.ticker===lead.ticker)??null;
@@ -102,12 +112,13 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
   <div className="atlas-picks-header">
    <div><span className="eyebrow">ATLAS / CURRENT CATALYST WATCH</span><h3>Today's research leads, not yet verified picks</h3>
     <p>Recent SEC 8-K disclosures, document review and related independent news candidates. Price-sensitive scenarios are available per company, but a defensible investment recommendation still requires corroboration and valuation.</p></div>
-   <button className="button secondary" type="button" onClick={()=>setGeneration(x=>x+1)} disabled={loading}>{loading?'Checking sources…':'Refresh current leads'}</button>
+   <button className="button secondary" type="button" onClick={()=>{if(scan&&reviewRange.total){setBatchCursor(x=>x+Math.max(1,reviewBatch.length))}else setGeneration(x=>x+1)}} disabled={loading}>{loading?'Checking sources…':scan&&reviewRange.total?'Review next issuer batch →':'Refresh current leads'}</button>
   </div>
   <div className="atlas-picks-grid">
    <div className="atlas-picks-main">
     {message&&<p className="real-error" role="alert">SEC discovery unavailable: {message}. Previously observed records remain labeled as historical observations.</p>}
     <p className="chart-note"><strong>Coverage:</strong> {scan?.coverageStatus??(loading?'SEC source retrieval underway':'No fresh SEC run')} · live index search is limited to approximately {scan?.lookbackCalendarDays??7} days. {scan?.errorDays?.length?'Some index days failed; omissions are possible. ':''}No issuer is designated a Buy without source-confirmed news, comprehensive valuation and risk evidence.</p>
+    <p className="chart-note"><strong>Issuer review coverage:</strong> {reviewRange.total?'Issuers '+reviewRange.start+'–'+reviewRange.end+' of '+reviewRange.total+' unique companies in the available dated SEC queue.':'Waiting for SEC issuer queue.'} Reviewing the next batch advances through the queue rather than repeatedly sampling the first alphabetically sorted tickers. This is not complete-universe coverage.</p>
     <p className="chart-note"><strong>Evidence bridge:</strong> {reviewProgress||'Loading dated SEC fundamentals, filings and market data for up to eight recent companies.'} {savedPasses.length} previously screened preliminary SEC financial pass(es) retained in this browser. {alignedCount} provisional 8-K + topic-overlap + financial/valuation alignment(s) within the bounded current batch; <strong>zero verified buy recommendations</strong>.</p>
     {top.length===0?<p className="opportunity-uncertainty"><strong>No current source-backed shortlist loaded.</strong> ATLAS has not identified any investable picks yet. Review Opportunity Radar or refresh the SEC discovery feed.</p>:
     <div className="atlas-picks-cards">{top.map(({lead,assessment,historicalPass},i)=>{
@@ -135,7 +146,7 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
        </details>
       </section>
       {!e?<p className="chart-note">Checking filing text and news coverage…</p>:<>
-       <p className="chart-note"><strong>SEC document review:</strong> {e.review?.sourceStatus==='reviewed_text'?'Selected text reviewed':e.review?.sourceStatus==='partial_text'?'Partial text only':'Not available'} · {potential.length} potential-language matches · {cautions.length} caution-language matches. Neither count confirms a bullish event.</p>
+       <p className="chart-note"><strong>SEC document review:</strong> {e.review?.sourceStatus==='reviewed_text'?'Complete source submission reviewed':e.review?.reviewMethod==='selected_documents'?'Selected SEC primary/exhibit documents reviewed — whole filing not verified':e.review?.sourceStatus==='partial_text'?'Truncated/partial submission text only':'Not available'} · {potential.length} potential-language matches · {cautions.length} caution-language matches. Neither count confirms a bullish event.</p>
        {e.reviewIssue&&<p className="opportunity-uncertainty">Filing access limit: {e.reviewIssue}</p>}
        {potential.slice(0,2).map((p,j)=><p className="chart-note" key={j}><strong>Possible filing development:</strong> {p.label} · <a href={p.sourceUrl||lead.url} target="_blank" rel="noopener noreferrer">SEC passage ↗</a></p>)}
        {cautions.slice(0,1).map((p,j)=><p className="opportunity-uncertainty" key={j}><strong>Filing caution:</strong> {p.label}</p>)}
@@ -151,7 +162,7 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
       </div>
       {opened===lead.ticker&&<InvestmentOutcomeSimulator key={lead.ticker} ticker={lead.ticker}/>}
      </article>})}</div>}
-    <p className="chart-note"><strong>Ranking limitation:</strong> ATLAS now checks up to eight recent SEC filing issuers for financial-screen qualification, indicative annual earnings valuation, and topic overlap between SEC text and issuer-matched news headlines. It orders the first three displayed research leads by provisional evidence alignment, previously recorded Autonomous Discovery passes, then financial triage. Scores are <strong>unvalidated research-priority heuristics, not predicted alpha</strong>. Issuer-name/headline overlap does NOT verify original article content, novelty, announcement time, post-catalyst returns or intrinsic mispricing. When full evidence is absent, no bullish pick is issued.</p>
+    <p className="chart-note"><strong>Ranking limitation:</strong> ATLAS checks one user-advanced batch of up to eight recent SEC filing issuers for financial-screen qualification, indicative annual earnings valuation, and topic overlap between SEC text and issuer-matched news headlines. It orders the first three displayed research leads in that batch by provisional evidence alignment, previously recorded Autonomous Discovery passes, then financial triage. Scores are <strong>unvalidated research-priority heuristics, not predicted alpha</strong>. Issuer-name/headline overlap does NOT verify original article content, novelty, announcement time, post-catalyst returns or intrinsic mispricing. When full evidence is absent, no bullish pick is issued.</p>
    </div>
    <aside className="atlas-picks-sidebar" aria-label="This month and last three months filing ledger">
     <h4>Pick research ledger</h4>
