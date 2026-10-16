@@ -123,6 +123,7 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
     {top.length===0?<p className="opportunity-uncertainty"><strong>No current source-backed shortlist loaded.</strong> ATLAS has not identified any investable picks yet. Review Opportunity Radar or refresh the SEC discovery feed.</p>:
     <div className="atlas-picks-cards">{top.map(({lead,assessment,historicalPass},i)=>{
      const e=evidence[lead.url],potential=e?.review?.evidence?.potential??[],cautions=e?.review?.evidence?.cautions??[];
+     const filingTopics=e?.review?.evidence?.topics??[],reportedFigures=e?.review?.evidence?.metrics??[];
      return <article className="atlas-picks-card" key={lead.url}>
       <div className="atlas-picks-card-top"><div><span className="eyebrow">Research lead {i+1} · {assessment.status==='provisional_alignment'?'Provisional evidence alignment':historicalPass?'Autonomous Discovery crossover':'Evidence and valuation triage'}</span><h4>{lead.ticker} · {lead.name}</h4></div><span className="tag">Not a buy rating</span></div>
       <p><strong>{lead.form}</strong> filed {lead.filed??'date unavailable'}. Filing existence does not establish bullish direction, novelty, or remaining upside.</p>
@@ -147,6 +148,9 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
       </section>
       {!e?<p className="chart-note">Checking filing text and news coverage…</p>:<>
        <p className="chart-note"><strong>SEC document review:</strong> {e.review?.sourceStatus==='reviewed_text'?'Complete source submission reviewed':e.review?.reviewMethod==='selected_documents'?'Selected SEC primary/exhibit documents reviewed — whole filing not verified':e.review?.sourceStatus==='partial_text'?'Truncated/partial submission text only':'Not available'} · {potential.length} potential-language matches · {cautions.length} caution-language matches. Neither count confirms a bullish event.</p>
+       {filingTopics.length>0&&<p className="chart-note"><strong>SEC event subjects:</strong> {filingTopics.map(x=>'Item '+x.code+' · '+x.label).join('; ')}. Filing subjects are not an assessment of event direction.</p>}
+       {reportedFigures.length>0&&<details className="atlas-details"><summary>Reported financial figures from selected SEC documents ({reportedFigures.length})</summary>{reportedFigures.slice(0,5).map((x,j)=><p key={j}><strong>{x.label}:</strong> {x.reportedValue}. {x.sourceUrl&&<a href={x.sourceUrl} target="_blank" rel="noopener noreferrer">Original passage ↗</a>}</p>)}</details>}
+       {!potential.length&&<p className="chart-note">No recognized positive phrase was extracted from the reviewed text. This is <strong>not</strong> proof that the filing contained no significant catalyst.</p>}
        {e.reviewIssue&&<p className="opportunity-uncertainty">Filing access limit: {e.reviewIssue}</p>}
        {potential.slice(0,2).map((p,j)=><p className="chart-note" key={j}><strong>Possible filing development:</strong> {p.label} · <a href={p.sourceUrl||lead.url} target="_blank" rel="noopener noreferrer">SEC passage ↗</a></p>)}
        {cautions.slice(0,1).map((p,j)=><p className="opportunity-uncertainty" key={j}><strong>Filing caution:</strong> {p.label}</p>)}
