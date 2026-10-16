@@ -1,3 +1,4 @@
+import MonthlyPicksDashboard from './MonthlyPicksDashboard';
 type Destination='Autonomous Discovery'|'Screener'|'Opportunity Radar'|'Company Research'|'Conviction Lab'|'Watchlist'|'Discovery Feed';
 const stages:{number:string;title:string;purpose:string;cta:string;destination:Destination;status:string}[]=[
  {number:'01',title:'Discover',purpose:'Surface real SEC filings and companies worth investigating, not just fashionable tickers.',cta:'Discover Opportunities',destination:'Autonomous Discovery',status:'Zero ticker input · SEC universe scan'},
@@ -6,7 +7,7 @@ const stages:{number:string;title:string;purpose:string;cta:string;destination:D
  {number:'04',title:'Decide',purpose:'Ask whether a source-backed thesis and real valuation justify conviction—or whether evidence is missing.',cta:'Open Conviction Lab',destination:'Conviction Lab',status:'Evidence gates, not buy signals'},
  {number:'05',title:'Monitor',purpose:'Keep real watchlists, notes and research comparisons together for multi-year follow-up.',cta:'Open saved companies',destination:'Watchlist',status:'Local real-company watchlist'}
 ];
-export default function ResearchHome({navigate}:{navigate:(page:Destination)=>void}){
+export default function ResearchHome({navigate,onConviction}:{navigate:(page:Destination)=>void;onConviction?:(ticker:string)=>void}){
  return <section className="atlas-research-home">
   <div className="atlas-home-mission">
    <span className="eyebrow">ASYMMETRIC ALPHA / LONG-HORIZON RESEARCH</span>
@@ -14,6 +15,7 @@ export default function ResearchHome({navigate}:{navigate:(page:Destination)=>vo
    <p><strong>3–7 years. Evidence first. Price matters.</strong> ATLAS is being rebuilt around the difference between a great business and an attractive investment at today's valuation.</p>
    <button type="button" className="button primary" onClick={()=>navigate('Autonomous Discovery')}>Discover Opportunities →</button>
   </div>
+  <MonthlyPicksDashboard onConviction={onConviction} onOpportunity={()=>navigate('Opportunity Radar')}/>
   <div className="atlas-home-journey">
    {stages.map(stage=><article className="atlas-home-stage" key={stage.number}>
     <span className="atlas-stage-number">{stage.number}</span>
