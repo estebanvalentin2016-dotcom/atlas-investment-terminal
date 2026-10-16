@@ -10,6 +10,7 @@ export type ResearchTriageEntry={
 };
 const stage=(status:BridgeResult['status'])=>status==='provisional_alignment'?4:status==='not_aligned'?2:status==='incomplete'?1:0;
 const marketValuationCheck=(pe:number|null)=>pe===null?0:pe>=80?-2:pe>=40?-1:pe>0?1:0;
+const quantifiedEvidence=(x:BridgeResult['economicStatus'])=>x==='quantified_improvement'?1:x==='adverse_or_mixed'?-2:x==='source_unavailable'?-1:0;
 export function compareResearchTriage(a:ResearchTriageEntry,b:ResearchTriageEntry):number{
  const aa=a.assessment,bb=b.assessment;
  const pick=stage(bb.status)-stage(aa.status)||
@@ -18,6 +19,7 @@ export function compareResearchTriage(a:ResearchTriageEntry,b:ResearchTriageEntr
   // Make valuation uncertainty/hurdles visible in ordering rather than letting
   // an expensive reported FY P/E win solely on one extra margin point.
   marketValuationCheck(bb.fyPe)-marketValuationCheck(aa.fyPe)||
+  quantifiedEvidence(bb.economicStatus)-quantifiedEvidence(aa.economicStatus)||
   Number(b.historicalPass&&bb.screen?.status==='preliminary_pass')-Number(a.historicalPass&&aa.screen?.status==='preliminary_pass')||
   (bb.priority??bb.financialScore??-1)-(aa.priority??aa.financialScore??-1)||
   (b.filed??'').localeCompare(a.filed??'')||a.ticker.localeCompare(b.ticker);
