@@ -6,6 +6,9 @@ import {distinctIssuers,retainPickLeads,thisMonth,selectIssuerReviewBatch,type P
 import {headlineReferencesIssuer,issuerSearchName} from './issuer-news-identity';
 import type {FilingEvidenceResult} from './FilingEvidence';
 import {assessCatalystFundamentalBridge} from './catalyst-fundamental-bridge';
+import {assessEconomicSignificance} from './economic-significance';
+import {assessCatalystEvidenceTimeline} from './catalyst-evidence-timeline';
+import {createActionBrief,type ResearchAction} from './action-brief';
 import {compareResearchTriage} from './research-triage-order';
 import {readSavedPasses,type SavedPreliminaryPass} from './autonomous-pass-ledger';
 import type {SecCompany,MarketValuationClose} from './ranking-model';
@@ -101,26 +104,40 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
   const historicalPass=savedPasses.find(s=>s.ticker===lead.ticker)??null;
   const assessment=assessCatalystFundamentalBridge({ticker:lead.ticker,name:lead.name,filed:lead.filed,filingUrl:lead.url,
    review:e?.review??null,headlines:e?.news??[],company:e?.company??null,quote:e?.quote??null,asOf,autonomousPass:!!historicalPass});
-  return {lead,assessment,historicalPass};
- }).sort((a,b)=>compareResearchTriage(
-  {assessment:a.assessment,historicalPass:!!a.historicalPass,filed:a.lead.filed,ticker:a.lead.ticker},
-  {assessment:b.assessment,historicalPass:!!b.historicalPass,filed:b.lead.filed,ticker:b.lead.ticker}
- ));
+  const economics=assessEconomicSignificance({ticker:lead.ticker,filingUrl:lead.url,review:e?.review??null,company:e?.company??null,asOf});
+  const timeline=assessCatalystEvidenceTimeline({issuerName:lead.name,filingDate:lead.filed,asOf,review:e?.review??null,headlines:e?.news??[]});
+  const brief=createActionBrief({bridge:assessment,economics,timeline,loaded:!!e,filed:lead.filed});
+  return {lead,assessment,historicalPass,brief};
+ }).sort((a,b)=>{
+  const priority:Record<ResearchAction,number>={investigate:3,watch:2,checking:1,deprioritize:0};
+  return priority[b.brief.action]-priority[a.brief.action]||compareResearchTriage(
+   {assessment:a.assessment,historicalPass:!!a.historicalPass,filed:a.lead.filed,ticker:a.lead.ticker},
+   {assessment:b.assessment,historicalPass:!!b.historicalPass,filed:b.lead.filed,ticker:b.lead.ticker}
+  );
+ });
  const top=annotated.slice(0,3);
  const alignedCount=annotated.filter(x=>x.assessment.status==='provisional_alignment').length;
+ const investigateCount=annotated.filter(x=>x.brief.action==='investigate').length;
+ const assessedCount=annotated.filter(x=>x.brief.action!=='checking').length;
  const sidebar=distinctIssuers(visible,12);
  return <section className="atlas-picks-workbench" aria-label="Recent SEC investment research leads">
   <div className="atlas-picks-header">
-   <div><span className="eyebrow">ATLAS / CURRENT CATALYST WATCH</span><h3>Today's research leads, not yet verified picks</h3>
-    <p>Recent SEC 8-K disclosures, document review and related independent news candidates. Price-sensitive scenarios are available per company, but a defensible investment recommendation still requires corroboration and valuation.</p></div>
+   <div><span className="eyebrow">ATLAS / DECISION BRIEF</span><h3>What deserves attention right now?</h3>
+    <p>ATLAS summarizes the evidence and recommends a <strong>research action</strong>. Underlying filings, financials, news and dollar scenarios remain expandable. These are not buy recommendations.</p></div>
    <button className="button secondary" type="button" onClick={()=>{if(scan&&reviewRange.total){setBatchCursor(x=>x+Math.max(1,reviewBatch.length))}else setGeneration(x=>x+1)}} disabled={loading}>{loading?'Checking sources…':scan&&reviewRange.total?'Review next issuer batch →':'Refresh current leads'}</button>
   </div>
   <div className="atlas-picks-grid">
    <div className="atlas-picks-main">
     {message&&<p className="real-error" role="alert">SEC discovery unavailable: {message}. Previously observed records remain labeled as historical observations.</p>}
-    <p className="chart-note"><strong>Coverage:</strong> {scan?.coverageStatus??(loading?'SEC source retrieval underway':'No fresh SEC run')} · live index search is limited to approximately {scan?.lookbackCalendarDays??7} days. {scan?.errorDays?.length?'Some index days failed; omissions are possible. ':''}No issuer is designated a Buy without source-confirmed news, comprehensive valuation and risk evidence.</p>
-    <p className="chart-note"><strong>Issuer review coverage:</strong> {reviewRange.total?'Issuers '+reviewRange.start+'–'+reviewRange.end+' of '+reviewRange.total+' unique companies in the available dated SEC queue.':'Waiting for SEC issuer queue.'} Reviewing the next batch advances through the queue rather than repeatedly sampling the first alphabetically sorted tickers. This is not complete-universe coverage.</p>
-    <p className="chart-note"><strong>Evidence bridge:</strong> {reviewProgress||'Loading dated SEC fundamentals, filings and market data for up to eight recent companies.'} {savedPasses.length} previously screened preliminary SEC financial pass(es) retained in this browser. {alignedCount} provisional 8-K + topic-overlap + financial/valuation alignment(s) within the bounded current batch; <strong>zero verified buy recommendations</strong>.</p>
+    <div className="atlas-decision-strip" aria-label="ATLAS research decision summary">
+     <strong>{loading?'ATLAS is reviewing this batch':'No verified bullish buy candidates in this batch'}</strong>
+     <p>{assessedCount} of {reviewBatch.length} issuers assessed{reviewRange.total?' · queue positions '+reviewRange.start+'–'+reviewRange.end+' of '+reviewRange.total:''}. {investigateCount} candidate(s) worth deeper investigation; {alignedCount} preliminary filing/news/finance alignment(s). <strong>Neither is an investment recommendation.</strong></p>
+     <p className="atlas-decision-next">Next: {investigateCount?'Open the investigation briefs and validate expectations, valuation and downside.':'Review another SEC batch or revisit these companies when material evidence changes.'}</p>
+    </div>
+    <details className="atlas-home-audit"><summary>Source coverage and screening audit</summary>
+     <p>{scan?.coverageStatus??(loading?'SEC retrieval underway':'No fresh SEC run')} · recent index lookback approximately {scan?.lookbackCalendarDays??7} days{scan?.errorDays?.length?' · some index days failed':''}. No full three-month universe backfill.</p>
+     <p>{reviewProgress||'Review underway.'} {savedPasses.length} saved preliminary Autonomous Discovery pass(es) in this browser. This queue advances through the available issuer rows, not through the entire listed market.</p>
+    </details>
     {top.length===0?<p className="opportunity-uncertainty"><strong>No current source-backed shortlist loaded.</strong> ATLAS has not identified any investable picks yet. Review Opportunity Radar or refresh the SEC discovery feed.</p>:
     <div className="atlas-picks-cards">{top.map(({lead,assessment,historicalPass},i)=>{
      const e=evidence[lead.url],potential=e?.review?.evidence?.potential??[],cautions=e?.review?.evidence?.cautions??[];
@@ -169,7 +186,7 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
       </div>
       {opened===lead.ticker&&<InvestmentOutcomeSimulator key={lead.ticker} ticker={lead.ticker}/>}
      </article>})}</div>}
-    <p className="chart-note"><strong>Ranking limitation:</strong> ATLAS checks one user-advanced batch of up to eight recent SEC filing issuers for financial-screen qualification, indicative annual earnings valuation, and topic overlap between SEC text and issuer-matched news headlines. It orders the first three displayed leads within that batch by provisional event/finance alignment, financially eligible crossovers and valuation warnings before the raw fundamental heuristic. A low annual multiple is NOT evidence of fair value. Scores are <strong>unvalidated research-priority heuristics, not predicted alpha</strong>. Issuer-name/headline overlap does NOT verify original article content, novelty, announcement time, post-catalyst returns or intrinsic mispricing. When full evidence is absent, no bullish pick is issued.</p>
+    <details className="atlas-home-audit"><summary>How ATLAS orders this research queue</summary><p>ATLAS examines one batch of up to eight recent distinct SEC issuers. It first separates research actions (investigate, watch, or deprioritize), then considers provisional event alignment, SEC financial quality, valuation hurdles and incomplete evidence. This is <strong>not</strong> an all-market top-picks ranking or statistically validated alpha model. A low FY P/E is not a fair-value estimate; issuer headlines are not verified same-event corroboration. Zero buy candidates is an acceptable result.</p></details>
    </div>
    <aside className="atlas-picks-sidebar" aria-label="This month and last three months filing ledger">
     <h4>Pick research ledger</h4>
