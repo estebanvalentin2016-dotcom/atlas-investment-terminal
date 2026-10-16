@@ -4,6 +4,7 @@ import {distinctIssuers,retainPickLeads,thisMonth,selectIssuerReviewBatch,type P
 import {headlineReferencesIssuer,issuerSearchName} from './issuer-news-identity';
 import type {FilingEvidenceResult} from './FilingEvidence';
 import {assessCatalystFundamentalBridge} from './catalyst-fundamental-bridge';
+import {compareResearchTriage} from './research-triage-order';
 import {readSavedPasses,type SavedPreliminaryPass} from './autonomous-pass-ledger';
 import type {SecCompany,MarketValuationClose} from './ranking-model';
 
@@ -99,12 +100,10 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
   const assessment=assessCatalystFundamentalBridge({ticker:lead.ticker,name:lead.name,filed:lead.filed,filingUrl:lead.url,
    review:e?.review??null,headlines:e?.news??[],company:e?.company??null,quote:e?.quote??null,asOf,autonomousPass:!!historicalPass});
   return {lead,assessment,historicalPass};
- }).sort((a,b)=>
-  Number(b.assessment.status==='provisional_alignment')-Number(a.assessment.status==='provisional_alignment')||
-  Number(!!b.historicalPass)-Number(!!a.historicalPass)||
-  Number(b.assessment.screen?.status==='preliminary_pass')-Number(a.assessment.screen?.status==='preliminary_pass')||
-  (b.assessment.priority??b.assessment.financialScore??-1)-(a.assessment.priority??a.assessment.financialScore??-1)||
-  (b.lead.filed??'').localeCompare(a.lead.filed??'')||a.lead.ticker.localeCompare(b.lead.ticker));
+ }).sort((a,b)=>compareResearchTriage(
+  {assessment:a.assessment,historicalPass:!!a.historicalPass,filed:a.lead.filed,ticker:a.lead.ticker},
+  {assessment:b.assessment,historicalPass:!!b.historicalPass,filed:b.lead.filed,ticker:b.lead.ticker}
+ ));
  const top=annotated.slice(0,3);
  const alignedCount=annotated.filter(x=>x.assessment.status==='provisional_alignment').length;
  const sidebar=distinctIssuers(visible,12);
@@ -166,7 +165,7 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
       </div>
       {opened===lead.ticker&&<InvestmentOutcomeSimulator key={lead.ticker} ticker={lead.ticker}/>}
      </article>})}</div>}
-    <p className="chart-note"><strong>Ranking limitation:</strong> ATLAS checks one user-advanced batch of up to eight recent SEC filing issuers for financial-screen qualification, indicative annual earnings valuation, and topic overlap between SEC text and issuer-matched news headlines. It orders the first three displayed research leads in that batch by provisional evidence alignment, previously recorded Autonomous Discovery passes, then financial triage. Scores are <strong>unvalidated research-priority heuristics, not predicted alpha</strong>. Issuer-name/headline overlap does NOT verify original article content, novelty, announcement time, post-catalyst returns or intrinsic mispricing. When full evidence is absent, no bullish pick is issued.</p>
+    <p className="chart-note"><strong>Ranking limitation:</strong> ATLAS checks one user-advanced batch of up to eight recent SEC filing issuers for financial-screen qualification, indicative annual earnings valuation, and topic overlap between SEC text and issuer-matched news headlines. It orders the first three displayed leads within that batch by provisional event/finance alignment, financially eligible crossovers and valuation warnings before the raw fundamental heuristic. A low annual multiple is NOT evidence of fair value. Scores are <strong>unvalidated research-priority heuristics, not predicted alpha</strong>. Issuer-name/headline overlap does NOT verify original article content, novelty, announcement time, post-catalyst returns or intrinsic mispricing. When full evidence is absent, no bullish pick is issued.</p>
    </div>
    <aside className="atlas-picks-sidebar" aria-label="This month and last three months filing ledger">
     <h4>Pick research ledger</h4>
