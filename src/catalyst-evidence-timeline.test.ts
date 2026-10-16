@@ -15,18 +15,29 @@ const filing=():FilingEvidenceResult=>({url,sourceStatus:'partial_text',reviewMe
 const news=(day:string,title='Albertsons pulls full-year guidance'):CandidateHeadline=>({title,source:'Example RSS',link:'https://news.google.com/rss/articles/example',feedPublishedAt:day+'T15:00:00Z',feedDateOnly:null});
 describe('SEC catalyst chronology and selective-source materiality checks',()=>{
  it('highlights Albertsons-like news dates preceding 8-K without attributing later stock returns',()=>{
-  const r=assessCatalystEvidenceTimeline({filingDate:'2026-10-15',asOf:'2026-10-16',review:filing(),headlines:[news('2026-10-13'),news('2026-10-15'),news('2026-10-16')]});
+  const r=assessCatalystEvidenceTimeline({filingDate:'2026-10-15',asOf:'2026-10-16',issuerName:'Alcoa Corp',review:filing(),headlines:[news('2026-10-13'),news('2026-10-15'),news('2026-10-16')]});
   expect(r.subject).toBe('earnings_disclosure');
   expect(r.subjectLabel).toContain('Item 2.02');
   expect(r.recognizedMetrics[0].reportedValue).toBe('19% increase in revenue');
   expect([r.before,r.sameDate,r.after]).toEqual([1,1,1]);
   expect(r.earliestHeadlineDate).toBe('2026-10-13');
+  expect(r.sameSubjectHeadlines).toBe(0); // Albertsons-guidance title is not a matching Alcoa earnings story
   expect(r.warnings).toContain('news_predates_filing');
   expect(r.notes.join(' ')).toContain('may already have been public or priced');
   expect(r.notes.join(' ')).toContain('NOT been verified');
  });
+ it('aligns earnings-report subject and issuer-matched headlines without mistaking them for bullish corroboration',()=>{
+  const r=assessCatalystEvidenceTimeline({filingDate:'2026-10-15',asOf:'2026-10-16',issuerName:'Alcoa Corp',review:filing(),headlines:[
+    news('2026-10-15','Alcoa Corporation Reports Third Quarter 2026 Results'),
+    news('2026-10-16','Alcoa Earnings: Down on Weaker Shipments'),
+    news('2026-10-16','American Airlines Q3 Earnings announced')
+  ]});
+  expect(r.sameSubjectHeadlines).toBe(2);
+  expect(r.preFilingSameSubjectHeadlines).toBe(0);
+  expect(r.notes.join(' ')).toContain('NOT verified same-event corroboration');
+ });
  it('does not use future news in timeline and keeps bad timestamps uncertain',()=>{
-  const r=assessCatalystEvidenceTimeline({filingDate:'2026-10-15',asOf:'2026-10-16',review:filing(),headlines:[
+  const r=assessCatalystEvidenceTimeline({filingDate:'2026-10-15',asOf:'2026-10-16',issuerName:'Alcoa Corp',review:filing(),headlines:[
    news('2026-10-17'),{...news('2026-10-15'),feedPublishedAt:null,feedDateOnly:'2026-10-15'}, {...news('2026-10-15'),feedPublishedAt:null,feedDateOnly:null}
   ]});
   expect([r.before,r.sameDate,r.after,r.undated,r.future]).toEqual([0,1,0,1,1]);
@@ -34,7 +45,7 @@ describe('SEC catalyst chronology and selective-source materiality checks',()=>{
   expect(r.earliestHeadlineDate).toBe('2026-10-15');
  });
  it('does not infer materiality or a positive catalyst from an SEC item or upward financial metric',()=>{
-  const r=assessCatalystEvidenceTimeline({filingDate:'2026-10-15',asOf:'2026-10-16',review:filing(),headlines:[]});
+  const r=assessCatalystEvidenceTimeline({filingDate:'2026-10-15',asOf:'2026-10-16',issuerName:'Alcoa Corp',review:filing(),headlines:[]});
   expect(r.subject).toBe('earnings_disclosure');
   expect(r.notes.join(' ')).toContain('not an earnings surprise');
   expect(r.notes.join(' ')).toContain('not an earnings surprise');
@@ -43,12 +54,12 @@ describe('SEC catalyst chronology and selective-source materiality checks',()=>{
  it('cautions on adverse filing text rather than making unsupported bullish interpretation',()=>{
   const f=filing();f.evidence!.cautions.push({label:'Downward guidance language',excerpt:'Reduced full-year outlook'});
   f.evidence!.topics=[{code:'5.02',label:'Leadership change'}];
-  const r=assessCatalystEvidenceTimeline({filingDate:'2026-10-15',asOf:'2026-10-16',review:f,headlines:[]});
+  const r=assessCatalystEvidenceTimeline({filingDate:'2026-10-15',asOf:'2026-10-16',issuerName:'Alcoa Corp',review:f,headlines:[]});
   expect(r.subject).toBe('leadership_disclosure');
   expect(r.warnings).toContain('potential_adverse_filing_language');
  });
  it('renders the source chronology and an actionable optional price-context investigation',()=>{
-  const html=renderToStaticMarkup(createElement(CatalystVerificationPanel,{ticker:'ACI',filingDate:'2026-10-15',sourceUrl:url,review:filing(),headlines:[news('2026-10-13')],asOf:'2026-10-16'}));
+  const html=renderToStaticMarkup(createElement(CatalystVerificationPanel,{ticker:'ACI',issuerName:'Alcoa Corp',filingDate:'2026-10-15',sourceUrl:url,review:filing(),headlines:[news('2026-10-13')],asOf:'2026-10-16'}));
   expect(html).toContain('Possible pre-filing disclosure');
   expect(html).toContain('Examine catalyst and stock reaction');
   expect(html).toContain('Results of operations');
