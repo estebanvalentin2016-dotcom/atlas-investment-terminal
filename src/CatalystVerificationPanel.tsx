@@ -4,17 +4,18 @@ import type {FilingEvidenceResult} from './FilingEvidence';
 import type {CandidateHeadline} from './catalyst-fundamental-bridge';
 import {assessCatalystEvidenceTimeline} from './catalyst-evidence-timeline';
 
-export default function CatalystVerificationPanel({ticker,filingDate,sourceUrl,review,headlines,asOf}:{
- ticker:string;filingDate:string|null;sourceUrl:string;review:FilingEvidenceResult|null;headlines:CandidateHeadline[];asOf:string;
+export default function CatalystVerificationPanel({ticker,issuerName,filingDate,sourceUrl,review,headlines,asOf}:{
+ ticker:string;issuerName:string;filingDate:string|null;sourceUrl:string;review:FilingEvidenceResult|null;headlines:CandidateHeadline[];asOf:string;
 }){
  const [expanded,setExpanded]=useState(false);
- const report=assessCatalystEvidenceTimeline({filingDate,asOf,review,headlines});
+ const report=assessCatalystEvidenceTimeline({filingDate,asOf,issuerName,review,headlines});
  return <section className="atlas-catalyst-verification" aria-label={'Catalyst source chronology for '+ticker}>
   <div className="atlas-catalyst-verification-head">
    <div><strong>Is this a real, newly developing catalyst?</strong><p className="chart-note">SEC filing subject · dated related news · stock versus SPY after SEC acceptance</p></div>
    <button type="button" className="button secondary" aria-expanded={expanded} onClick={()=>setExpanded(v=>!v)}>{expanded?'Hide catalyst verification':'Examine catalyst and stock reaction →'}</button>
   </div>
   <p className="chart-note"><strong>Filing classified as:</strong> {report.subjectLabel}. This subject alone does not establish positive materiality or market surprise.</p>
+  <p className="chart-note"><strong>Broadly matching SEC/news event subjects:</strong> {report.sameSubjectHeadlines} related issuer headline(s). Topic overlap only, NOT independently corroborated article content. {report.preFilingSameSubjectHeadlines>0?'Some subject-related news predates the SEC filing.':''}</p>
   <p className="chart-note"><strong>Issuer-name-matched RSS coverage:</strong> {report.before} before filing · {report.sameDate} on filing date · {report.after} afterward{report.undated||report.future?' · '+(report.undated+report.future)+' unaligned':''}. Original article release times unverified.</p>
   {report.before>0&&<p className="opportunity-uncertainty"><strong>Possible pre-filing disclosure:</strong> Related news appears before the SEC filing date ({report.earliestHeadlineDate}). The market may already have known about this development; do not attribute the whole price move to the 8-K.</p>}
   {expanded&&<div className="atlas-catalyst-verification-details">
