@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {annualPeFromSec,defaultRankWeights,rankCompanies,deriveRankingMetrics,type AnnualPe,type MarketValuationClose,type SecCompany} from './ranking-model';
 import {initialAutonomousScreen,scanCounts,type ScreenResult} from './autonomous-screen';
+import {writeSavedPasses} from './autonomous-pass-ledger';
 import {flagIndicativeFyValuation} from './valuation-triage';
 import SurvivalEvidencePanel from './SurvivalEvidencePanel';
 import MarketCapEvidencePanel from './MarketCapEvidencePanel';
@@ -70,6 +71,7 @@ export default function AutonomousDiscovery({onResearch,onConviction}:{onResearc
    const passes=records.filter(x=>x.screen.status==='preliminary_pass')
     .sort((a,b)=>(b.screen.score??-1)-(a.screen.score??-1)||a.company.ticker.localeCompare(b.company.ticker));
    setScreened(records.map(x=>x.screen));setFailed(sourceIssues);
+   writeSavedPasses(passes.filter(x=>x.screen.score!==null&&x.screen.filed!==null).map(x=>({ticker:x.company.ticker,observedAt:today,annualFiled:x.screen.filed!,preliminaryScore:x.screen.score!})),today);
    // Only the leading provisional passes receive price requests in this first
    // bounded scan. This must NEVER be interpreted as full market valuation coverage.
    const subset=passes.slice(0,8),research:Candidate[]=[];
