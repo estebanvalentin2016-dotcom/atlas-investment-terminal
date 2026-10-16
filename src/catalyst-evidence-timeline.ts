@@ -3,6 +3,7 @@
 // headline is NOT independent confirmation of the SEC event's substance.
 import type {CandidateHeadline} from './catalyst-fundamental-bridge';
 import type {FilingEvidenceResult} from './FilingEvidence';
+import {headlineReferencesIssuer} from './issuer-news-identity';
 
 export type EventSubject='earnings_disclosure'|'agreement_disclosure'|'leadership_disclosure'|'regulation_fd_disclosure'|'other_sec_disclosure'|'undetermined';
 export type TimelineWarning='news_predates_filing'|'source_timing_unknown'|'source_coverage_incomplete'|'potential_adverse_filing_language';
@@ -12,8 +13,14 @@ export type CatalystEvidenceTimeline={
  recognizedMetrics:{label:string;reportedValue:string;sourceUrl:string|null}[];
  before:number;sameDate:number;after:number;undated:number;future:number;
  earliestHeadlineDate:string|null;latestHeadlineDate:string|null;
+ sameSubjectHeadlines:number;preFilingSameSubjectHeadlines:number;
  warnings:TimelineWarning[];
  notes:string[];
+};
+const subjectMatcher:Partial<Record<EventSubject,RegExp>>={
+ earnings_disclosure:/\b(?:earnings|eps|quarterly results|financial results|(?:first|second|third|fourth|1st|2nd|3rd|4th) quarter|q[1-4](?: 20\d{2})? results|reports? (?:q[1-4]|quarterly|annual|financial) results?)\b/i,
+ agreement_disclosure:/\b(?:agreement|contract|acquisition|strategic partnership|merger|definitive deal)\b/i,
+ leadership_disclosure:/\b(?:appointed|appoints|resign(?:ation|s|ed)?|chief executive|chief financial|ceo|cfo|board of directors|director|leadership)\b/i
 };
 const validDate=(s:string)=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s+'T00:00:00Z'))&&new Date(s+'T00:00:00Z').toISOString().slice(0,10)===s;
 function headlineDate(h:CandidateHeadline):string|null{
@@ -21,8 +28,8 @@ function headlineDate(h:CandidateHeadline):string|null{
  if(iso&&validDate(iso))return iso;
  return h.feedDateOnly&&validDate(h.feedDateOnly)?h.feedDateOnly:null;
 }
-export function assessCatalystEvidenceTimeline(args:{filingDate:string|null;asOf:string;review:FilingEvidenceResult|null;headlines:CandidateHeadline[]}):CatalystEvidenceTimeline{
- const {filingDate,asOf,review,headlines}=args;
+export function assessCatalystEvidenceTimeline(args:{filingDate:string|null;asOf:string;issuerName:string;review:FilingEvidenceResult|null;headlines:CandidateHeadline[]}):CatalystEvidenceTimeline{
+ const {filingDate,asOf,issuerName,review,headlines}=args;
  const topics=review?.evidence?.topics??[];
  const codes=new Set(topics.map(x=>x.code));
  let subject:EventSubject='undetermined';
@@ -34,13 +41,21 @@ export function assessCatalystEvidenceTimeline(args:{filingDate:string|null;asOf
  else if(topics.length){subject='other_sec_disclosure';subjectLabel='Other identified SEC filing subjects'}
  const recognizedMetrics=(review?.evidence?.metrics??[]).slice(0,8).map(m=>({label:m.label,reportedValue:m.reportedValue,sourceUrl:m.sourceUrl??null}));
  const timeline: CatalystEvidenceTimeline={subject,subjectLabel,recognizedMetrics,before:0,sameDate:0,after:0,undated:0,future:0,
-  earliestHeadlineDate:null,latestHeadlineDate:null,warnings:[],notes:[]};
+  earliestHeadlineDate:null,latestHeadlineDate:null,sameSubjectHeadlines:0,preFilingSameSubjectHeadlines:0,warnings:[],notes:[]};
  const sortedDates:string[]=[];
  for(const h of headlines){
   const date=headlineDate(h);
   if(!date){timeline.undated++;continue}
   if(!validDate(asOf)||date>asOf){timeline.future++;continue}
   sortedDates.push(date);
+  // Topic alignment is merely a plausible same-subject discovery. Do not infer
+  // the article content, issuer's claim was true, earnings beat expectations,
+  // or a price change was caused by the SEC document.
+  const m=subjectMatcher[subject];
+  if(m&&review?.url&&headlineReferencesIssuer(h.title,issuerName)&&m.test(h.title)){
+   timeline.sameSubjectHeadlines++;
+   if(filingDate&&validDate(filingDate)&&date<filingDate)timeline.preFilingSameSubjectHeadlines++;
+  }
   if(!filingDate||!validDate(filingDate)){timeline.undated++;continue}
   if(date<filingDate)timeline.before++;
   else if(date===filingDate)timeline.sameDate++;
@@ -54,6 +69,7 @@ export function assessCatalystEvidenceTimeline(args:{filingDate:string|null;asOf
  if(!review||review.sourceStatus==='unavailable'||review.sourceStatus==='partial_text'){timeline.warnings.push('source_coverage_incomplete');timeline.notes.push('SEC document reading is incomplete relative to the entire submission; missing material exhibits or opposing facts cannot be ruled out.')}
  if((review?.evidence?.cautions??[]).length){timeline.warnings.push('potential_adverse_filing_language');timeline.notes.push('Potential caution language detected in SEC text; verify surrounding context before considering a bullish catalyst.')}
  timeline.notes.push('Filing item codes and reported financial phrases describe evidence, not an earnings surprise against consensus, management guidance accuracy, event causation or an investment rating.');
+ if(timeline.sameSubjectHeadlines)timeline.notes.push(timeline.sameSubjectHeadlines+' issuer-name-matched RSS headline(s) mention a broadly similar SEC event subject. Headlines are NOT verified same-event corroboration or a bullish catalyst.');
  timeline.notes.push('Related headlines are issuer-matched discovery candidates. Article bodies, publisher independence and original public-release timestamps have NOT been verified.');
  return timeline;
 }
