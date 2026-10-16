@@ -17,7 +17,7 @@ export function issuerSearchName(name:string):string|null{
 export function headlineReferencesIssuer(headline:string,issuerName:string):boolean{
  const phrase=issuerSearchName(issuerName);
  if(!phrase||typeof headline!=='string')return false;
- const tokenized=words(headline).join(' ');
+ const tokenized=words(headline).filter(x=>!['of','and','a','an'].includes(x)).join(' ');
  const tokens=phrase.split(' ');
  // A single word must match as a whole token, not a prefix within another name.
  // Multiword identities must occur in sequence; unlabeled ticker matches are
