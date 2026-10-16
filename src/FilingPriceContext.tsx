@@ -1,5 +1,5 @@
 import {toneForReturn} from './filing-metric-tone';
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
 import {filingPriceContext,type PriceBar,type PriceContext,type PriceLeg} from './filing-price-context';
 import {acceptanceSessionContext,type AcceptanceClock,type AcceptanceSessionResult} from './acceptance-session-context';
 
@@ -29,7 +29,7 @@ function Leg({heading,value}:{heading:string;value:PriceLeg|null}){
   {value?<><p>{value.date} · Close {fmtPrice(value.close)}</p><p>Stock vs baseline: {fmtPct(value.returnPct)}</p><p>SPY over matching sessions: {fmtPct(value.spyReturnPct)}</p><p>Difference from SPY: {fmtPoints(value.vsSpyPercentagePoints)}</p></>:<p>Completed matching session unavailable</p>}
  </div>;
 }
-export default function FilingPriceContext({ticker,eventDate,sourceUrl}:{ticker:string;eventDate:string|null;sourceUrl:string}){
+export default function FilingPriceContext({ticker,eventDate,sourceUrl,autoLoad=false}:{ticker:string;eventDate:string|null;sourceUrl:string;autoLoad?:boolean}){
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
  const [review,setReview]=useState<Review|null>(null);
@@ -53,6 +53,7 @@ export default function FilingPriceContext({ticker,eventDate,sourceUrl}:{ticker:
   }catch(e){setError(e instanceof Error?e.message:'Unable to assess price context')}
   finally{setBusy(false)}
  }
+ useEffect(()=>{if(autoLoad&&eventDate)void inspect()},[autoLoad,eventDate,sourceUrl,ticker]);
  const aligned=review?.acceptedContext?.status==='aligned';
  const primaryLeg=aligned?review?.acceptedContext?.firstEligible:review?.context.filingDay;
  const headline=primaryLeg??null;
