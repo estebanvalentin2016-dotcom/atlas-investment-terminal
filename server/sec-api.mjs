@@ -191,6 +191,14 @@ export async function handleSecRequest(req,res){
    ['Latest current long-term debt',['LongTermDebtCurrent']],
    ['Latest noncurrent long-term debt',['LongTermDebtNoncurrent']],
    ['Latest short-term borrowings',['ShortTermBorrowings']],
+   // Bank- and lender-aware, independently dated balance-sheet observations.
+   // Absence of standardized issuer-wide facts is an unknown, NOT zero.
+   ['Latest total assets',['Assets']],
+   ['Latest stockholders equity',['StockholdersEquity']],
+   ['Latest customer deposits',['Deposits','DepositsAndOtherCustomerAccounts']],
+   ['Latest loans receivable',['LoansAndLeasesReceivableNetReportedAmount','LoansAndLeasesReceivableNetOfDeferredIncome']],
+   ['Latest loan-loss allowance',['AllowanceForLoanAndLeaseLosses','FinancingReceivableAllowanceForCreditLosses']],
+
   ].map(([name,tags])=>{const unit=name==='Diluted EPS'?'USD/shares':name==='Weighted-average diluted shares'||name==='Common shares outstanding (DEI)'?'shares':'USD';const result=name==='Revenue'?revenueSelection:name==='Common shares outstanding (DEI)'?instantOutstandingShares(facts.facts):name.startsWith('Latest ')?latestInstantFact(facts.facts,tags,unit):selectFact(facts.facts,tags,unit);return {name,unit,...result};});
   json(res,200,{ticker,name:facts.entityName||match.title,cik,source,retrievedAt:new Date().toISOString(),metrics});
  }catch(e){json(res,503,{error:e instanceof Error?e.message:'SEC data temporarily unavailable'});}

@@ -4,6 +4,7 @@ import SurvivalEvidencePanel from './SurvivalEvidencePanel';
 import MarketCapEvidencePanel from './MarketCapEvidencePanel';
 import FinancingAutomationPanel from './FinancingAutomationPanel';
 import OperatingScenariosPanel from './OperatingScenariosPanel';
+import ConvictionActionPanel from './ConvictionActionPanel';
 import PriceHistoryPanel from './PriceHistoryPanel';
 import {assessPriceHistory,type HistoricalPriceResponse,type PriceHistoryAssessment} from './price-history-model';
 import {draftIssuerThesis} from './automatic-thesis';
@@ -91,8 +92,9 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
   {marketIssue&&<p className="opportunity-uncertainty"><strong>Market-price source limitation:</strong> {marketIssue}</p>}
   {!assessment&&<div className="atlas-conviction-intro"><strong>Five verdicts, one evidence standard.</strong><p>Strong Speculative Buy · Buy Candidate · Watchlist · Avoid · Insufficient Evidence</p><p>For now, the engine can only issue <strong>Insufficient Evidence</strong> because the full valuation, risk and mispricing modules are not built. It does not assign arbitrary return probabilities.</p></div>}
   {assessment&&company&&<div className="atlas-conviction-result">
-   <div className="atlas-conviction-verdict"><span>{company.ticker} · {company.name}</span><strong>{assessment.verdict}</strong><p>{assessment.summary}</p></div>
-   <div className="atlas-conviction-count"><strong>{assessment.verifiedCount}/{assessment.totalCount}</strong><span>Evidence categories verified · not an investment score</span></div>
+   <ConvictionActionPanel company={company} assessment={assessment} asOf={nyToday()}/>
+   <details className="atlas-details atlas-conviction-deep-dive">
+    <summary>See historical SEC financials, scenario assumptions, trading, cash and financing evidence</summary>
    <div className="atlas-key-return">
     <div><span className="atlas-glance-label">SEC revenue growth</span><strong className={"atlas-glance-value "+(assessment.observed.revenueGrowthPct===null?"":assessment.observed.revenueGrowthPct>=0?"atlas-tone-positive":"atlas-tone-negative")}>{pct(assessment.observed.revenueGrowthPct)}</strong><small>FY {assessment.observed.fiscalYear??'unknown'}</small></div>
     <div><span className="atlas-glance-label">Free cash flow after capex</span><strong className={"atlas-glance-value "+(assessment.observed.freeCashFlow===null?"":assessment.observed.freeCashFlow>=0?"atlas-tone-positive":"atlas-tone-negative")}>{currency(assessment.observed.freeCashFlow)}</strong><small>Company SEC fiscal period</small></div>
@@ -111,10 +113,12 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
    <FinancingAutomationPanel company={company} asOf={nyToday()}/>
    <details className="atlas-details"><summary>Historical annual cash and dilution audit</summary><SurvivalEvidencePanel company={company} asOf={assessment.observed.asOfDate??nyToday()}/></details>
    <p className="chart-note"><strong>Source:</strong> <a href={company.source} target="_blank" rel="noopener noreferrer">SEC company financial facts ↗</a>. Missing or delayed figures remain unknown. An attractive reported metric is not evidence of mispricing.</p>
-   <details className="atlas-details"><summary>What ATLAS verified — and what automation is still missing</summary>
-    <p className="atlas-gates-explainer"><strong>These gaps are ATLAS development tasks, not homework for you.</strong> Verified means a source has passed the current evidence check; partial means some SEC observations are available but the full analysis is missing. Pending means the automated analysis is not connected yet.</p>
-    <div className="atlas-conviction-gates">{assessment.requirements.map(item=><div key={item.key}><div className="atlas-gate-heading"><strong>{item.status==='verified'?'✓':'○'} {item.label}</strong><span className={'atlas-gate-progress atlas-progress-'+item.progress}>{item.progress==='verified'?'Source checked':item.progress==='partially_sourced'?'Partial evidence':item.progress==='engine_pending'?'Automation pending':'Source unavailable'}</span></div><p>{item.detail}</p></div>)}</div>
    </details>
+   <details className="atlas-details atlas-conviction-deep-dive"><summary>See source coverage for all 11 research checks</summary>
+    <p className="atlas-gates-explainer">All {assessment.totalCount} evidence-availability checks ran automatically; a check mark means <strong>ATLAS evaluated the source status</strong>, NOT that all required data were obtained or an unimplemented research engine has finished. Missing SEC disclosures remain unknown and never receive a positive investment score.</p>
+    <div className="atlas-conviction-gates">{assessment.requirements.map(item=><div key={item.key}><div className="atlas-gate-heading"><strong><span className="atlas-evaluation-check">✓</span> {item.label}</strong><span className={'atlas-gate-progress atlas-progress-'+item.progress}>{item.progress==='verified'?'Evidence sourced':item.progress==='partially_sourced'?'Sources incomplete':item.progress==='engine_pending'?'Research model not built':'Source unavailable'}</span></div><p>{item.detail}</p></div>)}</div>
+   </details>
+   <details className="atlas-details atlas-conviction-thesis-details"><summary>View and edit the automatically drafted thesis and invalidation checklist</summary>
    <div className="atlas-conviction-thesis">
     <strong>ATLAS automatically prepared a research thesis and invalidation checklist</strong>
     <p className="chart-note">These editable notes come from available issuer evidence and known research gaps, not from an independently verified fair-value or competitive-moat engine. Saving remains optional; automatic monitoring is not enabled.</p>
@@ -124,6 +128,7 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
     {savedMessage&&<p role="status">{savedMessage}</p>}
     {existing.length>0&&<details className="atlas-details"><summary>Previous saved thesis drafts ({existing.length} recent)</summary>{existing.map(item=><div className="atlas-thesis-history" key={item.createdAt}><strong>{new Date(item.createdAt).toLocaleString('en-US')}</strong><p>{item.thesis}</p><p><strong>Invalidation:</strong> {item.invalidation}</p></div>)}</details>}
    </div>
+   </details>
   </div>}
  </section>;
 }
