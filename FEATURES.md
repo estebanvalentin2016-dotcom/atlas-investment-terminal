@@ -1,3 +1,10 @@
+## Workspace UI consolidation — in development
+- Five destinations: Home, Discover, Research, Watchlist, Settings / Tools; all specialized research remains accessible.
+- Dated saved conclusions, source-linked filing history, notes, comparison and research/Conviction shortcuts in Watchlist.
+- Clearly separated fictional tools, including legacy demo notes; existing local storage retained.
+- Responsive secondary navigation and keyboard-accessible mobile navigation.
+- See UI_CONSOLIDATION.md for the full before/after inventory and validation limits.
+
 # Features and roadmap
 
 ## Implemented — v0.1.0

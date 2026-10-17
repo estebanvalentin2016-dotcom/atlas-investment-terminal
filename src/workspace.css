@@ -1,0 +1,81 @@
+/* Workspace hierarchy; financial/source-quality warnings remain in their modules. */
+.workspace-shell{--workspace-line:#2b4057;--workspace-muted:#a5b8cc}
+.workspace-shell .sidebar{width:220px;padding:26px 14px;overflow-y:auto}
+.workspace-shell .brand{padding:0 8px 34px;gap:10px}
+.workspace-shell .brand b{font-size:23px}
+.workspace-shell .brand small{font-size:8px}
+.workspace-shell .sidebar nav[aria-label="ATLAS workspace"]{flex:0 0 auto;overflow:visible;display:grid;gap:7px}
+.workspace-shell .navitem{min-height:48px;font-size:15px;border-radius:9px;gap:12px;padding:12px}
+.workspace-shell .navitem.active{background:#1c3653;border:1px solid #3a648a;color:#e8f4ff}
+.workspace-sidebar-note{margin-top:auto;padding:30px 10px 0;color:#bdcddd;font-size:13px;line-height:1.7}
+.workspace-sidebar-note small{display:block;color:var(--workspace-muted);font-size:12px}
+.workspace-shell .mainarea{min-width:0;flex:1}
+.workspace-shell .topbar{height:64px;padding:0 32px;border-bottom:1px solid var(--workspace-line)}
+.workspace-shell .content{padding:30px 32px 56px;max-width:1500px;margin:auto}
+.workspace-heading{display:flex;justify-content:space-between;gap:20px;align-items:center;margin:0 0 22px}
+.workspace-heading .eyebrow{font-size:11px;letter-spacing:.14em;color:#8ca3bd}
+.workspace-heading h1{font-size:30px;letter-spacing:-.8px;line-height:1.2;margin:8px 0 0;outline:none}
+.workspace-mode{font:11px 'IBM Plex Mono',monospace;color:#9fb8ce;letter-spacing:.06em}
+.workspace-secondary{margin:0 0 20px;display:grid;gap:10px;padding-bottom:16px;border-bottom:1px solid var(--workspace-line)}
+.workspace-tool-links{display:flex;flex-wrap:wrap;gap:8px}
+.workspace-tool-links button{border:1px solid transparent;background:transparent;color:#b2c5da;border-radius:7px;padding:9px 12px;font-size:14px;min-height:42px;text-align:left}
+.workspace-tool-links button[aria-current="page"]{color:#e8f4ff;background:#1b344c;border-color:#4a6d8e}
+.workspace-tool-links button:hover{background:#192b3e;color:white}
+.workspace-demo-tools summary{color:#d6b994;cursor:pointer;padding:10px 0;font-size:13px}
+.workspace-demo-tools[open] .workspace-tool-links{padding:10px;border-left:2px solid #926c38;background:#241e181f}
+.workspace-notice{display:flex;align-items:center;gap:10px;color:#a9bed3;font-size:12px;line-height:1.5;padding:0 0 22px;flex-wrap:wrap}
+.workspace-notice svg{flex-shrink:0}.workspace-notice .text-link{margin-left:auto;font-size:12px}
+.workspace-notice-demo{color:#e1c59d}
+.workspace-shell .panel{border-color:var(--workspace-line);border-radius:12px;margin-bottom:20px}
+.workspace-shell .panel-head{padding-top:22px;gap:14px;flex-wrap:wrap}
+.workspace-shell .panel-head .eyebrow{display:none}
+.workspace-shell .panel-head h3{font-size:21px;line-height:1.35}
+.workspace-shell .description{font-size:14px;line-height:1.7;color:#b4c6d8}
+.workspace-shell .button{min-height:42px;font-size:14px;border-radius:8px}
+.workspace-shell .button.primary{background:#2c72bb;border-color:#4c96dd}
+.workspace-shell small{line-height:1.55}
+.workspace-shell summary{cursor:pointer;line-height:1.6}
+.workspace-home-shortcuts{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+.workspace-methodology{padding:26px}.workspace-methodology h2{font-size:23px;margin:0 0 12px}
+.workspace-methodology p{color:#b5c8da;line-height:1.7;font-size:14px}
+.workspace-methodology details{margin-top:16px;padding:16px;border:1px solid var(--workspace-line);border-radius:9px}
+.workspace-method-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:24px 0}
+.workspace-method-grid article{padding:18px;background:#132338;border-radius:10px}.workspace-method-grid h3{margin:0}
+.watchlist-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:20px 0}
+.watchlist-card{padding:22px;background:#132438;border:1px solid #35506a;border-radius:12px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.watchlist-card .atlas-ranking-row-head{margin:0}.watchlist-card h3{font-size:23px;margin:0}.watchlist-card .atlas-ranking-row-head p{color:#b6cadd;margin:4px 0}
+.watchlist-card .watchlist-remove{font-size:12px;color:#dbafaf;background:transparent;padding:6px 9px}
+.watchlist-research-context{display:grid;gap:14px}.watchlist-conclusion{padding:16px;background:#1b334b;border-radius:9px;border-left:3px solid #709bc4}
+.watchlist-conclusion h4{font-size:17px;line-height:1.4;margin:8px 0}.watchlist-conclusion p{font-size:14px;line-height:1.6;white-space:pre-wrap;margin:8px 0;overflow-wrap:anywhere}
+.watchlist-conclusion small,.watchlist-conclusion a{display:block;font-size:12px;color:#bacfe1;margin-top:8px;overflow-wrap:anywhere}
+.watchlist-developments{padding:12px 0;border-bottom:1px solid var(--workspace-line);font-size:13px}.watchlist-developments small{display:block;color:#a7bbcf;margin-top:7px}
+.watchlist-developments a{color:#8cc7ff}.watchlist-developments p{line-height:1.6}
+.watchlist-card .atlas-research-note{margin:0}.watchlist-card textarea,.watchlist-card label{width:100%;min-width:0}
+.watchlist-card label{display:grid;gap:8px}.watchlist-card textarea{font-size:14px;line-height:1.6;background:#0e1e30;color:#e6eff8;border:1px solid #3a536c;border-radius:8px;padding:12px;resize:vertical}
+.watchlist-card .atlas-ranking-controls{margin-top:auto;display:flex;flex-wrap:wrap;gap:8px}.watchlist-card .atlas-ranking-controls button{font-size:12px}
+.watchlist-comparison-bar{padding:18px;border:1px solid #3b5875;border-radius:10px;background:#182d43;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.watchlist-actions{display:flex;gap:8px;flex-wrap:wrap}
+.skip-link{position:fixed;top:-60px;left:20px;z-index:100;background:#244e79;padding:12px;color:white}.skip-link:focus{top:12px}
+.workspace-shell :is(a,button,summary,input,select,textarea):focus-visible{outline:2px solid #9ed0ff;outline-offset:3px}
+@media(max-width:1100px){.watchlist-grid{grid-template-columns:1fr}.workspace-shell .content{padding:24px}.workspace-shell .topbar{padding:0 24px}}
+@media(max-width:900px){.workspace-shell .sidebar{width:260px;position:fixed;z-index:50;top:0;left:0;height:100dvh;transform:translateX(-100%);transition:transform .18s;visibility:hidden}.workspace-shell .sidebar-open{transform:translateX(0);visibility:visible}.workspace-shell .mobile-menu,.workspace-shell .mobile-close{display:inline-flex}.workspace-shell .mobile-close{margin-left:auto}.workspace-shell .overlay{display:block;position:fixed;inset:0;z-index:40;background:#0009;border:0}.workspace-shell .mainarea{width:100%}}
+@media(min-width:901px){.workspace-shell .mobile-menu,.workspace-shell .mobile-close{display:none}}
+@media(max-width:600px){.workspace-shell .content{padding:20px 14px 36px}.workspace-shell .topbar{padding:0 14px;height:58px}.workspace-heading{align-items:flex-start;flex-direction:column;gap:14px}.workspace-heading h1{font-size:25px}.workspace-mode{display:none}.workspace-tool-links{gap:5px}.workspace-tool-links button{font-size:13px;padding:8px 10px}.workspace-notice{font-size:12px;padding-bottom:16px}.workspace-notice .text-link{margin-left:26px}.watchlist-card{padding:16px}.workspace-shell .panel-head h3{font-size:19px}.workspace-methodology{padding:18px}.workspace-shell .top-left{min-width:0;gap:9px;flex-wrap:wrap}.workspace-shell .top-left b{font-size:12px}.workspace-shell .panel{max-width:100%;min-width:0}}
+@media(prefers-reduced-motion:reduce){.workspace-shell .sidebar{transition:none}}
+@media(max-width:600px){.workspace-shell .real-panel>.panel-head,.workspace-shell .real-panel>.description{width:auto;max-width:100%;margin-left:0;margin-right:0}.workspace-shell .panel-head>div{min-width:0;overflow-wrap:anywhere}.workspace-shell .button{white-space:normal}.workspace-footer{gap:8px}}
+.workspace-shell .atlas-autonomous-discovery{grid-template-columns:minmax(0,1fr)}
+.workspace-shell .atlas-autonomous-discovery>*{min-width:0}
+.workspace-shell .atlas-live-saved{padding:0;margin:20px 0 0;background:transparent;border:0;border-radius:0}
+.workspace-shell .atlas-live-saved>.watchlist-grid{margin-top:0}
+.workspace-shell .watchlist-card .atlas-ranking-row-head>div:first-child{display:block}
+.workspace-shell :is(.atlas-institutions,.atlas-consensus,.atlas-conviction-lab){grid-template-columns:minmax(0,1fr)}
+.workspace-shell :is(.atlas-institutions,.atlas-consensus,.atlas-conviction-lab)>*{min-width:0}
+.workspace-shell .tag{white-space:normal;max-width:100%;overflow-wrap:anywhere}
+.workspace-shell .atlas-institution-select :is(input,select){min-width:0;width:100%}
+.workspace-shell :is(.atlas-consensus-funds,.atlas-fund-import){min-width:0;grid-template-columns:minmax(0,1fr)}
+.workspace-shell :is(.atlas-consensus-funds,.atlas-fund-import)>*{min-width:0}
+.workspace-shell .atlas-fund-fields :is(label,input,select){min-width:0;max-width:100%}
+@media(max-width:600px){.workspace-shell .atlas-fund-fields{grid-template-columns:minmax(0,1fr)}.workspace-shell .atlas-fund-fields input[type="file"]{width:100%}}
+.workspace-publications{border:1px solid var(--workspace-line);border-radius:10px;margin:20px 0;padding:16px}.workspace-publications>summary{font-size:15px;font-weight:600}.workspace-publications>.panel{margin:16px 0 0}
+.workspace-shell .atlas-live-saved{margin:20px 22px 0;padding-bottom:20px}
+@media(max-width:600px){.workspace-shell .atlas-live-saved{margin:20px 12px 0}}

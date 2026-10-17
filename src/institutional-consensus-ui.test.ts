@@ -3,6 +3,7 @@ import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import InstitutionalConsensus from './InstitutionalConsensus';
 import App from './App';
+import {SecondaryNavigation} from './WorkspaceNavigation';
 describe('Institutional consensus ATLAS UI',()=>{
  it('offers point-in-time SEC overlap analysis without manufacturing institutional approval',()=>{
   const html=renderToStaticMarkup(createElement(InstitutionalConsensus));
@@ -15,7 +16,7 @@ describe('Institutional consensus ATLAS UI',()=>{
   expect(html).not.toContain('Strong Speculative Buy');
  });
  it('keeps 8-K Opportunity Radar and Conviction Lab navigable when consensus is added',()=>{
-  const html=renderToStaticMarkup(createElement(App));
+  const html=renderToStaticMarkup(createElement(App))+renderToStaticMarkup(createElement(SecondaryNavigation,{page:'Autonomous Discovery',navigate:()=>{}}))+renderToStaticMarkup(createElement(SecondaryNavigation,{page:'Company Research',navigate:()=>{}}));
   expect(html).toContain('Institutional Consensus');
   expect(html).toContain('Institutional Discovery');
   expect(html).toContain('Opportunity Radar');
