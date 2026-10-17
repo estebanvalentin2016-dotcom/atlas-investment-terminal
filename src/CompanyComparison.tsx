@@ -10,8 +10,8 @@ export function comparisonRows(a:Company,b:Company){
  ...analysis[0].map((m,i)=>({name:m.label,values:analysis.map(ds=>ds[i].value===null?null:{display:ds[i].value!.toFixed(1)+'%',end:ds[i].detail,filed:null})}))
  ];
 }
-export default function CompanyComparison(){
- const [symbols,setSymbols]=useState(['CRWD','PANW']);
+export default function CompanyComparison({initialSymbols=['CRWD','PANW']}:{initialSymbols?:[string,string]}){
+ const [symbols,setSymbols]=useState<string[]>(initialSymbols);
  const [companies,setCompanies]=useState<(Company|null)[]>([null,null]);
  const [errors,setErrors]=useState<string[]>(['','']);
  const [loading,setLoading]=useState(false);

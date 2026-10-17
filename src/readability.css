@@ -1,0 +1,531 @@
+
+/* ATLAS Readability v0.12 — large targets, clear hierarchy, progressive detail.
+   Keep evidence neutral: color is NOT a prediction or trading signal. */
+:root{font-size:16px;line-height:1.55}
+body{font-size:16px}
+.navitem{font-size:15px;min-height:48px;height:auto;line-height:1.3;padding-top:10px;padding-bottom:10px}
+.brand small,.side-label,.eyebrow,.overline{font-size:12px;letter-spacing:.5px}
+.helpbox p,.disclaimer,.pageheading p,.description,.panel-head h3,.button,.tag,.data-status{font-size:15px}
+.pageheading h1{font-size:clamp(29px,3vw,36px)}
+.pageheading p{line-height:1.6}
+.panel-head h3{font-size:21px}
+.button{min-height:46px;padding:11px 16px;font-weight:800;white-space:normal;text-align:center;line-height:1.25}
+.tag{line-height:1.3;white-space:normal}
+.disclaimer{line-height:1.6;padding:14px 16px;color:#f4d9ad}
+.description{line-height:1.7;color:#c7d7e7}
+.chart-note,.panel-foot{font-size:14px;line-height:1.65;color:#b7c9dc}
+.sidebar .side-label{font-size:12px}
+.stat .sub,.metric-row,.scenario-line,.pillar p,.range-field small,.company-title small{font-size:13px}
+th{font-size:12px}td{font-size:14px}
+.top-left,.top-right,.top-left b{font-size:14px}
+.opportunity-radar{font-size:17px;line-height:1.6}
+.opportunity-radar .panel-head h3{font-size:clamp(23px,2.2vw,29px)}
+.opportunity-radar>.description{font-size:16px;line-height:1.6}
+.opportunity-radar .opportunity-toolbar{padding:16px 18px;gap:14px}
+.opportunity-radar .opportunity-toolbar strong{font-size:19px}
+.opportunity-radar .opportunity-toolbar span{font-size:15px}
+.opportunity-radar .opportunity-results-head strong{font-size:23px}
+.opportunity-radar .opportunity-results-head p{font-size:16px}
+.opportunity-radar .opportunity-filters>label,.opportunity-radar .opportunity-checkbox{font-size:16px}
+.opportunity-radar .opportunity-filters input[type="search"],.opportunity-radar .opportunity-filters select{min-height:46px;font-size:16px}
+.opportunity-radar .opportunity-list{grid-template-columns:minmax(0,1fr);max-width:1050px;gap:18px}
+.opportunity-radar .opportunity-candidate{padding:22px;gap:14px;border-radius:15px}
+.opportunity-radar .opportunity-top strong{font-size:30px}
+.opportunity-radar .opportunity-top span{font-size:15px}
+.opportunity-radar .opportunity-candidate h4{font-size:22px}
+.opportunity-radar .opportunity-candidate p{font-size:16px;line-height:1.55}
+.opportunity-radar .opportunity-candidate .opportunity-uncertainty{font-size:15px;line-height:1.5}
+.opportunity-radar .opportunity-candidate a{font-size:16px;text-decoration-thickness:1.5px;text-underline-offset:3px}
+.opportunity-radar .opportunity-candidate .chart-note{font-size:14px;padding:8px 0;border:0}
+.opportunity-radar details>summary{cursor:pointer;font-size:16px;font-weight:800;line-height:1.5;padding:8px 0;color:#b4e2ff}
+.opportunity-radar details>summary:hover{text-decoration:underline;text-underline-offset:3px}
+.opportunity-radar .opportunity-diagnostic{font-size:15px}
+.opportunity-radar .filing-evidence-body,.opportunity-radar .filing-price-body{padding:16px;gap:14px}
+.opportunity-radar .filing-evidence-body>strong,.opportunity-radar .filing-price-body>strong,.opportunity-radar .filing-acceptance-context>strong{font-size:20px}
+.opportunity-radar .filing-evidence-excerpt{padding:14px}
+.opportunity-radar .filing-evidence-excerpt strong{font-size:17px}
+.opportunity-radar .filing-evidence-excerpt p,.opportunity-radar .filing-price-leg p{font-size:15px;line-height:1.6}
+.opportunity-radar .filing-evidence-sources p,.opportunity-radar .filing-price-body>p,.opportunity-radar .filing-acceptance-context>p{font-size:15px}
+.opportunity-radar .filing-price-leg>strong{font-size:16px}
+.opportunity-radar .filing-price-leg{padding:16px}
+.opportunity-radar .filing-evidence-metrics{padding:16px;gap:12px}
+.opportunity-radar .filing-evidence-metrics>strong{font-size:20px}
+.opportunity-radar button:focus-visible,.opportunity-radar a:focus-visible,.opportunity-radar summary:focus-visible{outline:3px solid #8edaff;outline-offset:4px}
+/* The first thing readers see is a small number of real metrics. */
+.atlas-glance{display:grid;gap:12px;padding:16px;border:1px solid #3e6685;border-radius:12px;background:#12263a}
+.atlas-glance-title{font-size:20px!important;font-weight:800;color:#f0f8ff}
+.atlas-glance-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.atlas-glance-card{display:grid;align-content:start;gap:5px;min-width:0;border:1px solid #44647e;border-radius:10px;background:#1a344b;padding:15px}
+.atlas-glance-label{font-size:14px;font-weight:700;color:#bdd2e5;line-height:1.4}
+.atlas-glance-value{font-size:clamp(20px,2.2vw,28px);font-weight:800;color:#f8fbff;line-height:1.23;overflow-wrap:anywhere}
+.atlas-glance-link{font-size:14px!important;font-weight:700}
+.atlas-summary-line{font-size:17px!important;line-height:1.55!important;color:#e7f1fb!important}
+.atlas-summary-line strong{color:#fff}
+.atlas-details{border:1px solid #45617c;border-radius:10px;padding:12px 16px;background:#162c41}
+.atlas-details>summary{font-size:17px!important}
+.atlas-details[open]>summary{margin-bottom:12px}
+.atlas-details p{overflow-wrap:anywhere}
+.atlas-key-return{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.atlas-key-return>div{display:grid;gap:6px;padding:16px;border-radius:10px;background:#1b354e;border:1px solid #486985;min-width:0}
+.atlas-key-return .atlas-glance-value{font-size:clamp(24px,2.6vw,34px)}
+.atlas-key-return .atlas-glance-label{font-size:15px}
+.atlas-technical-meta{display:grid;gap:9px}
+.atlas-technical-meta p{font-size:15px!important}
+@media(max-width:680px){
+ .opportunity-radar .opportunity-candidate{padding:16px}
+ .atlas-glance-cards,.atlas-key-return{grid-template-columns:minmax(0,1fr)}
+ .opportunity-radar .opportunity-top strong{font-size:27px}
+}
+
+/* Three numbers answer the scan-status question without a paragraph of logs. */
+.atlas-scan-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 22px}
+.atlas-scan-grid>div{display:grid;align-content:start;gap:5px;padding:17px;border:1px solid #456d88;background:#162c42;border-radius:12px;min-width:0}
+.atlas-scan-grid span{font-size:15px;font-weight:700;color:#c8dbe9}
+.atlas-scan-grid strong{font-size:clamp(28px,3.5vw,40px);font-weight:800;line-height:1.1;color:#f3f9ff}
+.atlas-scan-grid small{font-size:14px;color:#d0dce7}
+.opportunity-radar>.atlas-summary-line{padding:0 22px}
+.opportunity-radar .opportunity-results-head{padding:0 2px}
+.opportunity-radar .opportunity-uncertainty strong{color:#fff4da}
+.opportunity-radar .atlas-details .filing-evidence-excerpt{margin:10px 0}
+@media(max-width:780px){.atlas-scan-grid{grid-template-columns:1fr;margin:14px 16px}}
+
+/* Sidebar remains navigable when enlarged labels exceed short screens. */
+.sidebar{overflow-y:auto;overscroll-behavior:contain}
+.sidebar .brand{padding-bottom:23px}
+@media(max-height:820px){.sidebar .helpbox{margin-bottom:14px}.sidebar{padding-top:18px}}
+@media(prefers-reduced-motion:reduce){button{transition:none}.sidebar{scroll-behavior:auto}}
+
+/* Positive/negative denotes the measured direction, never a buy/sell recommendation. */
+.atlas-tone-positive{color:#66e6aa!important}
+.atlas-tone-negative{color:#ff8892!important}
+.atlas-tone-neutral{color:#f8fbff!important}
+.atlas-metric-detail{font-size:14px;color:#bcd3e5;line-height:1.5}
+.atlas-ranking-entry{margin:18px 22px;padding:14px 18px;background:#112b43;border:1px solid #4c799a}
+.atlas-ranking-entry>summary{font-size:21px!important;color:#eaf7ff!important}
+.atlas-ranking-chevron{color:#77dcb4}
+.atlas-ranking-workbench{display:grid;gap:17px;padding:15px 0 5px}
+.atlas-ranking-head h3{font-size:26px;line-height:1.2;margin:4px 0 8px}
+.atlas-ranking-head p{font-size:16px;margin:0;color:#c5d9ed}
+.atlas-ranking-controls{display:flex;align-items:end;gap:12px;flex-wrap:wrap}
+.atlas-ranking-controls label{flex:1 1 280px;display:grid;gap:8px;font-size:16px;font-weight:700}
+.atlas-ranking-controls input,.atlas-ranking-metrics input{background:#172d43;border:1px solid #6686a0;border-radius:8px;min-height:46px;padding:10px 12px;color:#f2f9ff;font-size:16px;max-width:100%}
+.atlas-ranking-weights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.atlas-ranking-weights label{background:#142b40;border:1px solid #436781;border-radius:11px;padding:15px;display:grid;gap:11px}
+.atlas-ranking-weights label>span{display:flex;justify-content:space-between;gap:10px;font-size:17px}
+.atlas-ranking-weights em{font-style:normal;color:#9fd3ff;font-weight:800}
+.atlas-ranking-weights input{width:100%;accent-color:#66b5ff;cursor:pointer}
+.atlas-ranking-weights small{font-size:14px;color:#bed1e3;line-height:1.5}
+.atlas-ranking-results{display:grid;gap:14px}
+.atlas-ranking-results>strong{font-size:24px}
+.atlas-ranking-row{padding:18px;border-radius:12px;border:1px solid #456783;background:#13273d;display:grid;gap:13px;overflow-wrap:anywhere}
+.atlas-ranking-row-head{display:flex;justify-content:space-between;gap:16px;align-items:start}
+.atlas-ranking-row-head>div{display:flex;align-items:start;gap:14px}
+.atlas-ranking-row-head>div:last-child{flex-direction:column;align-items:end;gap:4px}
+.atlas-ranking-row-head strong{font-size:23px;color:#f2f8ff}
+.atlas-ranking-row-head p{font-size:15px;color:#d0dfed;margin:2px 0}
+.atlas-ranking-row-head small{font-size:13px;color:#adc9df}
+.atlas-rank-number{font-size:27px;font-weight:800;color:#b8dbf9}
+.atlas-rank-score{font-size:28px!important;color:#def4ff!important}
+.atlas-ranking-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.atlas-ranking-metrics>div,.atlas-ranking-metrics>label{border-radius:9px;border:1px solid #476783;background:#21394f;padding:11px;min-width:0;display:grid;gap:8px}
+.atlas-ranking-metrics span{font-size:14px;color:#bed2e4}
+.atlas-ranking-metrics strong{font-size:21px}
+.atlas-ranking-row>p{font-size:15px;margin:0}
+.atlas-rank-missing{color:#f4d2a6!important}
+@media(max-width:900px){.atlas-ranking-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:610px){.atlas-ranking-weights,.atlas-ranking-metrics{grid-template-columns:minmax(0,1fr)}.atlas-ranking-row-head{flex-wrap:wrap}.atlas-ranking-entry{margin:14px 10px}}
+
+/* Real-company navigation: bigger text, clear actions, no fictional score crossover. */
+.atlas-live-workspace,.atlas-topic-lab{padding-bottom:18px}
+.atlas-live-entry{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;padding:16px;border:1px solid #3e6783;background:#122b41;border-radius:12px}
+.atlas-live-entry strong{font-size:20px;margin-right:auto}
+.atlas-live-workspace .atlas-company-search{margin:18px 22px}
+.atlas-live-workspace .atlas-company-search label{font-size:17px}
+.atlas-live-matches{display:grid;gap:9px;margin:15px 22px}
+.atlas-live-matches>strong,.atlas-live-saved>h4{font-size:23px}
+.atlas-live-matches>div{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#152c40;border:1px solid #476681;padding:12px;border-radius:9px}
+.atlas-live-matches>div>span{flex:1;min-width:180px;font-size:16px}
+.atlas-live-details,.atlas-live-saved{display:grid;gap:16px;margin:18px 22px;padding:16px;background:#14293f;border:1px solid #466783;border-radius:12px}
+.atlas-live-details .atlas-ranking-row-head strong{font-size:25px}
+.atlas-live-details>a{font-size:16px;color:#9ddcff}
+.atlas-research-note{display:grid;gap:11px;font-size:17px;font-weight:700}
+.atlas-research-note textarea{width:100%;font:inherit;font-weight:500;line-height:1.5;min-height:80px;padding:13px;border-radius:8px;background:#172d43;color:#eaf5ff;border:1px solid #6083a1;resize:vertical}
+.atlas-live-saved .atlas-ranking-controls{align-items:center}
+.atlas-demo-separator{margin:22px 0;padding:14px 20px;background:#292317;border-color:#715a37}
+.atlas-demo-separator>summary{font-size:18px;color:#f4d29b}
+.atlas-topic-lab .atlas-ranking-controls{padding:0 22px;margin:14px 0}
+.atlas-topic-lab .description{font-size:16px}
+.atlas-topic-news,.atlas-topic-ranked{display:grid;gap:12px;margin:16px 22px;padding:15px;border:1px solid #3e6583;background:#142a40;border-radius:12px}
+.atlas-topic-news>h4,.atlas-topic-ranked>h4{font-size:24px;margin:0}
+.atlas-topic-news>article{display:grid;gap:5px;padding:13px;border:1px solid #405e78;border-radius:9px}
+.atlas-topic-news a{font-size:17px;font-weight:700;color:#a5ddff}
+.atlas-topic-news p{font-size:14px;line-height:1.5;margin:0}
+.atlas-topic-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px;border-radius:9px;background:#1a354b;border:1px solid #40657f}
+.atlas-topic-row>div{display:grid;gap:5px}
+.atlas-topic-row>div:last-child{text-align:right}
+.atlas-topic-row strong{font-size:20px}
+.atlas-topic-row span,.atlas-topic-row small{font-size:14px;color:#bed5e6}
+.atlas-topic-lab .atlas-summary-line{padding:0 22px}
+@media(max-width:750px){.atlas-live-details,.atlas-live-saved,.atlas-live-matches,.atlas-topic-news,.atlas-topic-ranked{margin-left:12px;margin-right:12px}.atlas-topic-row{flex-wrap:wrap}.atlas-topic-row>div:last-child{text-align:left}}
+
+/* Conviction-first workspace navigation and research funnel. */
+.sidebar nav[aria-label="ATLAS workspace"]{display:block;overflow-y:auto;min-height:0;flex:1;padding-bottom:12px}
+.atlas-nav-group{margin:5px 0 18px}
+.atlas-nav-group .side-label{padding:8px 18px 7px;font-size:12px;font-weight:800;letter-spacing:.75px;color:#8eb5d4}
+.atlas-nav-group .navitem,.atlas-demo-nav .navitem{width:100%;min-height:47px;text-align:left;font-size:15px}
+.atlas-demo-nav{margin:9px 7px 16px;padding:6px 8px;border:1px solid #586275;border-radius:10px;background:#172332}
+.atlas-demo-nav>summary{cursor:pointer;padding:9px 5px;font-size:13px;line-height:1.4;font-weight:800;letter-spacing:.4px;color:#c2d0de}
+.atlas-demo-nav .navitem{font-size:14px}
+.atlas-research-home{display:grid;gap:20px}
+.atlas-home-mission{border:1px solid #476d8d;border-radius:15px;background:linear-gradient(130deg,#1b3953,#132437);padding:28px;display:grid;gap:14px;justify-items:start}
+.atlas-home-mission h2{font-size:clamp(30px,3.3vw,46px);line-height:1.18;max-width:850px;margin:0;color:#f6fbff}
+.atlas-home-mission h2 em{font-style:normal;color:#7fc8ff}
+.atlas-home-mission p{max-width:790px;font-size:18px;line-height:1.55;color:#dfebf5;margin:0}
+.atlas-home-journey{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.atlas-home-stage{min-width:0;display:grid;grid-template-columns:46px minmax(0,1fr);gap:12px;padding:20px;border-radius:13px;border:1px solid #43637f;background:#152c40;align-content:start}
+.atlas-stage-number{font-size:29px;font-weight:800;line-height:1.1;color:#8fc9f2}
+.atlas-home-stage h3{font-size:25px;margin:0 0 5px;color:#f1f8ff}
+.atlas-home-stage p{font-size:16px;line-height:1.55;margin:0 0 8px;color:#c9dbe9}
+.atlas-home-stage small{font-size:14px;color:#a8cee7}
+.atlas-home-stage .button{grid-column:2;justify-self:start}
+.atlas-home-boundaries{border:1px solid #456783;border-radius:12px;padding:20px;display:grid;gap:10px;justify-items:start;background:#182d42}
+.atlas-home-boundaries>strong{font-size:21px}
+.atlas-home-boundaries p{font-size:16px;line-height:1.55;margin:0}
+.atlas-conviction-lab{display:grid;gap:14px}
+.atlas-conviction-lab>.description,.atlas-conviction-lab>.atlas-ranking-controls,.atlas-conviction-lab>.real-error,.atlas-conviction-lab>.opportunity-uncertainty{margin:0 22px}
+.atlas-conviction-lab>.atlas-ranking-controls{margin-top:4px}
+.atlas-conviction-intro,.atlas-conviction-result{margin:8px 22px 22px;border:1px solid #506d89;border-radius:13px;padding:18px;background:#142b40;display:grid;gap:16px}
+.atlas-conviction-intro>strong{font-size:22px}
+.atlas-conviction-intro p,.atlas-conviction-result p{font-size:16px;line-height:1.55;margin:0}
+.atlas-conviction-verdict{display:grid;gap:9px;padding:18px;border:1px solid #84704d;border-radius:11px;background:#29271f}
+.atlas-conviction-verdict>span{font-size:15px;color:#e6decc}
+.atlas-conviction-verdict>strong{font-size:clamp(23px,2.8vw,32px);line-height:1.25;color:#f4db9b;overflow-wrap:anywhere}
+.atlas-conviction-count{display:flex;gap:13px;align-items:center}
+.atlas-conviction-count strong{font-size:35px;color:#e3f5ff}
+.atlas-conviction-count span{font-size:16px;color:#bbd4e6}
+.atlas-conviction-gates{display:grid;gap:8px}
+.atlas-conviction-gates>div{background:#1a354b;border:1px solid #496982;border-radius:8px;padding:13px}
+.atlas-conviction-gates strong{font-size:16px;color:#f0f7ff}
+.atlas-conviction-gates p{color:#bfd4e5;font-size:14px;margin:5px 0 0;overflow-wrap:anywhere}
+.atlas-conviction-thesis{display:grid;gap:13px}
+.atlas-conviction-thesis>strong{font-size:20px}
+.atlas-conviction-thesis label{display:grid;gap:8px;font-size:16px;font-weight:700}
+.atlas-conviction-thesis textarea{width:100%;border:1px solid #708ea8;border-radius:8px;padding:12px;background:#182f46;color:#f2f9ff;font:inherit;font-size:16px;line-height:1.55;resize:vertical}
+.atlas-conviction-thesis>.button{justify-self:start}
+.atlas-thesis-history{padding:11px 0;border-bottom:1px solid #496982;display:grid;gap:6px}
+.atlas-thesis-history strong{font-size:15px}
+.atlas-thesis-history p{font-size:15px}
+@media(max-width:800px){.atlas-home-journey{grid-template-columns:minmax(0,1fr)}.atlas-home-mission{padding:20px}.atlas-home-stage{padding:16px}}
+@media(max-width:630px){.atlas-conviction-intro,.atlas-conviction-result{margin:6px 10px 15px;padding:13px}.atlas-conviction-lab>.description,.atlas-conviction-lab>.atlas-ranking-controls{margin-left:10px;margin-right:10px}}
+
+/* SEC Institutional Discovery: evidence-first, big text and accessible source audit. */
+.atlas-institutions{display:grid;gap:16px}
+.atlas-institutions>.description{font-size:17px}
+.atlas-investor-tabs,.atlas-institution-controls,.atlas-institution-results{margin:0 22px;display:grid;gap:14px}
+.atlas-investor-tabs{display:flex;flex-wrap:wrap;gap:12px}
+.atlas-institution-controls,.atlas-institution-results{padding:16px;border:1px solid #466b85;background:#142b40;border-radius:12px}
+.atlas-institution-controls>strong,.atlas-institution-results>strong{font-size:20px}
+.atlas-institution-presets{display:flex;flex-wrap:wrap;gap:10px}
+.atlas-institution-controls .atlas-ranking-controls,.atlas-institution-results .atlas-ranking-controls{padding:0;margin:0}
+.atlas-institution-select{display:grid;gap:8px;font-weight:700;font-size:16px}
+.atlas-institution-select input,.atlas-institution-select select{font:inherit;min-height:46px;padding:10px 13px;max-width:100%;background:#142d44;color:#f1f9ff;border:1px solid #6b8ba3;border-radius:8px}
+.atlas-institution-sources{background:#1a354b;border:1px solid #52728b;border-radius:10px;padding:16px;display:grid;gap:7px}
+.atlas-institution-sources>strong{font-size:22px}
+.atlas-institution-sources p,.atlas-institution-sources small{font-size:15px;margin:0;overflow-wrap:anywhere;line-height:1.55}
+.atlas-institution-sources a,.atlas-institution-row a{color:#9bdcff;text-underline-offset:3px}
+.atlas-institution-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.atlas-institution-stats>div{display:grid;gap:6px;padding:15px;background:#20384c;border:1px solid #4d708a;border-radius:10px}
+.atlas-institution-stats span{font-size:14px;color:#c5d9eb}
+.atlas-institution-stats strong{font-size:clamp(24px,3vw,34px);color:#f6faff}
+.atlas-institution-list{display:grid;gap:13px}
+.atlas-institution-row{display:grid;gap:12px;padding:18px;border:1px solid #4e6984;border-radius:12px;background:#1b3449}
+.atlas-institution-row-head{display:flex;align-items:start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.atlas-institution-row-head>div{display:grid;gap:5px;min-width:180px}
+.atlas-institution-row-head strong{font-size:23px;line-height:1.25}
+.atlas-institution-row-head span{font-size:15px;line-height:1.5;font-weight:750}
+.atlas-institution-values{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.atlas-institution-values>div{display:grid;gap:5px;padding:12px;border:1px solid #41617b;background:#152f45;border-radius:9px;min-width:0;overflow-wrap:anywhere}
+.atlas-institution-values span{font-size:14px;color:#bed2e4}
+.atlas-institution-values strong{font-size:clamp(17px,1.6vw,23px);color:#f4fbff}
+.atlas-institution-row .chart-note{font-size:14px;margin:0}
+.atlas-institution-pagination{display:flex;align-items:center;gap:12px;justify-content:center}
+.atlas-institution-results>.atlas-summary-line{font-size:16px;padding:0;margin:0}
+@media(max-width:930px){.atlas-institution-stats,.atlas-institution-values{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.atlas-investor-tabs,.atlas-institution-controls,.atlas-institution-results{margin:0 10px}.atlas-institution-stats,.atlas-institution-values{grid-template-columns:minmax(0,1fr)}.atlas-institution-row{padding:13px}}
+
+/* Independent active-manager overlap is shown separately from SEC 13F co-reporting. */
+.atlas-consensus{display:grid;gap:17px}
+.atlas-consensus .description{font-size:17px}
+.atlas-consensus-controls,.atlas-consensus>.chart-note,.atlas-consensus>.atlas-summary-line,.atlas-consensus>.atlas-details,.atlas-consensus>.atlas-consensus-funds,.atlas-consensus>.atlas-consensus-results{margin:0 22px}
+.atlas-consensus-controls{align-items:end}
+.atlas-consensus-funds,.atlas-consensus-results{padding:17px;border:1px solid #486781;border-radius:12px;background:#132b40;display:grid;gap:16px}
+.atlas-consensus-funds>strong,.atlas-consensus-results>strong{font-size:22px}
+.atlas-consensus-fundcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.atlas-consensus-fundcards>div{display:grid;align-content:start;gap:8px;padding:15px;border:1px solid #546f84;border-radius:10px;background:#1c354a}
+.atlas-consensus-fundcards strong{font-size:18px}
+.atlas-consensus-fundcards span{font-size:15px;color:#f1cc9e;font-weight:750}
+.atlas-consensus-fundcards small{font-size:14px;line-height:1.55;color:#c6d9e8}
+.atlas-consensus-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.atlas-consensus-metrics>div{display:grid;gap:6px;padding:17px;border-radius:11px;background:#19344a;border:1px solid #486a83}
+.atlas-consensus-metrics span{font-size:15px;color:#c1d8e9}
+.atlas-consensus-metrics strong{font-size:clamp(28px,3vw,38px);color:#f5fbff}
+.atlas-consensus-filters{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.atlas-consensus-filters>label{display:grid;gap:7px;font-size:16px;font-weight:750;flex:1 1 280px}
+.atlas-consensus-filters input:not([type="checkbox"]){min-height:46px;padding:10px 13px;background:#172f46;color:#f3f9ff;border:1px solid #69859c;border-radius:9px;font:inherit}
+.atlas-consensus-filters .atlas-consensus-check{display:flex;flex:1 1 220px;gap:9px;align-items:center;font-weight:650}
+.atlas-consensus-check input{width:22px;height:22px;accent-color:#78b9e9}
+.atlas-consensus-security{display:grid;gap:12px;background:#1a354b;border:1px solid #4c6e89;border-radius:11px;padding:17px}
+.atlas-consensus-header{display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:13px}
+.atlas-consensus-header>div{display:grid;gap:5px}
+.atlas-consensus-header>div:last-child{text-align:right}
+.atlas-consensus-header strong{font-size:22px}
+.atlas-consensus-header small{font-size:14px;color:#bed4e6}
+.atlas-consensus-security .atlas-summary-line{margin:0}
+.atlas-consensus-security a{color:#9bd9ff}
+@media(max-width:780px){.atlas-consensus-fundcards,.atlas-consensus-metrics{grid-template-columns:1fr}.atlas-consensus-controls,.atlas-consensus>.chart-note,.atlas-consensus>.atlas-summary-line,.atlas-consensus>.atlas-details,.atlas-consensus>.atlas-consensus-funds,.atlas-consensus>.atlas-consensus-results{margin:0 10px}.atlas-consensus-header>div:last-child{text-align:left}}
+
+/* ATLAS verified live SEC historical case: headline-first, cite every source */
+.atlas-case-study{display:grid;gap:13px;margin:0 22px;padding:18px;border-radius:13px;border:1px solid #5b7692;background:#19334a}
+.atlas-case-study>div:first-child{display:grid;gap:7px}
+.atlas-case-study h3{font-size:clamp(22px,2.5vw,28px);margin:0;color:#f0f9ff}
+.atlas-case-study p{font-size:16px;line-height:1.6;margin:0}
+.atlas-case-study>.button{justify-self:start}
+.atlas-case-confirmation{display:grid;gap:15px;border-top:1px solid #536d84;padding-top:15px}
+.atlas-case-confirmation a{color:#a5e1ff}
+.atlas-case-records{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.atlas-case-records article{display:grid;align-content:start;gap:9px;background:#152d44;border:1px solid #516f8a;padding:14px;border-radius:10px}
+.atlas-case-records article>div{display:grid;gap:4px}
+.atlas-case-records article>div strong{font-size:18px}
+.atlas-case-records article>div span,.atlas-case-records article>span{font-size:14px;color:#c5d9ea}
+.atlas-case-records article>strong{font-size:clamp(19px,2.1vw,28px)}
+.atlas-case-fundamentals{display:grid;gap:12px;border-top:1px solid #5d7791;padding-top:15px}
+.atlas-case-fundamentals>strong{font-size:20px;color:#f0dda9}
+.atlas-case-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.atlas-case-metrics>div{display:grid;gap:7px;padding:13px;background:#15334a;border:1px solid #4c7791;border-radius:10px}
+.atlas-case-metrics span{font-size:14px;color:#c3d8e9}
+.atlas-case-metrics strong{font-size:clamp(21px,2.2vw,29px)}
+@media(max-width:810px){.atlas-case-records,.atlas-case-metrics{grid-template-columns:minmax(0,1fr)}.atlas-case-study{margin:0 10px;padding:13px}}
+
+/* Main product acceptance: no ticker required for initiating discovery */
+.atlas-autonomous-discovery{display:grid;gap:17px;padding-bottom:18px}
+.atlas-autonomous-discovery .description{font-size:17px;line-height:1.55}
+.atlas-autonomous-discovery>.atlas-autonomous-cta{justify-self:start;margin:2px 22px;font-size:19px;font-weight:800;padding:15px 23px;min-height:56px}
+.atlas-autonomous-discovery>.chart-note,.atlas-autonomous-discovery>.atlas-summary-line,.atlas-autonomous-discovery>.opportunity-uncertainty{margin:0 22px}
+.atlas-autonomous-results{display:grid;gap:17px;margin:0 22px}
+.atlas-autonomous-results>p{margin:0}
+.atlas-autonomous-results a{color:#9fdcff}
+.atlas-autonomous-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.atlas-autonomous-metrics>div{display:grid;align-content:start;gap:7px;padding:17px;background:#1c344b;border:1px solid #50738e;border-radius:12px}
+.atlas-autonomous-metrics span{font-size:15px;font-weight:750;color:#c3d9ea}
+.atlas-autonomous-metrics strong{font-size:clamp(29px,3vw,40px);line-height:1.15;color:#f4fbff}
+.atlas-autonomous-metrics small{font-size:14px;color:#c5d8e8}
+.atlas-autonomous-funnel{display:grid;gap:10px;padding:16px;border:1px solid #5b7792;background:#152d42;border-radius:11px}
+.atlas-autonomous-funnel>strong{font-size:21px}
+.atlas-autonomous-funnel p{font-size:16px;margin:0;line-height:1.6}
+.atlas-autonomous-funnel p strong{color:#f7fbff}
+.atlas-autonomous-leads{display:grid;gap:16px}
+.atlas-autonomous-leads h4{font-size:24px;margin:0}
+.atlas-autonomous-lead{display:grid;gap:13px;padding:19px;border:1px solid #55748e;background:#183147;border-radius:12px}
+.atlas-autonomous-heading{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.atlas-autonomous-heading>div{display:grid;gap:5px}
+.atlas-autonomous-heading>div strong{font-size:23px;line-height:1.3}
+.atlas-autonomous-heading small{font-size:14px;color:#c2d7e7}
+.atlas-autonomous-heading>span{font-size:14px;font-weight:800;color:#f2d9a4;padding:7px;border:1px solid #89734f;border-radius:8px;align-self:start}
+.atlas-autonomous-lead .atlas-key-return{grid-template-columns:repeat(2,minmax(0,1fr))}
+.atlas-autonomous-lead .atlas-glance-value{font-size:clamp(21px,2.5vw,31px)}
+.atlas-autonomous-lead .atlas-ranking-controls{align-items:center}
+.atlas-autonomous-lead .atlas-ranking-controls a{font-size:15px;font-weight:750}
+.atlas-autonomous-lead>p{margin:0;font-size:15px}
+@media(max-width:1050px){.atlas-autonomous-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.atlas-autonomous-metrics,.atlas-autonomous-lead .atlas-key-return{grid-template-columns:minmax(0,1fr)}.atlas-autonomous-results{margin:0 10px}.atlas-autonomous-discovery>.atlas-autonomous-cta{margin:0 10px}}
+
+/* Autonomous discovery controls and valuation concerns must be obvious at a glance. */
+.atlas-autonomous-actions{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin:0 22px}
+.atlas-autonomous-actions label{display:grid;gap:8px;font-size:16px;font-weight:750;min-width:240px}
+.atlas-autonomous-actions select{min-height:46px;padding:9px 13px;font:inherit;background:#183449;color:#eff7ff;border:1px solid #688aa3;border-radius:9px}
+.atlas-autonomous-actions .button{min-height:46px}
+.atlas-autonomous-valuation{padding:15px;border-radius:10px;border:1px solid #567b95;background:#14374c;display:grid;gap:7px}
+.atlas-autonomous-valuation strong{font-size:20px;line-height:1.35}
+.atlas-autonomous-valuation p{font-size:16px;line-height:1.55;margin:0;color:#c9deee}
+.atlas-autonomous-valuation.atlas-valuation-red{border:2px solid #d16a6c;background:#38262c}
+.atlas-autonomous-valuation.atlas-valuation-red strong{color:#ffaaaa}
+.atlas-autonomous-valuation.atlas-valuation-amber{border:2px solid #b78f5c;background:#342b21}
+.atlas-autonomous-valuation.atlas-valuation-amber strong{color:#f7d398}
+@media(max-width:650px){.atlas-autonomous-actions{margin:0 10px}}
+
+/* Early SEC balance-sheet research; facts are visible, gaps remain explicit. */
+.atlas-survival-panel{border:1px solid #59768f;background:#162f46;border-radius:12px;padding:17px;display:grid;gap:12px}
+.atlas-survival-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.atlas-survival-panel-head>strong{font-size:21px;color:#f3f9ff}
+.atlas-survival-panel-head>span{font-size:14px;font-weight:700;color:#f0d4a2}
+.atlas-survival-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.atlas-survival-metrics>div{display:grid;align-content:start;gap:7px;padding:14px;min-width:0;background:#203b53;border:1px solid #56758f;border-radius:9px}
+.atlas-survival-metrics span{font-size:14px;color:#c4d9e8}
+.atlas-survival-metrics strong{font-size:clamp(20px,2.3vw,30px);line-height:1.2;overflow-wrap:anywhere}
+.atlas-survival-metrics small{font-size:13px;color:#bdcfde;line-height:1.45}
+.atlas-survival-panel>.atlas-details p{margin:9px 0;line-height:1.5;overflow-wrap:anywhere}
+.atlas-survival-panel .atlas-details a{color:#a9deff}
+.atlas-survival-warning{background:#392921;border:1px solid #9d674c;border-radius:9px;padding:12px;font-size:15px;line-height:1.6}
+@media(max-width:600px){.atlas-survival-metrics{grid-template-columns:minmax(0,1fr)}.atlas-survival-panel{padding:12px}}
+
+/* Conviction gaps explain product automation status, not user homework. */
+.atlas-gates-explainer{font-size:16px;line-height:1.6;padding:13px 15px;border-left:3px solid #7bb9de;background:#1b384b;color:#d7e9f4}
+.atlas-gate-heading{display:flex;align-items:start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.atlas-gate-heading>strong{font-size:17px;line-height:1.45}
+.atlas-gate-progress{display:inline-block;font-size:13px;font-weight:850;letter-spacing:.1px;padding:4px 9px;border:1px solid;border-radius:7px;white-space:nowrap}
+.atlas-progress-verified{background:#1b4033;border-color:#6fae8d;color:#aeefc7}
+.atlas-progress-partially_sourced{background:#342c20;border-color:#ad9161;color:#ffdeac}
+.atlas-progress-engine_pending{background:#26374b;border-color:#6c92ab;color:#c0e3ff}
+.atlas-progress-source_unavailable{background:#442729;border-color:#aa676d;color:#ffc5c7}
+.atlas-conviction-funding{padding:18px;border-radius:11px;display:grid;gap:10px;border:1px solid #577a92;background:#19334a}
+.atlas-conviction-funding>strong{font-size:clamp(21px,2.4vw,27px);line-height:1.3}
+.atlas-conviction-funding p{font-size:16px;line-height:1.6;margin:0}
+.atlas-conviction-funding.atlas-funding-alert{border:2px solid #df777b;background:#3d252c}
+.atlas-conviction-funding.atlas-funding-alert>strong{color:#ffb5b8}
+.atlas-conviction-funding.atlas-funding-neutral>strong{color:#deecf7}
+@media(max-width:640px){.atlas-gate-heading{display:grid;gap:7px}.atlas-gate-progress{justify-self:start}}
+
+/* Dated stock-price context in tickerless discovery. */
+.atlas-price-history-panel{margin-top:16px}
+.atlas-price-chart{margin:10px 0 18px}
+.atlas-price-chart-controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.atlas-price-range{min-height:34px;padding:6px 11px;font-size:13px;line-height:1.15}
+.atlas-price-range[aria-pressed="true"]{border-color:#65bbfa;background:#133954;color:#eaf5ff}
+.atlas-price-line{width:100%;height:180px;display:block;background:rgba(12,25,39,.3);border:1px solid #2b4058;border-radius:8px}
+.atlas-price-chart-caption{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px;color:#b6c8df;font-size:12px}
+.atlas-price-chart-caption strong{color:#ecf1fa}
+
+
+/* ATLAS home: SEC filing research-lead workbench and conditional capital slider */
+.atlas-picks-workbench{display:grid;gap:18px;margin:22px 0 32px}
+.atlas-picks-header{display:flex;justify-content:space-between;gap:18px;align-items:start}
+.atlas-picks-header h3{font-size:clamp(20px,2.1vw,27px);margin:4px 0 7px}
+.atlas-picks-header p{color:#bfd1e4;line-height:1.6;max-width:760px}
+.atlas-picks-header .button{flex-shrink:0}
+.atlas-picks-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(245px,290px);gap:18px;align-items:start}
+.atlas-picks-main,.atlas-picks-sidebar{min-width:0}
+.atlas-picks-cards{display:grid;gap:16px}
+.atlas-picks-card,.atlas-picks-sidebar{background:#10263b;border:1px solid #36516b;border-radius:12px;padding:18px}
+.atlas-picks-card-top{display:flex;justify-content:space-between;gap:16px;align-items:start;flex-wrap:wrap}
+.atlas-picks-card-top h4{font-size:20px;margin:4px 0 10px}
+.atlas-picks-card p,.atlas-picks-sidebar p{line-height:1.58}
+.atlas-picks-card a,.atlas-picks-sidebar a{color:#92caff;overflow-wrap:anywhere}
+.atlas-picks-news{margin:14px 0;padding:12px 14px;border-left:3px solid #527da3;background:#152d44}
+.atlas-picks-news>strong{font-size:15px}
+.atlas-picks-news p{font-size:13px;margin:7px 0}
+.atlas-picks-actions{display:flex;gap:9px;flex-wrap:wrap;margin:15px 0}
+.atlas-picks-sidebar{position:sticky;top:12px}
+.atlas-picks-sidebar h4{font-size:20px;margin:0 0 10px}
+.atlas-picks-switch{display:flex;flex-wrap:wrap;gap:5px}
+.atlas-picks-switch button{border:1px solid #476784;background:#1a3550;color:#dfecfa;padding:8px 10px;cursor:pointer;border-radius:7px;font-size:13px}
+.atlas-picks-switch button[aria-pressed="true"]{border-color:#94c9ff;background:#2b526e}
+.atlas-picks-ledger-row{display:grid;grid-template-columns:1fr auto;gap:1px 8px;padding:10px 0;border-top:1px solid #304a63;font-size:13px}
+.atlas-picks-ledger-row a{grid-column:1 / -1}
+.atlas-simulator{margin-top:16px;padding:17px;border-radius:10px;background:#142c43;border:1px solid #53718d}
+.atlas-simulator h4{font-size:19px;margin:0 0 9px}
+.atlas-simulator-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(105px,140px) minmax(115px,145px);gap:12px;margin:16px 0}
+.atlas-simulator-controls label{display:grid;gap:8px;font-size:13px;font-weight:700}
+.atlas-simulator-controls input,.atlas-simulator-controls select{width:100%;min-width:0;background:#1d3a52;border:1px solid #6584a2;color:#eaf4ff;border-radius:7px;padding:8px;font:inherit}
+.atlas-simulator-controls input[type="range"]{padding:0;accent-color:#78b9f7}
+.atlas-simulator-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.atlas-simulator-results>div{display:grid;gap:4px;padding:12px;border:1px solid #345673;border-radius:8px;background:#193449}
+.atlas-simulator-results strong{font-size:19px}
+.atlas-simulator-results span,.atlas-simulator-results small{font-size:12px}
+@media(max-width:1050px){.atlas-picks-grid{grid-template-columns:1fr}.atlas-picks-sidebar{position:static}}
+@media(max-width:700px){.atlas-picks-header{flex-direction:column}.atlas-simulator-controls{grid-template-columns:1fr 1fr}.atlas-simulator-controls label:first-child{grid-column:1 / -1}.atlas-simulator-results{grid-template-columns:1fr}}
+
+
+/* Evidence bridge: date-gated SEC catalyst + RSS topic + SEC annual finance triage */
+.atlas-picks-evidence-bridge{margin:15px 0;padding:15px;border:1px solid #4e7492;border-radius:9px;background:#18354b}
+.atlas-picks-evidence-bridge>strong{display:block;font-size:15px;margin-bottom:12px;color:#daeeff}
+.atlas-picks-bridge-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.atlas-picks-bridge-metrics>div{min-width:0;display:grid;gap:4px;padding:10px;border-radius:8px;background:#10293d;border:1px solid #345571}
+.atlas-picks-bridge-metrics span{font-size:11px;color:#b5cade}
+.atlas-picks-bridge-metrics strong{font-size:17px;color:#f2f8ff}
+.atlas-picks-evidence-bridge .chart-note{margin:12px 0 8px}
+@media(max-width:660px){.atlas-picks-bridge-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* SEC 8-K catalyst chronology and optional time-aligned IEX reaction */
+.atlas-catalyst-verification{margin:16px 0;padding:14px;border:1px solid #52708a;background:#152f46;border-radius:10px}
+.atlas-catalyst-verification-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.atlas-catalyst-verification-head strong{font-size:15px}
+.atlas-catalyst-verification-head p{margin:5px 0}
+.atlas-catalyst-verification-head .button{white-space:normal}
+.atlas-catalyst-verification-details{display:grid;gap:14px;margin-top:14px;padding-top:14px;border-top:1px solid #3c5f7d}
+.atlas-catalyst-verification-details a{color:#99d1ff;overflow-wrap:anywhere}
+.atlas-catalyst-verification-details .filing-price-context{margin-top:8px}
+
+
+/* SEC 8-K operating impact: source-dated quantified facts and nonforecast FCF stress */
+.atlas-economic-impact{margin:16px 0;border:1px solid #466782;background:#132d43;border-radius:11px;padding:15px;display:grid;gap:10px}
+.atlas-economic-head{display:flex;gap:12px;justify-content:space-between;align-items:start;flex-wrap:wrap}
+.atlas-economic-head>div{display:grid;gap:5px}
+.atlas-economic-head strong{font-size:17px}
+.atlas-economic-impact p{margin:0}
+.atlas-economic-evidence{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.atlas-economic-evidence>div{display:grid;gap:5px;padding:11px;border-radius:9px;border:1px solid #42617e;background:#192f44}
+.atlas-economic-evidence span,.atlas-economic-evidence small{font-size:12px;color:#cee1f0}
+.atlas-economic-evidence strong{font-size:20px}
+.atlas-economic-evidence a{font-size:12px;color:#9fcfff;overflow-wrap:anywhere}
+.atlas-economic-sensitivity{display:grid;gap:8px;padding:12px;border-radius:9px;border:1px solid #375c78;background:#1b374d}
+.atlas-economic-sensitivity>div{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.atlas-economic-sensitivity>div span{font-size:13px}
+.atlas-economic-sensitivity small{line-height:1.5;color:#c2d5e4}
+@media(max-width:650px){.atlas-economic-evidence{grid-template-columns:1fr}.atlas-economic-sensitivity>div{display:grid;gap:4px}}
+
+
+/* ATLAS executive research home: action before metrics, all evidence available on demand */
+.atlas-research-home>.atlas-picks-workbench{margin-top:4px}
+.atlas-decision-strip{padding:18px;border:1px solid #6387a2;background:#17354b;border-radius:12px;display:grid;gap:8px}
+.atlas-decision-strip>strong{font-size:clamp(18px,2vw,24px);color:#eff9ff}
+.atlas-decision-strip p{margin:0;color:#d2e3ef;font-size:14px;line-height:1.5}
+.atlas-decision-strip .atlas-decision-next{border-top:1px solid #476681;padding-top:9px;color:#dbefff;font-weight:750}
+.atlas-brief-card{padding:18px 20px;display:grid;gap:10px}
+.atlas-brief-card .atlas-picks-card-top h4{font-size:clamp(20px,2vw,25px);margin:5px 0}
+.atlas-action-label{display:inline-flex;align-items:center;align-self:start;border-radius:7px;border:1px solid #8292a6;padding:6px 11px;font-size:13px;font-weight:850}
+.atlas-action-investigate{border-color:#72b7a5;background:#183b37;color:#b5f4dc}
+.atlas-action-watch{border-color:#c5a26a;background:#3d3024;color:#ffdaa0}
+.atlas-action-deprioritize{border-color:#ba7980;background:#3b272d;color:#ffced3}
+.atlas-action-checking{border-color:#6893b3;background:#22384d;color:#daeafe}
+.atlas-brief-headline{font-size:clamp(18px,2vw,23px);margin:0;color:#fff}
+.atlas-brief-summary{display:grid;gap:8px}
+.atlas-brief-summary>div{display:grid;grid-template-columns:118px minmax(0,1fr);gap:10px;align-items:start}
+.atlas-brief-summary>div+div{border-top:1px solid #29445e;padding-top:9px}
+.atlas-brief-summary span{text-transform:uppercase;letter-spacing:.05em;color:#acc9dc;font-size:11px;font-weight:850;margin-top:4px}
+.atlas-brief-summary p{font-size:14px;line-height:1.55;margin:0;color:#e1edf8}
+.atlas-brief-summary p strong{color:#fff}
+.atlas-brief-provenance{font-size:12px!important;color:#a9bdd2;border-top:1px solid #29445e;padding-top:9px;margin:0!important}
+.atlas-brief-deep-dive{border:1px solid #3b5873;background:#122e42;border-radius:9px;padding:10px 13px;margin:2px 0}
+.atlas-brief-deep-dive>summary,.atlas-home-audit>summary,.atlas-home-more>summary{cursor:pointer;font-size:13px;color:#c8e6fc;font-weight:800}
+.atlas-brief-deep-dive[open]{padding-bottom:14px}
+.atlas-brief-deep-dive>summary{padding:4px 0}
+.atlas-brief-deep-dive .atlas-picks-evidence-bridge{margin-top:14px}
+.atlas-home-audit{font-size:12px;line-height:1.55;padding:5px 0;color:#b8cfdf}
+.atlas-home-audit p{font-size:12px;line-height:1.6;color:#b8cfdf;margin:9px 0}
+.atlas-home-more{margin:22px 0;padding:15px;border:1px solid #365570;border-radius:11px}
+.atlas-home-more>summary{font-size:15px}
+.atlas-home-more>.atlas-home-mission{margin-top:16px}
+.atlas-brief-card .atlas-picks-actions{margin:5px 0}
+@media(max-width:600px){.atlas-brief-summary>div{grid-template-columns:1fr;gap:3px}.atlas-brief-summary span{margin-top:0}.atlas-brief-card{padding:14px}}
+
+
+/* Conviction Lab: evidence-driven decision first, automatic bank-sector guardrails */
+.atlas-conviction-decision{display:grid;gap:15px;border:1px solid #6987a1;border-radius:12px;background:#152f45;padding:18px}
+.atlas-conviction-decision-head{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:start}
+.atlas-conviction-decision-head h3{font-size:clamp(18px,2vw,24px);margin:5px 0}
+.atlas-conviction-decision-points{display:grid;gap:10px}
+.atlas-conviction-decision-points>div{display:grid;grid-template-columns:minmax(120px,160px) 1fr;gap:12px;border-top:1px solid #344f68;padding-top:10px}
+.atlas-conviction-decision-points strong{font-size:12px;color:#abd5ee}
+.atlas-conviction-decision-points p{margin:0;font-size:14px;line-height:1.58;color:#e6f0fa}
+.atlas-conviction-decision-coverage{margin:0;font-size:12px;line-height:1.6;border-top:1px solid #36536b;padding-top:10px;color:#c0d3e3}
+.atlas-conviction-sector-note{border:1px solid #53728a;background:#19384e;border-radius:9px;padding:12px}
+.atlas-conviction-sector-note>strong{font-size:15px}
+.atlas-conviction-sector-note p{font-size:12px;line-height:1.6}
+.atlas-conviction-sector-facts{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
+.atlas-conviction-sector-facts>span{padding:8px;background:#102b40;border-radius:6px;font-size:12px}
+.atlas-conviction-deep-dive,.atlas-conviction-thesis-details{padding:12px;border:1px solid #3f607a;border-radius:9px;background:#11283d}
+.atlas-conviction-deep-dive>summary,.atlas-conviction-thesis-details>summary{cursor:pointer;font-size:14px;font-weight:750}
+.atlas-conviction-deep-dive[open]>summary,.atlas-conviction-thesis-details[open]>summary{margin-bottom:14px}
+.atlas-evaluation-check{color:#8ee4b7;margin-right:4px}
+@media(max-width:640px){.atlas-conviction-decision-points>div{grid-template-columns:1fr;gap:4px}.atlas-conviction-decision{padding:13px}}
