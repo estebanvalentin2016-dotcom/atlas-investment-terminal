@@ -9,9 +9,10 @@ export function parseAnnouncementFeed(xml,day){
   const link=tag(m[1],'link').trim();
   const pub=tag(m[1],'pubDate');
   const source=tag(m[1],'source').replace(/<[^>]*>/g,'').trim();
+  const hasExplicitTime=/\b\d{1,2}:\d{2}(?::\d{2})?\b/.test(pub);
   const date=Date.parse(pub);
   let valid=false;try{const url=new URL(link);valid=url.protocol==='https:'&&url.hostname.endsWith('google.com')}catch{}
-  return {title,link:valid?link:null,source,feedPublishedAt:Number.isFinite(date)?new Date(date).toISOString():null};
+  return {title,link:valid?link:null,source,feedPublishedAt:hasExplicitTime&&Number.isFinite(date)?new Date(date).toISOString():null,feedDateOnly:!hasExplicitTime&&Number.isFinite(date)?new Date(date).toISOString().slice(0,10):null,feedDateRaw:pub,feedTimeSource:'Google News RSS (aggregation clock; not original publisher verification)'};
  }).filter(x=>x.title&&x.link);
  return items.filter(x=>{if(!x.feedPublishedAt)return true;return Math.abs(Date.parse(x.feedPublishedAt)-Date.parse(day+'T12:00:00Z'))<=4*86400000}).slice(0,10);
 }
@@ -21,17 +22,23 @@ export async function handleAnnouncementRequest(req,res){
  if(req.method!=='GET'){send(res,405,{error:'Method not allowed'});return true}
  const ticker=(u.searchParams.get('ticker')||'').trim().toUpperCase();
  const day=u.searchParams.get('date')||'';
+ const company=(u.searchParams.get('company')||'').trim();
+ if(company&&(company.length>120||!/^[a-z0-9 ]+$/i.test(company))){send(res,400,{error:'Invalid company identity search phrase'});return true}
  if(!/^[A-Z0-9.-]{1,12}$/.test(ticker)||!/^\d{4}-\d{2}-\d{2}$/.test(day)||!Number.isFinite(Date.parse(day+'T12:00:00Z'))||new Date(day+'T12:00:00Z').toISOString().slice(0,10)!==day){send(res,400,{error:'Invalid ticker or date'});return true}
  try{
   const start=new Date(Date.parse(day+'T00:00:00Z')-2*86400000).toISOString().slice(0,10);
   const end=new Date(Date.parse(day+'T00:00:00Z')+4*86400000).toISOString().slice(0,10);
-  const query='"'+ticker+'" (earnings OR guidance OR results OR investor OR announcement) after:'+start+' before:'+end;
+  // Optional SEC issuer identity is much safer than ticker-only search for
+  // short/ambiguous symbols (e.g. AA also appears in American Airlines news).
+  // Callers still apply a headline identity check after discovery.
+  const searchIdentity=company?'"'+company+'"':'"'+ticker+'"';
+  const query=searchIdentity+' (earnings OR guidance OR results OR investor OR announcement) after:'+start+' before:'+end;
   const url=new URL('https://news.google.com/rss/search');url.searchParams.set('q',query);url.searchParams.set('hl','en-US');url.searchParams.set('gl','US');url.searchParams.set('ceid','US:en');
   const r=await fetch(url,{headers:{'User-Agent':'ATLAS-research/0.9 (historical public news discovery)','Accept':'application/rss+xml, application/xml, text/xml'},signal:AbortSignal.timeout(12000)});
   if(!r.ok)throw Error('Public news feed HTTP '+r.status);
   const xml=await r.text();
   const candidates=parseAnnouncementFeed(xml,day);
-  send(res,200,{ticker,date:day,provider:'Google News RSS',retrievedAt:new Date().toISOString(),candidates,verifiedOriginalPublicationTimes:false,note:'Candidate news links only. Feed timestamps may represent aggregation rather than original issuer publication; no automatic timestamp eligibility is inferred.'});
+  send(res,200,{ticker,date:day,provider:'Google News RSS',retrievedAt:new Date().toISOString(),candidates,verifiedOriginalPublicationTimes:false,note:'Google RSS publication clocks can differ from the source article first-public timestamp, and repeated 3 AM ET feed clocks may reflect aggregation. Exact publisher time requires source-site verification. Date-only records cannot be shown as a clock time.'});
  }catch(e){send(res,502,{error:e instanceof Error?e.message:'News discovery unavailable'})}
  return true;
 }
