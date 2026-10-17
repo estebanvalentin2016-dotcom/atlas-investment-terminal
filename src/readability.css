@@ -508,3 +508,24 @@ th{font-size:12px}td{font-size:14px}
 .atlas-home-more>.atlas-home-mission{margin-top:16px}
 .atlas-brief-card .atlas-picks-actions{margin:5px 0}
 @media(max-width:600px){.atlas-brief-summary>div{grid-template-columns:1fr;gap:3px}.atlas-brief-summary span{margin-top:0}.atlas-brief-card{padding:14px}}
+
+
+/* Conviction Lab: evidence-driven decision first, automatic bank-sector guardrails */
+.atlas-conviction-decision{display:grid;gap:15px;border:1px solid #6987a1;border-radius:12px;background:#152f45;padding:18px}
+.atlas-conviction-decision-head{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:start}
+.atlas-conviction-decision-head h3{font-size:clamp(18px,2vw,24px);margin:5px 0}
+.atlas-conviction-decision-points{display:grid;gap:10px}
+.atlas-conviction-decision-points>div{display:grid;grid-template-columns:minmax(120px,160px) 1fr;gap:12px;border-top:1px solid #344f68;padding-top:10px}
+.atlas-conviction-decision-points strong{font-size:12px;color:#abd5ee}
+.atlas-conviction-decision-points p{margin:0;font-size:14px;line-height:1.58;color:#e6f0fa}
+.atlas-conviction-decision-coverage{margin:0;font-size:12px;line-height:1.6;border-top:1px solid #36536b;padding-top:10px;color:#c0d3e3}
+.atlas-conviction-sector-note{border:1px solid #53728a;background:#19384e;border-radius:9px;padding:12px}
+.atlas-conviction-sector-note>strong{font-size:15px}
+.atlas-conviction-sector-note p{font-size:12px;line-height:1.6}
+.atlas-conviction-sector-facts{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
+.atlas-conviction-sector-facts>span{padding:8px;background:#102b40;border-radius:6px;font-size:12px}
+.atlas-conviction-deep-dive,.atlas-conviction-thesis-details{padding:12px;border:1px solid #3f607a;border-radius:9px;background:#11283d}
+.atlas-conviction-deep-dive>summary,.atlas-conviction-thesis-details>summary{cursor:pointer;font-size:14px;font-weight:750}
+.atlas-conviction-deep-dive[open]>summary,.atlas-conviction-thesis-details[open]>summary{margin-bottom:14px}
+.atlas-evaluation-check{color:#8ee4b7;margin-right:4px}
+@media(max-width:640px){.atlas-conviction-decision-points>div{grid-template-columns:1fr;gap:4px}.atlas-conviction-decision{padding:13px}}
