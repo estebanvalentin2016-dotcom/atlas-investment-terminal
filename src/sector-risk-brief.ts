@@ -30,7 +30,7 @@ export function assessSectorRisk(company:SecCompany,asOf:string):SectorRiskBrief
  const warnings:string[]=[];
  const survival=deriveSurvivalEvidence(company,asOf);
  const dilutedShareChangePct=survival.weightedShareChangePct;
- const base={sector,asOf,source:company.source,dilutedShareChangePct};
+ const base:{sector:SectorRiskBrief['sector'];asOf:string;source:string;dilutedShareChangePct:number|null}={sector,asOf,source:company.source,dilutedShareChangePct};
  if(sector==='general')return {...base,status:'source_unavailable',balance:empty,equityAssetsPct:null,depositsAssetsPct:null,loansAssetsPct:null,
   headline:'Standard operating-company risk screen',meaning:'Operating cash flow and annual earnings do not by themselves establish financing coverage or competitive durability.',
   nextEvidence:'Reconcile dated obligations, ownership, industry competitive sources and forward valuation.',warnings};
