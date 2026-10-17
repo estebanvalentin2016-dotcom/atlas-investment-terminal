@@ -8,6 +8,9 @@ export function recentCatalysts(data,cik,limit=12){
   const accession=r.accessionNumber[i],document=r.primaryDocument?.[i],date=r.filingDate[i];
   if(!/^\d{10}-\d{2}-\d{6}$/.test(accession)||!/^\d{4}-\d{2}-\d{2}$/.test(date)||!document||document.includes('/')||document.includes('..'))continue;
   const items=String(r.items?.[i]||'');
+  // Preserve timezone-aware SEC acceptance time only; never infer a time from filingDate.
+  const candidate=r.acceptanceDateTime?.[i];
+  const acceptedAt=typeof candidate==='string'&&/^\d{4}-\d{2}-\d{2}T/.test(candidate)&&/(Z|[+-]\d{2}:?\d{2})$/.test(candidate)&&Number.isFinite(Date.parse(candidate))?candidate:null;
   const classifications=[];
   if(/\b2\.02\b/.test(items))classifications.push('Results of operations');
   if(/\b1\.01\b/.test(items))classifications.push('Material agreement');
@@ -15,7 +18,7 @@ export function recentCatalysts(data,cik,limit=12){
   if(/\b3\.02\b/.test(items))classifications.push('Unregistered securities');
   if(/\b5\.02\b/.test(items))classifications.push('Leadership change');
   const filingUrl='https://www.sec.gov/Archives/edgar/data/'+Number(cik)+'/'+accession.replaceAll('-','')+'/'+encodeURIComponent(document);
-  rows.push({form:r.form[i],date,items,labels:classifications.length?classifications:['Other 8-K event'],url:filingUrl,accession});
+  rows.push({form:r.form[i],date,acceptedAt,items,labels:classifications.length?classifications:['Other 8-K event'],url:filingUrl,accession});
  }
  return rows;
 }

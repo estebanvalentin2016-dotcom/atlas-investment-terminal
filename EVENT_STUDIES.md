@@ -1,0 +1,57 @@
+# ATLAS v0.9 Event Study Foundation
+
+This increment adds a **pure calculation module, tests, and SEC acceptance timestamp display**, not a live event-study dashboard or a production trading strategy.
+
+- SEC 8-K results now carry `acceptedAt` when the submissions feed supplies an explicit timezone-aware timestamp; otherwise they explicitly carry `null`. The Catalyst Radar screen displays this field with clear provenance.
+- `easternClock`: Converts SEC acceptance timestamps with an explicit timezone into America/New_York local date and time, accounting for daylight saving time.
+- `alignEvent`: Associates an accepted event with a subsequent available daily market bar using a 4 p.m. ET cutoff. A filing at/after 4 p.m. uses the next available daily session. This is a **simplifying convention**; it does not establish actual public dissemination time or an executable price.
+- `eventStudy`: Calculates descriptive price changes for the first, third and fifth event-window daily closes compared with the preceding available close, when all relevant sessions exist.
+
+### Important limitations
+- SEC accepted timestamps are **not necessarily when market participants learned the information**. Filing publication can lag acceptance, and an event may have been announced elsewhere first.
+- A filing before 4 p.m. can be published during an active session; the prior session close is a research baseline, **not an executable pre-announcement price**. Same-day pricing may include pre-announcement moves.
+- Inputs must be **completed**, chronological, properly adjusted daily bars on actual trading dates. The current market API returns raw IEX bars and may include partial sessions; **do not pass it directly to this module for real performance conclusions**.
+- This module does not forecast returns, analyze causality or provide trade signals.
+- Next increment: enrich SEC results with acceptance timestamps, confirm completed-session and adjustment policy, then integrate the engine into a UI with provenance and explicit data-quality flags.
+
+Run `npm.cmd run build` and `npm.cmd run test` on Windows before merging.
+
+### First on-demand integration
+- Catalyst Radar now offers **Analyze price reaction** on filings with SEC acceptance timestamps. The event window uses the **Eastern acceptance date**, not the often-different filing date.
+- The new `/api/market/event` endpoint requests a bounded event-centered window from free Alpaca **IEX**, with `adjustment=split`, and excludes the current Eastern trading date entirely. It intentionally rejects event dates older than 180 calendar days and will label older 8-Ks unavailable.
+- 1/3/5-session results measure the close of each eligible session relative to the pre-event reference close. These are **not investable entry-to-exit returns**, and do not establish the event's causal effect. An intraday filing may have already been reflected in that reference.
+- The endpoint does not paginate. A provider continuation token prevents the browser from presenting incomplete results.
+- The project still needs provider data checks, real-market spot checks and more comprehensive event-window test cases before treating results as quantitatively reliable.
+
+
+### Intraday high/low excursion ranges (research-only)
+The event study now also displays the highest `high` and lowest `low` recorded over each fully observed 1-, 3-, and 5-session window, as percentages of the pre-event reference **close**. Missing or invalid OHLC bars and incomplete horizons produce N/A rather than invented results.
+
+These values describe the price range following a filing; they are **not** a backtested trading strategy's maximum favorable/adverse excursion (MFE/MAE). Actual MFE/MAE require an explicitly defined tradable entry time/price, side (long or short), position and exit rules. The ordering of the high and low inside a daily bar is also unknown. Do not assume either extreme was achievable or that an SEC filing caused it.
+
+### Post-initial-reaction continuation
+The UI separates two questions: (1) **cumulative reaction** from the pre-event close to session 1/3/5 closes; and (2) **continuation** from the first eligible session's close to the session 3 and 5 closes. Continuation uses `laterClose / firstSessionClose - 1`, not subtraction or addition of percentages. This distinction helps identify whether a large initial gap was sustained; it does **not** establish a realistically executable entry, after-hours access, trading friction or causality. A complete horizon is required, otherwise N/A.
+
+### Historical event comparison (experimental)
+Catalyst Radar adds a user-triggered comparison for up to three latest SEC 8-K filings with explicit acceptance times in the last 175 days. Historical requests are sequential. The table includes each event's initial close-to-close reaction and continuation from the first eligible closing price through sessions 3 and 5. Provider errors and insufficient horizons are displayed instead of fabricated returns. **Do not infer win rates or predictive efficacy from three selectively sampled events.** This is not a market-neutral study and does not disentangle other news.
+
+### SPY-relative event performance
+The individual filing analysis now additionally fetches split-adjusted completed-session **SPY IEX** bars for the same event window, after the stock request. It calculates the **arithmetic difference in simple returns, in percentage points**, over exact matching trading dates. Missing benchmark dates produce N/A, never a nearest-date substitution. Benchmark errors do not discard otherwise valid stock event results. This is **not** market-model alpha, risk adjustment, or a trade recommendation. SPY is a broad market proxy; sector-specific benchmarks remain a future improvement. These prices still require independent verification.
+
+### Initial session gap versus open-to-close movement
+The individual event view now separates **previous completed close → first eligible daily open** from **first eligible daily open → first eligible daily close**. These are compound returns with different denominators, so do not add their percentages. The daily opening price is not a premarket quote, a guaranteed opening auction fill or a verified executable entry. Real premarket attribution and execution assessment require timestamped intraday and extended-hours data, spreads, liquidity and an explicit entry rule. Missing open prices produce N/A rather than substituted closes.
+
+### Historical intraday availability check
+Each event study includes an independent on-demand **15-minute IEX historical availability probe** for the first eligible event session. It checks regular trading hours (09:30–16:00 New York time), counts timestamps against the exact 26 15-minute intervals, and warns about missing intervals, incomplete pagination and provider restrictions. It does **not** calculate a 09:45/10:00 entry outcome. Such a model requires an explicit signal timestamp, a chosen execution convention, liquidity/spread assumptions and validation across independent price sources. Keep the baseline daily-bar study separate from the intraday probe.
+
+### First historical intraday entry-window measurements
+After a complete, unpaginated session of 26 correctly ordered 15-minute IEX bars is available, ATLAS shows 09:45, 10:00 and 10:30 ET checkpoints. Each **reference** is the previous interval's completed **close** (09:30 bar close for 09:45; 09:45 bar close for 10:00; 10:15 bar close for 10:30). The later session-close change and extrema use only intervals **starting at or after** the checkpoint. Missing intervals or invalid OHLC data disable every window rather than extrapolate. All figures are descriptive; the reference close is not necessarily a feasible fill at that timestamp, intrabar high/low ordering is unknown, and the system does not verify announcement timing or model fees, market depth, spread, slippage or latency. No performance or winning trade is implied.
+
+### User-reported publication evidence (provenance-first pilot)
+The event view adds a **separate public announcement timing section**. The SEC acceptance time is prominently marked **not proof of public release**. By default every 09:45/10:00/10:30 checkpoint has **Unknown** publication status. A user can enter an original HTTPS announcement link and its independently inspected Eastern publication timestamp; the interface then checks chronological order against checkpoints. This is explicitly **user-reported, not independently verified**, and is not a live source monitor, permanent research database, automatic source parser, bullish catalyst assessment or point-in-time discovery backtest. Publication before a checkpoint is necessary but not sufficient to conclude the announcement was discoverable, actionable or tradable. The information is ephemeral in the UI and must not be treated as provider-verified metadata.
+
+### Automatic public news candidate retrieval (experimental)
+Opening an individual event study now automatically requests a bounded historical Google News RSS query for the ticker and a short date window. The candidate titles, publishers, outbound aggregation links and **feed** timestamps appear without manual data entry. This **does not confirm that the candidate is about the SEC filing, identify the original press release, validate its initial publication time or prove that a trader could have known the news by a specific checkpoint**. No candidate time is automatically admitted into the publication eligibility model; those checkpoints remain Unknown unless separately source-reported through an optional correction form. Historical feed availability, throttling and matching quality may vary. The adapter never imports external HTML into the app UI.
+
+### Overnight brokerage feasibility (Robinhood execution, Alpaca data)
+The optional **2 AM historical BOATS probe** calls Alpaca's historical stock-bars API with `feed=boats` (not IEX). It inspects 15-minute bars between midnight and 4 AM New York time on the first eligible trading date; a highlighted 1:45–2:15 AM research window is **observed historical aggregated activity**, not Robinhood quotes or executed customer orders. Missing BOATS data, errors, pagination and zero bars do **not** mean the stock was unavailable on Robinhood. Conversely observed BOATS bars do not prove Robinhood 24 Hour Market eligibility, bid/ask prices, depth, order acceptance, or that a limit order would have filled. Results are displayed as observations, not a simulated purchase. Robinhood is an independently operated brokerage; ATLAS issues no orders and does not infer brokerage permissions from Alpaca. Results depend on free historical BOATS access and may be unavailable.
