@@ -119,7 +119,7 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
  const alignedCount=annotated.filter(x=>x.assessment.status==='provisional_alignment').length;
  const investigateCount=annotated.filter(x=>x.brief.action==='investigate').length;
  const assessedCount=annotated.filter(x=>x.brief.action!=='checking').length;
- const sidebar=distinctIssuers(visible,12);
+ const sidebar=distinctIssuers(visible,6);
  return <section className="atlas-picks-workbench" aria-label="Recent SEC investment research leads">
   <div className="atlas-picks-header">
    <div><span className="eyebrow">ATLAS / DECISION BRIEF</span><h3>What deserves attention right now?</h3>
@@ -144,7 +144,7 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
      const filingTopics=e?.review?.evidence?.topics??[],reportedFigures=e?.review?.evidence?.metrics??[];
      return <article className="atlas-picks-card atlas-brief-card" key={lead.url}>
       <div className="atlas-picks-card-top">
-       <div><span className="eyebrow">Research question ${i+1} · {lead.filed??'filing date unavailable'}</span><h4>{lead.ticker} · {lead.name}</h4></div>
+       <div><span className="eyebrow">Research question {i+1} · {lead.filed??'filing date unavailable'}</span><h4>{lead.ticker} · {lead.name}</h4></div>
        <span className={'atlas-action-label atlas-action-'+brief.action}>{brief.action==='investigate'?'Investigate':brief.action==='watch'?'Watch':brief.action==='checking'?'Checking':'Deprioritize'}</span>
       </div>
       <h5 className="atlas-brief-headline">{brief.headline}</h5>
@@ -202,15 +202,15 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
     <details className="atlas-home-audit"><summary>How ATLAS orders this research queue</summary><p>ATLAS examines one batch of up to eight recent distinct SEC issuers. It first separates research actions (investigate, watch, or deprioritize), then considers provisional event alignment, SEC financial quality, valuation hurdles and incomplete evidence. This is <strong>not</strong> an all-market top-picks ranking or statistically validated alpha model. A low FY P/E is not a fair-value estimate; issuer headlines are not verified same-event corroboration. Zero buy candidates is an acceptable result.</p></details>
    </div>
    <aside className="atlas-picks-sidebar" aria-label="This month and last three months filing ledger">
-    <h4>Pick research ledger</h4>
+    <h4>Recent SEC filings</h4>
     <div className="atlas-picks-switch" role="group" aria-label="Pick research time period">
      <button type="button" onClick={()=>setPeriod('month')} aria-pressed={period==='month'}>This month</button>
      <button type="button" onClick={()=>setPeriod('90d')} aria-pressed={period==='90d'}>Last 90 days</button>
     </div>
-    <p className="chart-note">{visible.length} observed {period==='month'?'current-month':'90-day'} 8-K filing{visible.length===1?'':'s'} · not validated stock picks.</p>
+    <p className="chart-note">{visible.length} locally observed {period==='month'?'current-month':'90-day'} 8-K filing{visible.length===1?'':'s'} · not recommended picks.</p>
     {sidebar.map(x=><div className="atlas-picks-ledger-row" key={x.url}><strong>{x.ticker}</strong><span>{x.filed}</span><a href={x.url} target="_blank" rel="noopener noreferrer">SEC filing ↗</a></div>)}
     {!sidebar.length&&<p className="chart-note">No filings observed in this interval.</p>}
-    <p className="chart-note">This browser's ledger accumulates observed filings when ATLAS is opened or refreshed. <strong>It does not backfill a complete three-month SEC universe.</strong> Older dates and ticker coverage can be missing.</p>
+    <details className="atlas-home-audit"><summary>About filing history coverage</summary><p className="chart-note">This browser's ledger accumulates observed filings when ATLAS is opened or refreshed. <strong>It does not backfill a complete three-month SEC universe.</strong> Older dates and ticker coverage can be missing.</p></details>
     {onOpportunity&&<button className="button secondary" type="button" onClick={onOpportunity}>Open full SEC filing queue →</button>}
    </aside>
   </div>
