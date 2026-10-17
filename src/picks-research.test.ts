@@ -44,10 +44,15 @@ describe('Source-dated filing-led home and rolling SEC research ledger',()=>{
  });
  it('opens the real-home source research workflow instead of a fictional top-picks claim',()=>{
   const html=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{}}));
-  expect(html).toContain('research leads, not yet verified picks');
+  expect(html).toContain('What deserves attention right now?');
+  expect(html).toContain('ATLAS / DECISION BRIEF');
+  expect(html).toContain('Explore other ATLAS research tools and methodology');
+  expect(html.indexOf('What deserves attention right now?')).toBeLessThan(html.indexOf('Find what could become'));
   expect(html).toContain('This month');
   expect(html).toContain('Last 90 days');
   expect(html).toContain('does not backfill a complete three-month SEC universe');
+  expect(html).toContain('How ATLAS orders this research queue');
+  expect(html).toContain('No verified bullish buy candidates in this batch');
   expect(html).toContain('Discover Opportunities');
  });
  it('renders an amount slider that starts with $500 and a holding period without implying returns are assured',()=>{
