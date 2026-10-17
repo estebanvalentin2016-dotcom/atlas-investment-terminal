@@ -115,7 +115,10 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
    {assessment:b.assessment,historicalPass:!!b.historicalPass,filed:b.lead.filed,ticker:b.lead.ticker}
   );
  });
- const top=annotated.slice(0,3);
+ // The home shortlist is for research actions, not a random selection of
+ // recently filed companies. Set-aside companies remain auditable below.
+ const top=annotated.filter(x=>x.brief.action==='investigate'||x.brief.action==='watch').slice(0,3);
+ const setAside=annotated.filter(x=>x.brief.action==='deprioritize');
  const alignedCount=annotated.filter(x=>x.assessment.status==='provisional_alignment').length;
  const investigateCount=annotated.filter(x=>x.brief.action==='investigate').length;
  const assessedCount=annotated.filter(x=>x.brief.action!=='checking').length;
@@ -138,7 +141,7 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
      <p>{scan?.coverageStatus??(loading?'SEC retrieval underway':'No fresh SEC run')} · recent index lookback approximately {scan?.lookbackCalendarDays??7} days{scan?.errorDays?.length?' · some index days failed':''}. No full three-month universe backfill.</p>
      <p>{reviewProgress||'Review underway.'} {savedPasses.length} saved preliminary Autonomous Discovery pass(es) in this browser. This queue advances through the available issuer rows, not through the entire listed market.</p>
     </details>
-    {top.length===0?<p className="opportunity-uncertainty"><strong>No current source-backed shortlist loaded.</strong> ATLAS has not identified any investable picks yet. Review Opportunity Radar or refresh the SEC discovery feed.</p>:
+    {top.length===0?<p className="atlas-empty-brief">{loading?'ATLAS is reviewing SEC filings and company financials…':'No candidates in this batch currently merit a bullish follow-up. Try the next issuer batch or inspect the set-aside research below.'}</p>:
     <div className="atlas-picks-cards">{top.map(({lead,assessment,historicalPass,brief},i)=>{
      const e=evidence[lead.url],potential=e?.review?.evidence?.potential??[],cautions=e?.review?.evidence?.cautions??[];
      const filingTopics=e?.review?.evidence?.topics??[],reportedFigures=e?.review?.evidence?.metrics??[];
@@ -199,6 +202,9 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
       </div>
       {opened===lead.ticker&&<InvestmentOutcomeSimulator key={lead.ticker} ticker={lead.ticker}/>}
      </article>})}</div>}
+    {setAside.length>0&&<details className="atlas-home-audit atlas-setaside-list"><summary>Why {setAside.length} issuer(s) were set aside</summary>
+     {setAside.map(x=><p key={x.lead.url}><strong>{x.lead.ticker}:</strong> {x.brief.headline}. {x.brief.interpretation} <a href={x.lead.url} target="_blank" rel="noopener noreferrer">SEC filing ↗</a></p>)}
+    </details>}
     <details className="atlas-home-audit"><summary>How ATLAS orders this research queue</summary><p>ATLAS examines one batch of up to eight recent distinct SEC issuers. It first separates research actions (investigate, watch, or deprioritize), then considers provisional event alignment, SEC financial quality, valuation hurdles and incomplete evidence. This is <strong>not</strong> an all-market top-picks ranking or statistically validated alpha model. A low FY P/E is not a fair-value estimate; issuer headlines are not verified same-event corroboration. Zero buy candidates is an acceptable result.</p></details>
    </div>
    <aside className="atlas-picks-sidebar" aria-label="This month and last three months filing ledger">
