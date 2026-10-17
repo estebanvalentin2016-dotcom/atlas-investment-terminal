@@ -1,3 +1,6 @@
+## Workspace UI consolidation — in development
+Consolidate 17 sidebar pages into five primary destinations with secondary research tools. Simplify the shell and Home introductions; move methodology and fictional demos into Settings / Tools. Redesign Watchlist around dated saved research, filing sources, notes and comparison while retaining existing storage keys and all financial/source safeguards. Add local Conviction summaries and protect unreadable saved data from overwrites. No backend or dependency changes. See UI_CONSOLIDATION.md for preservation inventory and verification.
+
 ## 0.8.0 — in development
 Add user-initiated scanner for up to eight tickers using existing Alpaca IEX daily market-data adapter. Classify illustrative bullish/bearish multi-day patterns from 1/3/5-day returns, RVOL and distance to 20-day high. No catalyst alignment or independently validated signals. Local verification required.
 

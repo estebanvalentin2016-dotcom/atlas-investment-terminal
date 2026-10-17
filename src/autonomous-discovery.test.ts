@@ -8,6 +8,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import AutonomousDiscovery from './AutonomousDiscovery';
 import ResearchHome from './ResearchHome';
 import App from './App';
+import {SecondaryNavigation} from './WorkspaceNavigation';
 import type {SecCompany} from './ranking-model';
 const fy=(year:number,value:number)=>({year,end:year+'-12-31',filed:(year+1)+'-02-15',value,form:'10-K',accession:'0000000000-26-000100'});
 const company=():SecCompany=>({ticker:'XRAN',name:'Unfamiliar Industrial Company',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK1234567890.json',retrievedAt:'2026-10-15',metrics:[
@@ -152,7 +153,7 @@ describe('Independent discovery user journey',()=>{
  });
  it('offers real tickerless discovery from home while keeping all older research tabs',()=>{
   const home=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{}}));
-  const app=renderToStaticMarkup(createElement(App));
+  const app=renderToStaticMarkup(createElement(App))+renderToStaticMarkup(createElement(SecondaryNavigation,{page:'Autonomous Discovery',navigate:()=>{}}))+renderToStaticMarkup(createElement(SecondaryNavigation,{page:'Company Research',navigate:()=>{}}));
   expect(home).toContain('Discover Opportunities');
   expect(app).toContain('Autonomous Discovery');
   expect(app).toContain('Opportunity Radar');

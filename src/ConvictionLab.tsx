@@ -1,3 +1,5 @@
+import {createConvictionActionBrief} from './conviction-action-brief';
+import {saveResearchSummary} from './watchlist-research';
 import {useState,type FormEvent} from 'react';
 import {assessConvictionReadiness,type ConvictionAssessment} from './conviction-readiness';
 import SurvivalEvidencePanel from './SurvivalEvidencePanel';
@@ -70,6 +72,7 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
    setThesis(draft.thesis);
    setInvalidation(draft.invalidation);
    setSavedMessage('ATLAS automatically prepared a dated research draft from SEC evidence. Review or edit it before saving. It is not verified or monitored.');
+   try{const brief=createConvictionActionBrief(sec,check,asOf);saveResearchSummary(localStorage,{ticker:sec.ticker,createdAt:new Date().toISOString(),headline:brief.headline,finding:brief.finding,action:brief.action,source:sec.source,verdict:check.verdict})}catch{setSavedMessage('Research loaded, but its Watchlist summary could not be saved. Existing saved records were kept.')}
   }catch(e){setError(e instanceof Error?e.message:'Research source unavailable')}
   finally{setLoading(false)}
  }

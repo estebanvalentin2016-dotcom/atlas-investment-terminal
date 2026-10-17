@@ -125,8 +125,8 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
  const sidebar=distinctIssuers(visible,6);
  return <section className="atlas-picks-workbench" aria-label="Recent SEC investment research leads">
   <div className="atlas-picks-header">
-   <div><span className="eyebrow">ATLAS / DECISION BRIEF</span><h3>What deserves attention right now?</h3>
-    <p>ATLAS summarizes the evidence and recommends a <strong>research action</strong>. Underlying filings, financials, news and dollar scenarios remain expandable. These are not buy recommendations.</p></div>
+   <div><span className="eyebrow">RESEARCH BRIEF</span><h3>What deserves attention right now?</h3>
+    <p>Prioritized <strong>research actions</strong>, not buy recommendations. Expand a company to inspect the evidence and unresolved questions.</p></div>
    <button className="button secondary" type="button" onClick={()=>{if(scan&&reviewRange.total){setBatchCursor(x=>x+Math.max(1,reviewBatch.length))}else setGeneration(x=>x+1)}} disabled={loading}>{loading?'Checking sources…':scan&&reviewRange.total?'Review next issuer batch →':'Refresh current leads'}</button>
   </div>
   <div className="atlas-picks-grid">

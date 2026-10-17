@@ -3,6 +3,7 @@ import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import InstitutionalDiscovery from './InstitutionalDiscovery';
 import App from './App';
+import {SecondaryNavigation} from './WorkspaceNavigation';
 describe('13F Smart Money Discovery UI',()=>{
  it('offers investor and company search without inventing institutional ownership',()=>{
   const markup=renderToStaticMarkup(createElement(InstitutionalDiscovery));
@@ -13,10 +14,10 @@ describe('13F Smart Money Discovery UI',()=>{
   expect(markup).not.toContain('Newly reported</span>');
  });
  it('keeps the SEC Opportunity Radar accessible while adding institutional discovery',()=>{
-  const markup=renderToStaticMarkup(createElement(App));
+  const markup=renderToStaticMarkup(createElement(App))+renderToStaticMarkup(createElement(SecondaryNavigation,{page:'Autonomous Discovery',navigate:()=>{}}))+renderToStaticMarkup(createElement(SecondaryNavigation,{page:'Company Research',navigate:()=>{}}));
   expect(markup).toContain('Institutional Discovery');
   expect(markup).toContain('Opportunity Radar');
   expect(markup).toContain('Conviction Lab');
-  expect(markup).toContain('Research Home');
+  expect(markup).toContain('Home');
  });
 });
