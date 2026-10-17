@@ -154,7 +154,7 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
       <div className="atlas-brief-summary">
        <div><span>What ATLAS found</span><p>{brief.finding}</p></div>
        <div><span>What it means</span><p>{brief.interpretation}</p></div>
-       <div><span>Next research action</span><p><strong>{brief.nextStep}</strong></p></div>
+       <div><span>What changes this decision</span><p><strong>{brief.nextStep}</strong></p></div>
       </div>
       <p className="atlas-brief-provenance">{brief.evidenceNote} · <a href={lead.url} target="_blank" rel="noopener noreferrer">SEC filing ↗</a></p>
       <details className="atlas-brief-deep-dive">
