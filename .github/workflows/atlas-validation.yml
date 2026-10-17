@@ -1,0 +1,28 @@
+name: ATLAS build and regression tests
+on:
+  push:
+    branches:
+      - feature/v0.10-opportunity-radar
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    name: TypeScript build and Vitest
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Prepare Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Compile and bundle ATLAS
+        run: npm run build
+      - name: Run regression suite
+        run: npm run test
