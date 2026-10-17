@@ -473,3 +473,38 @@ th{font-size:12px}td{font-size:14px}
 .atlas-economic-sensitivity>div span{font-size:13px}
 .atlas-economic-sensitivity small{line-height:1.5;color:#c2d5e4}
 @media(max-width:650px){.atlas-economic-evidence{grid-template-columns:1fr}.atlas-economic-sensitivity>div{display:grid;gap:4px}}
+
+
+/* ATLAS executive research home: action before metrics, all evidence available on demand */
+.atlas-research-home>.atlas-picks-workbench{margin-top:4px}
+.atlas-decision-strip{padding:18px;border:1px solid #6387a2;background:#17354b;border-radius:12px;display:grid;gap:8px}
+.atlas-decision-strip>strong{font-size:clamp(18px,2vw,24px);color:#eff9ff}
+.atlas-decision-strip p{margin:0;color:#d2e3ef;font-size:14px;line-height:1.5}
+.atlas-decision-strip .atlas-decision-next{border-top:1px solid #476681;padding-top:9px;color:#dbefff;font-weight:750}
+.atlas-brief-card{padding:18px 20px;display:grid;gap:10px}
+.atlas-brief-card .atlas-picks-card-top h4{font-size:clamp(20px,2vw,25px);margin:5px 0}
+.atlas-action-label{display:inline-flex;align-items:center;align-self:start;border-radius:7px;border:1px solid #8292a6;padding:6px 11px;font-size:13px;font-weight:850}
+.atlas-action-investigate{border-color:#72b7a5;background:#183b37;color:#b5f4dc}
+.atlas-action-watch{border-color:#c5a26a;background:#3d3024;color:#ffdaa0}
+.atlas-action-deprioritize{border-color:#ba7980;background:#3b272d;color:#ffced3}
+.atlas-action-checking{border-color:#6893b3;background:#22384d;color:#daeafe}
+.atlas-brief-headline{font-size:clamp(18px,2vw,23px);margin:0;color:#fff}
+.atlas-brief-summary{display:grid;gap:8px}
+.atlas-brief-summary>div{display:grid;grid-template-columns:118px minmax(0,1fr);gap:10px;align-items:start}
+.atlas-brief-summary>div+div{border-top:1px solid #29445e;padding-top:9px}
+.atlas-brief-summary span{text-transform:uppercase;letter-spacing:.05em;color:#acc9dc;font-size:11px;font-weight:850;margin-top:4px}
+.atlas-brief-summary p{font-size:14px;line-height:1.55;margin:0;color:#e1edf8}
+.atlas-brief-summary p strong{color:#fff}
+.atlas-brief-provenance{font-size:12px!important;color:#a9bdd2;border-top:1px solid #29445e;padding-top:9px;margin:0!important}
+.atlas-brief-deep-dive{border:1px solid #3b5873;background:#122e42;border-radius:9px;padding:10px 13px;margin:2px 0}
+.atlas-brief-deep-dive>summary,.atlas-home-audit>summary,.atlas-home-more>summary{cursor:pointer;font-size:13px;color:#c8e6fc;font-weight:800}
+.atlas-brief-deep-dive[open]{padding-bottom:14px}
+.atlas-brief-deep-dive>summary{padding:4px 0}
+.atlas-brief-deep-dive .atlas-picks-evidence-bridge{margin-top:14px}
+.atlas-home-audit{font-size:12px;line-height:1.55;padding:5px 0;color:#b8cfdf}
+.atlas-home-audit p{font-size:12px;line-height:1.6;color:#b8cfdf;margin:9px 0}
+.atlas-home-more{margin:22px 0;padding:15px;border:1px solid #365570;border-radius:11px}
+.atlas-home-more>summary{font-size:15px}
+.atlas-home-more>.atlas-home-mission{margin-top:16px}
+.atlas-brief-card .atlas-picks-actions{margin:5px 0}
+@media(max-width:600px){.atlas-brief-summary>div{grid-template-columns:1fr;gap:3px}.atlas-brief-summary span{margin-top:0}.atlas-brief-card{padding:14px}}
