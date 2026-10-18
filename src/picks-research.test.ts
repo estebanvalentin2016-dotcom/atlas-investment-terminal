@@ -44,10 +44,13 @@ describe('Source-dated filing-led home and rolling SEC research ledger',()=>{
  });
  it('opens the real-home source research workflow instead of a fictional top-picks claim',()=>{
   const html=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{}}));
-  expect(html).toContain('What deserves attention right now?');
+  expect(html).toContain('Recent catalysts and SEC filing intelligence');
   expect(html).toContain('RESEARCH BRIEF');
+  expect(html).toContain('Separate research processes:');
+  expect(html).toContain('may reach different provisional conclusions');
+  expect(html).not.toContain('Explore $500 dollar scenarios');
   expect(html).toContain('Review saved research');
-  expect(html.indexOf('What deserves attention right now?')).toBeLessThan(html.indexOf('Discover Opportunities'));
+  expect(html.indexOf('Recent catalysts and SEC filing intelligence')).toBeLessThan(html.indexOf('Discover Opportunities'));
   expect(html).toContain('This month');
   expect(html).toContain('Last 90 days');
   expect(html).toContain('does not backfill a complete three-month SEC universe');

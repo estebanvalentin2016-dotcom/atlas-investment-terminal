@@ -177,6 +177,33 @@ th{font-size:12px}td{font-size:14px}
 .atlas-demo-nav>summary{cursor:pointer;padding:9px 5px;font-size:13px;line-height:1.4;font-weight:800;letter-spacing:.4px;color:#c2d0de}
 .atlas-demo-nav .navitem{font-size:14px}
 .atlas-research-home{display:grid;gap:20px}
+.atlas-discovery-briefing{display:grid;gap:16px;padding:22px;border:1px solid #55748e;border-radius:14px;background:linear-gradient(135deg,#172f45,#122536);min-width:0}
+.atlas-discovery-briefing h4,.atlas-discovery-briefing h5{margin:0;color:#f4fbff}
+.atlas-discovery-briefing h4{font-size:clamp(23px,2.4vw,31px)}
+.atlas-discovery-briefing h5{font-size:18px}
+.atlas-discovery-briefing-head{display:flex;justify-content:space-between;gap:14px;align-items:start;flex-wrap:wrap}
+.atlas-discovery-briefing-head>div{display:grid;gap:6px}
+.atlas-discovery-scan-meta{margin:0;color:#d5e6f2;font-size:15px}
+.atlas-discovery-primary{border-color:#6e96b5;background:#1a374f}
+.atlas-discovery-primary .atlas-autonomous-heading>div>span,.atlas-discovery-alternative>div>span{color:#87cfff;font-weight:800;letter-spacing:.06em}
+.atlas-discovery-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+.atlas-discovery-metrics>div{padding:13px}
+.atlas-discovery-metrics .atlas-glance-value{font-size:clamp(20px,2vw,27px)}
+.atlas-discovery-briefing .atlas-tone-positive{color:#78d6aa!important}
+.atlas-discovery-briefing .atlas-tone-negative{color:#f0959d!important}
+.atlas-discovery-briefing .atlas-tone-neutral{color:#f4f7fa!important}
+.atlas-discovery-briefing .atlas-tone-caution{color:#e5c27c!important}
+.atlas-discovery-alternatives{display:grid;gap:10px}
+.atlas-discovery-alternative-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.atlas-discovery-alternative{display:grid;gap:11px;padding:15px;border:1px solid #486985;border-radius:11px;background:#152d42;min-width:0}
+.atlas-discovery-alternative>div:first-child{display:grid;gap:4px}
+.atlas-discovery-alternative>div:first-child>strong{font-size:18px;color:#f4fbff}
+.atlas-discovery-alternative .atlas-discovery-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+.atlas-discovery-alternative .atlas-discovery-metrics>div{padding:10px}
+.atlas-discovery-alternative p{margin:0}
+.atlas-discovery-empty,.atlas-discovery-caution{margin:0;padding:14px;border:1px solid #4d6c85;border-radius:10px;background:#152c40;line-height:1.55}
+.atlas-discovery-empty p{margin:6px 0 0}
+@media(max-width:760px){.atlas-discovery-metrics,.atlas-discovery-alternative-grid,.atlas-discovery-alternative .atlas-discovery-metrics{grid-template-columns:minmax(0,1fr)}.atlas-discovery-briefing{padding:17px}}
 .atlas-home-mission{border:1px solid #476d8d;border-radius:15px;background:linear-gradient(130deg,#1b3953,#132437);padding:28px;display:grid;gap:14px;justify-items:start}
 .atlas-home-mission h2{font-size:clamp(30px,3.3vw,46px);line-height:1.18;max-width:850px;margin:0;color:#f6fbff}
 .atlas-home-mission h2 em{font-style:normal;color:#7fc8ff}

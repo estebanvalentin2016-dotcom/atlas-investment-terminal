@@ -21,7 +21,7 @@ const REVIEW_CURSOR='atlas.home.sec-review-offset.v1';
 const savedCursor=()=>{try{const n=Number(localStorage.getItem(REVIEW_CURSOR)||0);return Number.isSafeInteger(n)&&n>=0?n:0}catch{return 0}};
 const easternDate=()=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const v=Object.fromEntries(p.filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));return v.year+'-'+v.month+'-'+v.day};
 function stored():PickLead[]{try{const raw=localStorage.getItem(KEY);return raw?JSON.parse(raw) as PickLead[]:[]}catch{return []}}
-export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onConviction?:(ticker:string)=>void;onOpportunity?:()=>void}){
+export default function MonthlyPicksDashboard({onConviction,onOpportunity,heading='What deserves attention right now?',showScenarioActions=true}:{onConviction?:(ticker:string)=>void;onOpportunity?:()=>void;heading?:string;showScenarioActions?:boolean}){
  const [asOf]=useState(easternDate);
  const [leads,setLeads]=useState<PickLead[]>(()=>retainPickLeads(stored(),[],easternDate()));
  const [scan,setScan]=useState<Scan|null>(null);
@@ -125,7 +125,7 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
  const sidebar=distinctIssuers(visible,6);
  return <section className="atlas-picks-workbench" aria-label="Recent SEC investment research leads">
   <div className="atlas-picks-header">
-   <div><span className="eyebrow">RESEARCH BRIEF</span><h3>What deserves attention right now?</h3>
+   <div><span className="eyebrow">RESEARCH BRIEF</span><h3>{heading}</h3>
     <p>Prioritized <strong>research actions</strong>, not buy recommendations. Expand a company to inspect the evidence and unresolved questions.</p></div>
    <button className="button secondary" type="button" onClick={()=>{if(scan&&reviewRange.total){setBatchCursor(x=>x+Math.max(1,reviewBatch.length))}else setGeneration(x=>x+1)}} disabled={loading}>{loading?'Checking sources…':scan&&reviewRange.total?'Review next issuer batch →':'Refresh current leads'}</button>
   </div>
@@ -196,11 +196,11 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity}:{onCo
        <CatalystVerificationPanel ticker={lead.ticker} issuerName={lead.name} filingDate={lead.filed} sourceUrl={lead.url} review={e.review} headlines={e.news} asOf={asOf}/>
       </>}
       </details>
-      <div className="atlas-picks-actions">
-       <button type="button" className="button secondary" onClick={()=>setOpened(opened===lead.ticker?null:lead.ticker)} aria-expanded={opened===lead.ticker}>{opened===lead.ticker?'Close dollar scenarios':'Explore $500 dollar scenarios'}</button>
+      {(showScenarioActions||onConviction)&&<div className="atlas-picks-actions">
+       {showScenarioActions&&<button type="button" className="button secondary" onClick={()=>setOpened(opened===lead.ticker?null:lead.ticker)} aria-expanded={opened===lead.ticker}>{opened===lead.ticker?'Close dollar scenarios':'Explore $500 dollar scenarios'}</button>}
        {onConviction&&<button type="button" className="button secondary" onClick={()=>onConviction(lead.ticker)}>Open Conviction Lab →</button>}
-      </div>
-      {opened===lead.ticker&&<InvestmentOutcomeSimulator key={lead.ticker} ticker={lead.ticker}/>}
+      </div>}
+      {showScenarioActions&&opened===lead.ticker&&<InvestmentOutcomeSimulator key={lead.ticker} ticker={lead.ticker}/>}
      </article>})}</div>}
     {setAside.length>0&&<details className="atlas-home-audit atlas-setaside-list"><summary>Why {setAside.length} issuer(s) were set aside</summary>
      {setAside.map(x=><p key={x.lead.url}><strong>{x.lead.ticker}:</strong> {x.brief.headline}. {x.brief.interpretation} <a href={x.lead.url} target="_blank" rel="noopener noreferrer">SEC filing ↗</a></p>)}
