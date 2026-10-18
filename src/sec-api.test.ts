@@ -20,7 +20,55 @@ describe('SEC DEI point-in-time common share counts',()=>{
 });
 import {describe,expect,it} from 'vitest';
 // @ts-ignore JavaScript-only SEC backend module is tested directly.
-import {annualValues,selectFact,selectConsolidatedRevenue,instantOutstandingShares,latestInstantFact} from '../server/sec-api.mjs';
+import {annualValues,selectFact,selectConsolidatedRevenue,instantOutstandingShares,latestInstantFact,secIndustryClassification,handleSecRequest} from '../server/sec-api.mjs';
+import {vi} from 'vitest';
+
+describe('SEC SIC metadata',()=>{
+ const source='https://data.sec.gov/submissions/CIK0000004242.json';
+ const retrievedAt='2026-10-18T12:00:00.000Z';
+ it('accepts a valid SEC-reported SIC code and description with provenance',()=>{
+  expect(secIndustryClassification({sic:'6331',sicDescription:'Fire, Marine & Casualty Insurance'},source,retrievedAt)).toEqual({
+   status:'reported',system:'SEC SIC',code:'6331',description:'Fire, Marine & Casualty Insurance',source,retrievedAt
+  });
+ });
+ const invalidCases:Array<[Record<string,unknown>,string]>=[
+  [{},'missing'],
+  [{sic:'63',sicDescription:'Insurance'},'short'],
+  [{sic:'ABCD',sicDescription:'Insurance'},'nonnumeric'],
+  [{sic:'6331',sicDescription:'   '},'description missing']
+ ];
+ it.each(invalidCases)('marks %s SIC metadata unavailable instead of inferring it (%s)',(submission)=>{
+  expect(secIndustryClassification(submission,source,retrievedAt)).toMatchObject({status:'unavailable',code:null,description:null,source,retrievedAt});
+ });
+ it('returns Company Facts when submissions fail and enriches a later valid SEC response',async()=>{
+  vi.stubEnv('SEC_USER_AGENT','ATLAS contact sec-tests@example.com');
+  let submissionsAvailable=false;
+  vi.stubGlobal('fetch',vi.fn(async(input:string|URL|Request)=>{
+   const target=String(input);
+   if(target.includes('company_tickers.json'))return new Response(JSON.stringify({'0':{ticker:'FALL',title:'Fallback Company',cik_str:4242}}),{status:200});
+   if(target.includes('/companyfacts/'))return new Response(JSON.stringify({entityName:'Fallback Company',facts:{}}),{status:200});
+   if(target.includes('/submissions/'))return submissionsAvailable
+    ?new Response(JSON.stringify({sic:'6411',sicDescription:'Insurance Agents, Brokers & Service'}),{status:200})
+    :new Response('unavailable',{status:503});
+   return new Response('not found',{status:404});
+  }));
+  let status=0,body='';
+  try{
+   await handleSecRequest({url:'/api/sec/company?ticker=FALL',method:'GET'},{writeHead(code:number){status=code},end(value:string){body=value}});
+   const result=JSON.parse(body);
+   expect(status).toBe(200);
+   expect(result.ticker).toBe('FALL');
+   expect(result.metrics).toHaveLength(23);
+   expect(result.classification).toMatchObject({status:'unavailable',system:'SEC SIC',code:null,description:null,source});
+   submissionsAvailable=true;
+   await handleSecRequest({url:'/api/sec/company?ticker=FALL',method:'GET'},{writeHead(code:number){status=code},end(value:string){body=value}});
+   const enriched=JSON.parse(body);
+   expect(status).toBe(200);
+   expect(enriched.classification).toMatchObject({status:'reported',system:'SEC SIC',code:'6411',description:'Insurance Agents, Brokers & Service',source});
+   expect(enriched.classification.retrievedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+  }finally{vi.unstubAllGlobals();vi.unstubAllEnvs()}
+ });
+});
 describe('SEC annual fact normalization',()=>{
  it('uses reported annual durations and latest filing for each fiscal ending year',()=>{
   const values=annualValues({units:{USD:[

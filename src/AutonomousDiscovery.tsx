@@ -10,6 +10,9 @@ import MarketCapEvidencePanel from './MarketCapEvidencePanel';
 import FinancingAutomationPanel from './FinancingAutomationPanel';
 import PriceHistoryPanel from './PriceHistoryPanel';
 import {assessPriceHistory,combineResearchPriority,type HistoricalPriceResponse,type PriceHistoryAssessment} from './price-history-model';
+import {appendIndustryComparabilityLimitations} from './industry-classification';
+import {buildResearchHistoryRecords,createResearchHistoryRunId} from './research-history-model';
+import {appendBrowserResearchHistory} from './research-history-storage';
 type Listed={ticker:string;name:string;cik:number};
 type UniversePage={total:number;start:number;nextCursor:number;completedCycle:boolean;rows:Listed[];indexUrl:string;retrievedAt:string;error?:string;seedTickersUsed:boolean;scope:string};
 type Candidate={company:SecCompany;screen:ScreenResult;valuation:AnnualPe|null;quote:MarketValuationClose|null;priceIssue:string|null;history:HistoricalPriceResponse|null;trend:PriceHistoryAssessment;historyIssue:string|null;priority:{score:number|null;priceWeighted:boolean}};
@@ -106,6 +109,7 @@ const [cursor,setCursor]=useState(initialCursor);
    const valuationMap=Object.fromEntries(research.map(x=>[x.company.ticker,x.valuation?.pe??null]));
    const fundamental=rankCompanies(research.map(x=>x.company),defaultRankWeights,valuationMap);
    const fundamentals=new Map(fundamental.map(x=>[x.ticker,x.score]));
+   const rankings=new Map(fundamental.map(x=>[x.ticker,x]));
    for(const item of research)item.priority=combineResearchPriority(fundamentals.get(item.company.ticker)??null,item.trend);
    // P/E cautions come first. A 20% stock-price trend is used only for
    // successfully fetched, dated, 1Y+3Y split-adjusted history in this small
@@ -115,14 +119,16 @@ const [cursor,setCursor]=useState(initialCursor);
     (b.priority.priceWeighted?1:0)-(a.priority.priceWeighted?1:0)||
     a.company.ticker.localeCompare(b.company.ticker));
     setCandidates(research);
-    setProgress('Completed provisional SEC screening and price research. Price history is weighted at 20% only when comparable 1Y and 3Y observations exist; valuations remain unverified.');
-    setDone(true);
-    setCursor(nextCursor);
-    try{localStorage.setItem(CURSOR_KEY,String(nextCursor))}catch{}
+    const scanCompletedAt=new Date().toISOString();
+    const runId=createResearchHistoryRunId(scanCompletedAt);
+    const historyRecords=buildResearchHistoryRecords({
+      completed:true,completedAt:scanCompletedAt,runId,assessments:records,
+      enrichments:research.map(item=>({ticker:item.company.ticker,valuation:item.valuation,quote:item.quote,ranking:rankings.get(item.company.ticker)??null,priceIssue:item.priceIssue,historyIssue:item.historyIssue}))
+    });
 
     // Build discovery briefing from results
     const briefingInput: DiscoveryBriefingInput = {
-      scanCompletedAt: new Date().toISOString(),
+      scanCompletedAt,
       issuersExamined: records.length,
       leads: research.map(item => {
         // Find the matching record for emerging strength
@@ -141,7 +147,10 @@ const [cursor,setCursor]=useState(initialCursor);
           annualPe: item.valuation?.pe ?? null,
           emergingStrength: emergingStatus,
           screeningReasons: item.screen.reasons,
-          evidenceLimitations: item.priceIssue || item.historyIssue ? [item.priceIssue || '', item.historyIssue || ''].filter(Boolean) as string[] : null
+          evidenceLimitations: appendIndustryComparabilityLimitations(
+            item.priceIssue || item.historyIssue ? [item.priceIssue || '', item.historyIssue || ''].filter(Boolean) as string[] : null,
+            item.company.classification
+          )
         };
       })
     };
@@ -150,7 +159,15 @@ const [cursor,setCursor]=useState(initialCursor);
     setBriefing(briefingSnapshot);
 
     // Save briefing snapshot to localStorage
-    writeDiscoveryBriefing(localStorage, briefingSnapshot);
+    try{writeDiscoveryBriefing(globalThis.localStorage, briefingSnapshot)}catch{}
+    const historyResult=appendBrowserResearchHistory(historyRecords);
+    const historyNote=historyResult.status==='saved'
+      ?' Browser-local history saved '+historyResult.saved+' issuer assessment(s)'+(historyResult.dropped?' and evicted '+historyResult.dropped+' oldest record(s) under the 1,200-record retention cap.':'.')
+      :' Browser-local assessment history was not saved ('+historyResult.status+'); the completed scan remains available in this session.';
+    setProgress('Completed provisional SEC screening and price research. Price history is weighted at 20% only when comparable 1Y and 3Y observations exist; valuations remain unverified.'+historyNote);
+    setDone(true);
+    setCursor(nextCursor);
+    try{localStorage.setItem(CURSOR_KEY,String(nextCursor))}catch{}
    }catch(e){
     setError(e instanceof Error?e.message:'Autonomous scan unavailable');
     setProgress('Scan failed. No companies were silently substituted.');

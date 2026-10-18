@@ -29,41 +29,49 @@ const briefing:DiscoveryBriefingSnapshot={
 };
 
 describe('Research Home saved Autonomous Discovery briefing',()=>{
- it('renders readable scan metadata and a detailed primary lead before the existing Home dashboard',()=>{
+ it('renders a dominant evidence-backed lead before the subordinate filing queue',()=>{
   const storage=memoryStorage({[KEY]:JSON.stringify(briefing)});
-  const html=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},briefingStorage:storage}));
+  const html=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},onResearch:()=>{},briefingStorage:storage}));
 
   expect(html).toContain('Oct 18, 2026');
   expect(html).toContain('5:05 PM UTC');
-  expect(html).toContain('Issuers examined:</strong> 24');
-  expect(html).toContain('Primary saved lead · preliminary financial screening');
-  expect(html).toContain('<strong>Alpha Holdings</strong><span>AAA</span>');
-  expect(html).toContain('Annual revenue growth</span><strong class="atlas-glance-value atlas-tone-positive">+12.0%');
-  expect(html).toContain('FCF margin</span><strong class="atlas-glance-value atlas-tone-positive">+18.0%');
-  expect(html).toContain('Indicative FY P/E</span><strong class="atlas-glance-value atlas-tone-neutral">20.0×');
-  expect(html).toContain('Screening status</span><strong>Preliminary pass');
+  expect(html).toContain('<header class="atlas-home-hero">');
+  expect(html).toContain('AAA surfaced first.');
+  expect(html).toContain('The screen is preliminary.');
+  expect(html).toContain('<strong>24</strong><span>issuers examined in the saved scan');
+  expect(html).toContain('Featured research lead');
+  expect(html).toContain('aria-label="Featured preliminary research lead AAA"');
+  expect(html).toContain('<span class="atlas-home-ticker">AAA</span><h3>Alpha Holdings</h3>');
+  expect(html).toContain('Preliminary classification</span><strong>Preliminary pass');
+  expect(html).toContain('Investigate AAA');
+  expect(html).toContain('Annual revenue growth</span><strong class="atlas-tone-positive">+12.0%');
+  expect(html).toContain('FCF margin</span><strong class="atlas-tone-positive">+18.0%');
+  expect(html).toContain('Indicative FY P/E</span><strong class="atlas-tone-neutral">20.0×');
+  expect(html).toContain('Preliminary triage</span><strong>Investigate further');
   expect(html).toContain('Emerging Strength</span><strong class="atlas-tone-positive">Improving');
+  expect(html).toContain('<strong>Reason for attention.</strong> Preliminary pass');
   expect(html).toContain('No lead-specific limitation was saved; broader investment diligence remains outstanding.');
-  expect(html).toContain('SCREENING · NOT CONVICTION');
-  expect(html).toContain('NOT A BUY RATING');
-  expect(html).toContain('not verified investment conviction or investment recommendations');
-  expect(html).toContain('Separate research processes:');
-  expect(html).toContain('They use different evidence and may reach different provisional conclusions.');
-  expect(html.indexOf('Preliminary research briefing')).toBeLessThan(html.indexOf('Recent catalysts and SEC filing intelligence'));
+  expect(html).toContain('Screening · not conviction');
+  expect(html).toContain('Not an investment recommendation');
+  expect(html).toContain('not verified investment conviction or an investment recommendation');
+  expect(html).toContain('The version 1 briefing does not retain source URLs, catalyst evidence, historical pre-news proof, or a comparative ranking score.');
+  expect(html).toContain('<details class="atlas-home-secondary-intelligence">');
+  expect(html.indexOf('AAA surfaced first.')).toBeLessThan(html.indexOf('Saved discovery scan summary'));
+  expect(html.indexOf('AAA surfaced first.')).toBeLessThan(html.indexOf('Recent catalysts and SEC filing intelligence'));
  });
 
- it('renders up to two smaller alternatives and preserves unknown metrics and limitations',()=>{
+ it('renders up to two editorial alternatives without inventing comparative evidence',()=>{
   const storage=memoryStorage({[KEY]:JSON.stringify(briefing)});
   const html=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},briefingStorage:storage}));
 
-  expect(html.match(/Alternative research lead/g)).toHaveLength(2);
-  expect(html).toContain('<strong>Beta Systems</strong><span>BBB</span>');
-  expect(html).toContain('<strong>Gamma Industries</strong><span>CCC</span>');
-  expect(html).toContain('Indicative FY P/E</span><strong class="atlas-glance-value atlas-tone-neutral">Unknown');
-  expect(html).toContain('Known evidence limitations:</strong> Price unavailable');
+  expect(html).toContain('Alternative saved leads');
+  expect(html).toContain('<strong>BBB</strong><span>Beta Systems</span>');
+  expect(html).toContain('<strong>CCC</strong><span>Gamma Industries</span>');
+  expect(html).toContain('Price unavailable');
+  expect(html).toContain('the snapshot does not preserve a comparative score or rejection rationale');
   expect(html).toContain('for insurers and other specialized financial businesses');
-  expect(html).toContain('Emerging Strength</span><strong class="atlas-tone-caution">Not improving');
-  expect(html).toContain('Emerging Strength</span><strong class="atlas-tone-neutral">Insufficient evidence');
+  expect(html).not.toContain('Aurum Infrastructure');
+  expect(html).not.toContain('Beneficiary universe');
  });
 
  it('renders unavailable saved financial metrics as Unknown rather than zero',()=>{
@@ -71,40 +79,44 @@ describe('Research Home saved Autonomous Discovery briefing',()=>{
   const storage=memoryStorage({[KEY]:JSON.stringify(unknownBriefing)});
   const html=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},briefingStorage:storage}));
 
-  expect(html.match(/atlas-glance-value atlas-tone-neutral">Unknown/g)).toHaveLength(3);
+  expect((html.match(/class="atlas-tone-neutral">Unknown/g)??[]).length).toBeGreaterThanOrEqual(3);
   expect(html).not.toContain('>+0.0%</strong>');
   expect(html).not.toContain('>0.0×</strong>');
  });
 
  it('uses negative tones for declines and neutral tones for zero and P/E values',()=>{
   const tonalBriefing={...briefing,leads:[
-   {...briefing.leads[0],revenueGrowth:-3,fcfMargin:-1.5,annualPe:4,emergingStrength:'not_improving' as const},
-   {...briefing.leads[1],revenueGrowth:0,fcfMargin:0,annualPe:80,emergingStrength:'insufficient_evidence' as const}
+   {...briefing.leads[0],revenueGrowth:-3,fcfMargin:-1.5,annualPe:4,emergingStrength:'not_improving' as const}
   ]};
   const storage=memoryStorage({[KEY]:JSON.stringify(tonalBriefing)});
   const html=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},briefingStorage:storage}));
 
-  expect(html).toContain('atlas-glance-value atlas-tone-negative">-3.0%');
-  expect(html).toContain('atlas-glance-value atlas-tone-negative">-1.5%');
-  expect(html.match(/atlas-glance-value atlas-tone-neutral">0.0%/g)).toHaveLength(2);
-  expect(html).toContain('atlas-glance-value atlas-tone-neutral">4.0×');
-  expect(html).toContain('atlas-glance-value atlas-tone-neutral">80.0×');
+  expect(html).toContain('class="atlas-tone-negative">-3.0%');
+  expect(html).toContain('class="atlas-tone-negative">-1.5%');
+  expect(html).toContain('class="atlas-tone-neutral">4.0×');
+
+  const zeroBriefing={...briefing,leads:[{...briefing.leads[0],revenueGrowth:0,fcfMargin:0,annualPe:80}]};
+  const zeroHtml=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},briefingStorage:memoryStorage({[KEY]:JSON.stringify(zeroBriefing)})}));
+  expect((zeroHtml.match(/class="atlas-tone-neutral">0.0%/g)??[]).length).toBeGreaterThanOrEqual(2);
+  expect(zeroHtml).toContain('class="atlas-tone-neutral">80.0×');
  });
 
- it('shows an informative result when a valid saved scan has no leads',()=>{
+ it('shows an evidence-honest result when a valid saved scan has no leads',()=>{
   const emptyBriefing={...briefing,leads:[]};
   const storage=memoryStorage({[KEY]:JSON.stringify(emptyBriefing)});
   const html=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},briefingStorage:storage}));
 
-  expect(html).toContain('Issuers examined:</strong> 24');
-  expect(html).toContain('No preliminary leads met the saved scan criteria.');
-  expect(html).toContain('did not manufacture a candidate');
+  expect(html).toContain('No lead met its saved criteria.');
+  expect(html).toContain('24 real issuers were examined');
+  expect(html).toContain('rather than promoting an unsupported candidate');
  });
 
- it('prompts for Autonomous Discovery when no saved briefing exists',()=>{
+ it('shows a sophisticated empty state when no saved briefing exists',()=>{
   const html=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},briefingStorage:memoryStorage()}));
 
-  expect(html).toContain('No saved scan is available. Run Autonomous Discovery to generate a preliminary research briefing.');
+  expect(html).toContain('No evidence-backed lead');
+  expect(html).toContain('Run Autonomous Discovery to examine real SEC issuers');
+  expect(html).toContain('ATLAS will not manufacture a company, catalyst, or conviction signal');
   expect(html).toContain('Recent catalysts and SEC filing intelligence');
  });
 
@@ -114,7 +126,7 @@ describe('Research Home saved Autonomous Discovery briefing',()=>{
 
   expect(()=>renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},briefingStorage:storage}))).not.toThrow();
   const html=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},briefingStorage:storage}));
-  expect(html).toContain('No saved scan is available. Run Autonomous Discovery to generate a preliminary research briefing.');
+  expect(html).toContain('No evidence-backed lead');
   expect(html).toContain('Recent catalysts and SEC filing intelligence');
  });
 });

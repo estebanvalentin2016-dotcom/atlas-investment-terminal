@@ -35,11 +35,22 @@ function browserStorage(storage:Storage|null|undefined):Storage|null {
   try{return typeof localStorage==='undefined'?null:localStorage}catch{return null}
 }
 
-export default function DiscoveryBriefingPanel({storage}:{storage?:Storage|null}){
+export default function DiscoveryBriefingPanel({storage,variant='full',onSelect}:{storage?:Storage|null;variant?:'full'|'handoff';onSelect?:(ticker:string)=>void}){
   const [briefing]=useState(()=>{
     const available=browserStorage(storage);
     return available?readDiscoveryBriefing(available):null;
   });
+  if(variant==='handoff'){
+    const primary=briefing?.leads[0];
+    return <aside className="atlas-research-handoff" aria-label="Autonomous Discovery research handoff">
+      <span>Discovery handoff</span>
+      {primary?<>
+        <div><strong>{primary.ticker}</strong><p>{primary.companyName}</p></div>
+        <p>{label(primary.preliminaryScreenStatus)} · saved {completedAt(briefing.scanCompletedAt)}. Preliminary screening only.</p>
+        {onSelect&&<button type="button" onClick={()=>onSelect(primary.ticker)}>Investigate {primary.ticker}</button>}
+      </>:briefing?<p>The latest scan examined {briefing.issuersExamined.toLocaleString('en-US')} issuer{briefing.issuersExamined===1?'':'s'} and retained no preliminary lead.</p>:<p>No saved Discovery lead is available. Run Autonomous Discovery when you need a new research starting point.</p>}
+    </aside>;
+  }
   if(!briefing)return <section className="atlas-discovery-briefing">
     <h4>Autonomous Discovery Briefing</h4>
     <p className="chart-note">No saved scan is available. Run Autonomous Discovery to generate a preliminary research briefing.</p>

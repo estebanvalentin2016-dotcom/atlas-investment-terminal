@@ -1,0 +1,864 @@
+.workspace-shell .workspace-heading-home {
+  margin: 0;
+}
+
+.workspace-shell .workspace-heading-home .eyebrow {
+  display: none;
+}
+
+.workspace-shell .workspace-heading-home h1 {
+  margin: 0;
+  color: var(--atlas-accent-strong);
+  font: 500 10px var(--atlas-font-mono);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.workspace-shell .atlas-research-home {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--atlas-text-primary);
+}
+
+.atlas-home-intelligence,
+.atlas-home-empty {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.atlas-home-kicker {
+  color: var(--atlas-accent-strong);
+  font: 500 10px var(--atlas-font-mono);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.atlas-home-hero {
+  min-height: clamp(470px, calc(100vh - 180px), 610px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(350px, 0.72fr);
+  align-items: center;
+  gap: clamp(48px, 6vw, 92px);
+  padding: 44px 0 62px;
+}
+
+.atlas-home-intro {
+  min-width: 0;
+  padding: 12px 0;
+}
+
+.atlas-home-intro h2,
+.atlas-home-empty h2 {
+  margin: 22px 0 24px;
+  color: var(--atlas-text-primary);
+  font: 400 clamp(3.35rem, 5.2vw, 5.65rem)/0.94 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  letter-spacing: -0.055em;
+}
+
+.atlas-home-intro h2 em,
+.atlas-home-empty h2 em {
+  color: #9eb4a4;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.atlas-home-intro p,
+.atlas-home-empty > p {
+  margin: 0;
+  color: var(--atlas-text-secondary);
+  line-height: 1.72;
+}
+
+.atlas-home-intro .atlas-home-hero-reason {
+  max-width: 680px;
+  color: #d7d6ce;
+  font: 400 clamp(1.05rem, 1.45vw, 1.35rem)/1.55 'Newsreader', 'Iowan Old Style', Georgia, serif;
+}
+
+.atlas-home-hero-reason strong {
+  color: var(--atlas-text-primary);
+  font-weight: 500;
+}
+
+.atlas-home-intro .atlas-home-hero-context {
+  max-width: 650px;
+  margin-top: 18px;
+  color: var(--atlas-text-muted);
+  font-size: 11px;
+}
+
+.atlas-home-feature {
+  min-width: 0;
+  padding: 8px 0 10px clamp(36px, 4.5vw, 68px);
+  border-left: 1px solid var(--atlas-border-strong);
+}
+
+.atlas-home-feature-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  margin-bottom: 28px;
+  color: var(--atlas-text-muted);
+  border-bottom: 1px solid var(--atlas-border-default);
+  font: 500 8px var(--atlas-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.atlas-home-feature-label > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--atlas-accent-strong);
+}
+
+.atlas-home-feature-label > span:first-child > span {
+  width: 5px;
+  height: 5px;
+  background: currentColor;
+  border-radius: 50%;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.atlas-home-feature h3 {
+  margin: 7px 0 22px;
+  color: var(--atlas-text-primary);
+  font: 400 clamp(2.35rem, 3.5vw, 4rem)/0.98 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  letter-spacing: -0.045em;
+  overflow-wrap: anywhere;
+}
+
+.atlas-home-feature-classification {
+  display: grid;
+  gap: 5px;
+  padding: 0 0 20px;
+}
+
+.atlas-home-feature-classification span,
+.atlas-home-feature-classification small,
+.atlas-home-feature-risk span {
+  color: var(--atlas-text-muted);
+  font-size: 10px;
+}
+
+.atlas-home-feature-classification strong {
+  color: var(--atlas-accent-strong);
+  font: 500 12px var(--atlas-font-mono);
+}
+
+.atlas-home-feature-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.atlas-home-feature-metrics .atlas-home-evidence-item {
+  padding-top: 11px;
+}
+
+.atlas-home-feature-metrics .atlas-home-evidence-item span {
+  min-height: 27px;
+  font-size: 8px;
+}
+
+.atlas-home-feature-metrics .atlas-home-evidence-item strong {
+  font-size: clamp(0.92rem, 1.2vw, 1.12rem);
+}
+
+.atlas-home-feature-risk {
+  padding: 16px 0 0;
+  border-top: 1px solid #51452f;
+}
+
+.atlas-home-feature-risk span {
+  color: var(--atlas-warning);
+  font: 500 9px var(--atlas-font-mono);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.atlas-home-feature-risk p {
+  margin: 8px 0 0;
+  color: var(--atlas-text-secondary);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.atlas-home-feature .atlas-home-text-action {
+  margin-top: 18px;
+}
+
+.atlas-home-text-action {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 0;
+  color: var(--atlas-text-primary);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--atlas-accent);
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 600;
+  transition: color var(--atlas-transition-fast), gap var(--atlas-transition-fast);
+}
+
+.atlas-home-counts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--atlas-border-default);
+  border-bottom: 1px solid var(--atlas-border-default);
+}
+
+.atlas-home-counts > div {
+  min-height: 124px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 24px clamp(16px, 2vw, 32px);
+  border-right: 1px solid var(--atlas-border-default);
+}
+
+.atlas-home-counts > div:first-child {
+  padding-left: 0;
+}
+
+.atlas-home-counts > div:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.atlas-home-counts strong {
+  color: var(--atlas-text-primary);
+  font: 400 38px 'Newsreader', 'Iowan Old Style', Georgia, serif;
+}
+
+.atlas-home-counts span {
+  max-width: 155px;
+  color: var(--atlas-text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.atlas-home-counts .atlas-home-count-emphasis strong,
+.atlas-home-counts .atlas-home-count-emphasis span {
+  color: var(--atlas-warning);
+}
+
+.atlas-home-story {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.72fr);
+  gap: clamp(48px, 7vw, 110px);
+  padding: 92px 0 96px;
+  border-bottom: 1px solid var(--atlas-border-default);
+}
+
+.atlas-home-priority-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 18px;
+  color: var(--atlas-text-muted);
+  border-bottom: 1px solid var(--atlas-border-strong);
+  font: 500 9px var(--atlas-font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.atlas-home-priority-line > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--atlas-accent-strong);
+}
+
+.atlas-home-priority-line > span:first-child > span {
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  border-radius: 50%;
+  box-shadow: 0 0 12px currentColor;
+}
+
+.atlas-home-company-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 40px 0 30px;
+}
+
+.atlas-home-ticker {
+  color: var(--atlas-accent-strong);
+  font: 500 11px var(--atlas-font-mono);
+  letter-spacing: 0.15em;
+}
+
+.atlas-home-company-heading h3 {
+  margin: 8px 0;
+  color: var(--atlas-text-primary);
+  font: 400 clamp(2.85rem, 4.7vw, 5.25rem)/0.98 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  letter-spacing: -0.045em;
+}
+
+.atlas-home-company-heading p,
+.atlas-home-posture span,
+.atlas-home-posture small {
+  margin: 0;
+  color: var(--atlas-text-muted);
+  font-size: 11px;
+}
+
+.atlas-home-posture {
+  min-width: 190px;
+  align-self: flex-end;
+  display: grid;
+  gap: 7px;
+  padding-left: 20px;
+  border-left: 1px solid var(--atlas-border-strong);
+}
+
+.atlas-home-posture strong {
+  color: var(--atlas-accent-strong);
+  font: 500 13px var(--atlas-font-mono);
+}
+
+.atlas-home-thesis {
+  max-width: 900px;
+  margin: 0 0 52px;
+  color: #d7d6ce;
+  font: 400 clamp(1.25rem, 1.8vw, 1.72rem)/1.55 'Newsreader', 'Iowan Old Style', Georgia, serif;
+}
+
+.atlas-home-thesis strong {
+  color: var(--atlas-text-primary);
+  font-weight: 500;
+}
+
+.atlas-home-evidence {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.atlas-home-evidence-item {
+  min-width: 0;
+  padding-top: 15px;
+  border-top: 1px solid var(--atlas-border-strong);
+}
+
+.atlas-home-evidence-item span,
+.atlas-home-evidence-item strong {
+  display: block;
+}
+
+.atlas-home-evidence-item span {
+  min-height: 30px;
+  margin-bottom: 10px;
+  color: var(--atlas-text-muted);
+  font: 500 9px/1.45 var(--atlas-font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.atlas-home-evidence-item strong {
+  overflow-wrap: anywhere;
+  color: var(--atlas-text-primary);
+  font: 500 clamp(1rem, 1.4vw, 1.3rem)/1.35 var(--atlas-font-mono);
+}
+
+.atlas-home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin-top: 40px;
+  padding-top: 18px;
+  border-top: 1px solid var(--atlas-border-subtle);
+}
+
+.atlas-home-actions button,
+.atlas-home-footer-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  color: var(--atlas-text-secondary);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  font-size: 11px;
+}
+
+.atlas-home-actions button:first-child {
+  color: var(--atlas-accent-strong);
+  border-bottom-color: var(--atlas-accent);
+}
+
+.atlas-home-story-rail {
+  border-top: 1px solid var(--atlas-border-strong);
+}
+
+.atlas-home-story-rail section {
+  position: relative;
+  padding: 34px 0 36px 42px;
+  border-bottom: 1px solid var(--atlas-border-default);
+}
+
+.atlas-home-story-rail section > svg {
+  position: absolute;
+  top: 33px;
+  left: 0;
+  color: var(--atlas-accent-strong);
+}
+
+.atlas-home-story-rail section > span {
+  color: var(--atlas-accent-strong);
+  font: 500 9px var(--atlas-font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.atlas-home-story-rail h4 {
+  margin: 13px 0 12px;
+  color: var(--atlas-text-primary);
+  font: 400 23px/1.22 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  overflow-wrap: anywhere;
+}
+
+.atlas-home-story-rail p {
+  margin: 0;
+  color: var(--atlas-text-muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.atlas-home-story-rail .atlas-home-risk > svg,
+.atlas-home-story-rail .atlas-home-risk > span {
+  color: var(--atlas-warning);
+}
+
+.atlas-home-alternatives {
+  padding: 100px 0 96px;
+  border-bottom: 1px solid var(--atlas-border-default);
+}
+
+.atlas-home-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 48px;
+  margin-bottom: 44px;
+}
+
+.atlas-home-section-heading h3 {
+  margin: 14px 0 0;
+  color: var(--atlas-text-primary);
+  font: 400 clamp(2.25rem, 3.4vw, 3.8rem)/1.02 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  letter-spacing: -0.035em;
+}
+
+.atlas-home-section-heading > p {
+  max-width: 430px;
+  margin: 0;
+  color: var(--atlas-text-muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.atlas-home-peer-table {
+  border-top: 1px solid var(--atlas-border-strong);
+}
+
+.atlas-home-peer-header,
+.atlas-home-peer-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.75fr) minmax(190px, 0.7fr) minmax(320px, 1.5fr);
+  align-items: center;
+  gap: 28px;
+}
+
+.atlas-home-peer-header {
+  min-height: 52px;
+  color: var(--atlas-text-muted);
+  border-bottom: 1px solid var(--atlas-border-default);
+  font: 500 9px var(--atlas-font-mono);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.atlas-home-peer-row {
+  min-height: 106px;
+  border-bottom: 1px solid var(--atlas-border-default);
+  transition: background-color var(--atlas-transition-fast), padding var(--atlas-transition-fast);
+}
+
+.atlas-home-peer-row > div {
+  display: grid;
+  gap: 5px;
+}
+
+.atlas-home-peer-row > div:first-child strong {
+  color: var(--atlas-text-primary);
+  font: 500 13px var(--atlas-font-mono);
+}
+
+.atlas-home-peer-row > div:nth-child(2) strong {
+  color: var(--atlas-text-secondary);
+  font-size: 11px;
+}
+
+.atlas-home-peer-row span,
+.atlas-home-peer-row p {
+  color: var(--atlas-text-muted);
+  font-size: 11px;
+}
+
+.atlas-home-peer-row p {
+  margin: 0;
+  line-height: 1.65;
+}
+
+.atlas-home-boundary {
+  margin: 0;
+  padding: 30px 0;
+  color: #a89e89;
+  border-bottom: 1px solid #51452f;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.atlas-home-boundary strong {
+  color: #d6c198;
+}
+
+.atlas-home-empty {
+  min-height: 590px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 60px 0 90px;
+  border-bottom: 1px solid var(--atlas-border-default);
+}
+
+.atlas-home-empty .atlas-home-text-action {
+  margin-top: 38px;
+}
+
+.atlas-home-secondary-intelligence {
+  margin: 86px 0 0;
+  border-top: 1px solid var(--atlas-border-strong);
+  border-bottom: 1px solid var(--atlas-border-default);
+}
+
+.atlas-home-secondary-intelligence > summary {
+  min-height: 190px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 48px;
+  padding: 34px 0;
+  list-style: none;
+}
+
+.atlas-home-secondary-intelligence > summary::-webkit-details-marker {
+  display: none;
+}
+
+.atlas-home-secondary-intelligence > summary > div {
+  max-width: 850px;
+}
+
+.atlas-home-secondary-intelligence > summary h2 {
+  margin: 13px 0 10px;
+  color: var(--atlas-text-primary);
+  font: 400 clamp(2rem, 3vw, 3.35rem)/1.04 'Newsreader', 'Iowan Old Style', Georgia, serif;
+}
+
+.atlas-home-secondary-intelligence > summary p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--atlas-text-muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.atlas-home-secondary-intelligence > summary > span {
+  flex: 0 0 auto;
+  padding-bottom: 10px;
+  color: var(--atlas-accent-strong);
+  border-bottom: 1px solid var(--atlas-accent);
+  font-size: 11px;
+}
+
+.atlas-home-process-note {
+  margin: 0 0 28px;
+  padding: 20px 0;
+  color: var(--atlas-text-muted);
+  border-top: 1px solid var(--atlas-border-subtle);
+  border-bottom: 1px solid var(--atlas-border-subtle);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.atlas-home-secondary-intelligence .atlas-picks-workbench {
+  margin-bottom: 48px;
+}
+
+.atlas-home-secondary-intelligence .atlas-picks-header {
+  padding-right: 0;
+  padding-left: 0;
+  border-top: 0;
+}
+
+.atlas-home-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 28px;
+  padding: 28px 0 0;
+}
+
+@media (hover: hover) {
+  .atlas-home-text-action:hover {
+    gap: 26px;
+    color: var(--atlas-accent-strong);
+    filter: none;
+  }
+
+  .atlas-home-actions button:hover,
+  .atlas-home-footer-actions button:hover {
+    color: var(--atlas-text-primary);
+    border-bottom-color: var(--atlas-border-strong);
+    filter: none;
+  }
+
+  .atlas-home-peer-row:hover {
+    padding-right: 12px;
+    padding-left: 12px;
+    background: var(--atlas-accent-faint);
+  }
+}
+
+@media (max-width: 980px) {
+  .atlas-home-hero {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: 58px 0 64px;
+  }
+
+  .atlas-home-intro {
+    padding: 0 0 48px;
+  }
+
+  .atlas-home-feature {
+    padding: 42px 0 0;
+    border-top: 1px solid var(--atlas-border-strong);
+    border-left: 0;
+  }
+
+  .atlas-home-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .atlas-home-counts > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .atlas-home-counts > div:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--atlas-border-default);
+  }
+
+  .atlas-home-counts > div:nth-child(3) {
+    padding-left: 0;
+  }
+
+  .atlas-home-story {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .atlas-home-story-rail {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .atlas-home-story-rail section {
+    padding-right: 24px;
+    border-right: 1px solid var(--atlas-border-default);
+  }
+
+  .atlas-home-story-rail section:last-child {
+    padding-right: 0;
+    border-right: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .atlas-home-hero {
+    padding: 42px 0 52px;
+  }
+
+  .atlas-home-intro {
+    padding-bottom: 38px;
+  }
+
+  .atlas-home-intro h2,
+  .atlas-home-empty h2 {
+    font-size: clamp(2.85rem, 13vw, 4.1rem);
+    overflow-wrap: anywhere;
+  }
+
+  .atlas-home-intro p,
+  .atlas-home-empty > p,
+  .atlas-home-feature-risk p,
+  .atlas-home-story-rail p,
+  .atlas-home-peer-row p,
+  .atlas-home-peer-row span {
+    overflow-wrap: anywhere;
+  }
+
+  .atlas-home-intro .atlas-home-hero-context {
+    margin-top: 14px;
+  }
+
+  .atlas-home-feature {
+    padding-top: 32px;
+  }
+
+  .atlas-home-feature-label {
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+
+  .atlas-home-feature-label > span,
+  .atlas-home-priority-line > span,
+  .atlas-home-company-heading > div,
+  .atlas-home-peer-row > * {
+    min-width: 0;
+  }
+
+  .atlas-home-feature h3 {
+    font-size: clamp(2.45rem, 12vw, 3.6rem);
+  }
+
+  .atlas-home-feature-metrics {
+    gap: 9px;
+  }
+
+  .atlas-home-counts > div {
+    min-height: 116px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+    padding: 22px 14px;
+  }
+
+  .atlas-home-counts > div:first-child,
+  .atlas-home-counts > div:nth-child(3) {
+    padding-left: 0;
+  }
+
+  .atlas-home-counts > div:nth-child(2),
+  .atlas-home-counts > div:last-child {
+    padding-right: 0;
+  }
+
+  .atlas-home-counts strong {
+    font-size: 31px;
+  }
+
+  .atlas-home-story {
+    gap: 62px;
+    padding: 74px 0;
+  }
+
+  .atlas-home-priority-line,
+  .atlas-home-company-heading,
+  .atlas-home-section-heading,
+  .atlas-home-secondary-intelligence > summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .atlas-home-company-heading {
+    display: flex;
+  }
+
+  .atlas-home-company-heading h3 {
+    font-size: clamp(2.8rem, 14vw, 4.2rem);
+    overflow-wrap: anywhere;
+  }
+
+  .atlas-home-posture {
+    min-width: 0;
+    align-self: stretch;
+  }
+
+  .atlas-home-evidence {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .atlas-home-story-rail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .atlas-home-story-rail section {
+    padding-right: 0;
+    border-right: 0;
+  }
+
+  .atlas-home-alternatives {
+    padding: 74px 0;
+  }
+
+  .atlas-home-section-heading {
+    display: flex;
+    gap: 24px;
+  }
+
+  .atlas-home-peer-header {
+    display: none;
+  }
+
+  .atlas-home-peer-row {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    padding: 24px 0;
+  }
+
+  .atlas-home-empty {
+    min-height: 520px;
+  }
+
+  .atlas-home-secondary-intelligence {
+    margin-top: 64px;
+  }
+
+  .atlas-home-secondary-intelligence > summary {
+    min-height: 240px;
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+  }
+
+  .atlas-home-text-action,
+  .atlas-home-actions button,
+  .atlas-home-footer-actions button {
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atlas-research-home *,
+  .atlas-research-home *::before,
+  .atlas-research-home *::after {
+    transition-duration: 0.01ms !important;
+  }
+}

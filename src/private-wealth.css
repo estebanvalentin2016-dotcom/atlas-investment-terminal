@@ -1,0 +1,698 @@
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap');
+
+/*
+ * ATLAS private-wealth foundation.
+ *
+ * This final-loaded layer supplies reusable visual tokens and limits the first
+ * redesign phase to the application shell and shared presentation primitives.
+ * Feature-specific financial semantics remain owned by their feature styles.
+ */
+:root {
+  color-scheme: dark;
+
+  --atlas-font-sans: 'DM Sans', Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --atlas-font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+
+  --atlas-bg-canvas: #090b0a;
+  --atlas-bg-sidebar: #0b0e0c;
+  --atlas-bg-header: rgba(12, 15, 13, 0.94);
+  --atlas-surface-1: #101411;
+  --atlas-surface-2: #141a16;
+  --atlas-surface-3: #19211c;
+  --atlas-surface-hover: #1d2821;
+  --atlas-surface-inset: #0d110f;
+
+  --atlas-text-primary: #f2efe6;
+  --atlas-text-secondary: #bcc2b9;
+  --atlas-text-muted: #89938a;
+  --atlas-text-subtle: #707970;
+
+  --atlas-accent: #639b78;
+  --atlas-accent-strong: #79b68e;
+  --atlas-accent-soft: #1a3023;
+  --atlas-accent-faint: rgba(99, 155, 120, 0.1);
+  --atlas-warning: #c7a467;
+  --atlas-warning-soft: #302719;
+  --atlas-negative: #d07c7c;
+  --atlas-negative-soft: #352121;
+  --atlas-positive: #79bd91;
+  --atlas-neutral: #e7e5de;
+
+  --atlas-border-subtle: #222a25;
+  --atlas-border-default: #2c3730;
+  --atlas-border-strong: #3b4a40;
+  --atlas-focus: #9ad1aa;
+
+  --atlas-radius-sm: 6px;
+  --atlas-radius-md: 10px;
+  --atlas-radius-lg: 14px;
+  --atlas-radius-xl: 18px;
+
+  --atlas-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --atlas-shadow-md: 0 14px 36px rgba(0, 0, 0, 0.22);
+  --atlas-shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.3);
+
+  --atlas-space-1: 4px;
+  --atlas-space-2: 8px;
+  --atlas-space-3: 12px;
+  --atlas-space-4: 16px;
+  --atlas-space-5: 20px;
+  --atlas-space-6: 24px;
+  --atlas-space-8: 32px;
+  --atlas-space-10: 40px;
+  --atlas-space-12: 48px;
+
+  --atlas-transition-fast: 140ms ease;
+  --atlas-transition-base: 200ms ease;
+
+  font-family: var(--atlas-font-sans);
+  color: var(--atlas-text-primary);
+  background: var(--atlas-bg-canvas);
+}
+
+body {
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 78% -12%, rgba(75, 113, 89, 0.12), transparent 34rem),
+    var(--atlas-bg-canvas);
+  color: var(--atlas-text-primary);
+}
+
+::selection {
+  color: var(--atlas-text-primary);
+  background: rgba(99, 155, 120, 0.38);
+}
+
+.workspace-shell {
+  --workspace-line: var(--atlas-border-default);
+  --workspace-muted: var(--atlas-text-muted);
+  min-height: 100dvh;
+  color: var(--atlas-text-primary);
+  background: transparent;
+  display: block;
+}
+
+.workspace-masthead {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: var(--atlas-bg-header);
+  border-bottom: 1px solid var(--atlas-border-subtle);
+  backdrop-filter: blur(16px);
+}
+
+.workspace-masthead-inner {
+  width: min(100%, 1500px);
+  min-height: 88px;
+  margin: 0 auto;
+  padding: 0 32px;
+  display: grid;
+  grid-template-columns: minmax(166px, auto) minmax(480px, 1fr) minmax(210px, auto);
+  align-items: center;
+  gap: clamp(20px, 3vw, 52px);
+}
+
+.workspace-shell .brand {
+  width: max-content;
+  padding: 0;
+  gap: 11px;
+}
+
+.workspace-shell .brandmark {
+  width: 34px;
+  height: 34px;
+  color: var(--atlas-text-primary);
+  background: transparent;
+  border: 1px solid #456250;
+  border-radius: 50%;
+  box-shadow: none;
+}
+
+.workspace-shell .brand b {
+  color: var(--atlas-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+
+.workspace-shell .status-dot {
+  background: var(--atlas-accent-strong);
+}
+
+.workspace-shell .brand small,
+.workspace-sidebar-note,
+.workspace-sidebar-note small {
+  color: var(--atlas-text-muted);
+}
+
+.workspace-shell .brand small {
+  margin-top: 4px;
+  font: 500 7px var(--atlas-font-mono);
+  letter-spacing: 0.12em;
+}
+
+.workspace-navigation {
+  min-width: 0;
+}
+
+.workspace-navigation nav[aria-label='ATLAS workspace'] {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: clamp(5px, 1vw, 14px);
+}
+
+.workspace-shell .navitem {
+  position: relative;
+  width: auto;
+  min-height: 44px;
+  padding: 0 10px;
+  color: var(--atlas-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition:
+    color var(--atlas-transition-fast),
+    background-color var(--atlas-transition-fast);
+}
+
+.workspace-shell .navitem::after {
+  content: '';
+  position: absolute;
+  right: 10px;
+  bottom: 2px;
+  left: 10px;
+  height: 1px;
+  background: transparent;
+  transition: background-color var(--atlas-transition-fast);
+}
+
+.workspace-shell .navitem.active {
+  color: var(--atlas-text-primary);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.workspace-shell .navitem.active::after {
+  background: var(--atlas-accent-strong);
+}
+
+.workspace-mobile-menu-head,
+.workspace-shell .mobile-menu,
+.workspace-shell .mobile-close,
+.workspace-sidebar-note {
+  display: none;
+}
+
+.workspace-context {
+  min-width: 0;
+  display: grid;
+  justify-items: end;
+  gap: 7px;
+}
+
+.workspace-context-path {
+  max-width: 230px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--atlas-text-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.workspace-context-path i {
+  color: var(--atlas-border-strong);
+  font-style: normal;
+}
+
+.workspace-context-path b {
+  overflow: hidden;
+  color: var(--atlas-text-secondary);
+  font-weight: 500;
+  text-overflow: ellipsis;
+}
+
+.workspace-mode {
+  color: var(--atlas-accent-strong);
+  font: 500 8px var(--atlas-font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.workspace-shell .content {
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: clamp(38px, 5vw, 72px) 32px 64px;
+}
+
+.workspace-heading {
+  margin-bottom: 30px;
+}
+
+.workspace-heading .eyebrow,
+.workspace-shell :is(.eyebrow, .overline) {
+  color: var(--atlas-accent-strong);
+  font-family: var(--atlas-font-mono);
+  font-weight: 600;
+}
+
+.workspace-heading h1 {
+  color: var(--atlas-text-primary);
+  font: 400 clamp(2.35rem, 4vw, 4.5rem)/0.98 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  letter-spacing: -0.045em;
+}
+
+.workspace-secondary {
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom-color: var(--atlas-border-subtle);
+}
+
+.workspace-tool-links button {
+  position: relative;
+  color: var(--atlas-text-secondary);
+  border: 0;
+  border-radius: 0;
+  padding: 8px 3px;
+  min-height: 36px;
+  font-size: 11px;
+  transition:
+    color var(--atlas-transition-fast),
+    background-color var(--atlas-transition-fast);
+}
+
+.workspace-tool-links button[aria-current='page'] {
+  color: var(--atlas-text-primary);
+  background: transparent;
+  border: 0;
+  box-shadow: inset 0 -1px 0 var(--atlas-accent-strong);
+}
+
+.workspace-demo-tools summary,
+.workspace-notice-demo {
+  color: var(--atlas-warning);
+}
+
+.workspace-demo-tools[open] .workspace-tool-links {
+  background: rgba(199, 164, 103, 0.05);
+  border-left-color: var(--atlas-warning);
+}
+
+.workspace-notice {
+  color: var(--atlas-text-muted);
+}
+
+.workspace-notice svg {
+  color: var(--atlas-accent);
+}
+
+.workspace-shell .panel {
+  color: var(--atlas-text-primary);
+  background: linear-gradient(150deg, rgba(25, 33, 28, 0.78), rgba(16, 20, 17, 0.98));
+  border-color: var(--atlas-border-default);
+  border-radius: var(--atlas-radius-lg);
+  box-shadow: var(--atlas-shadow-sm);
+  transition:
+    border-color var(--atlas-transition-base),
+    box-shadow var(--atlas-transition-base);
+}
+
+.workspace-shell .panel-head h3,
+.workspace-shell .panel strong {
+  color: var(--atlas-text-primary);
+}
+
+.workspace-shell .description,
+.workspace-methodology p,
+.workspace-shell .chart-note,
+.workspace-shell .panel-foot,
+.workspace-shell .empty {
+  color: var(--atlas-text-secondary);
+}
+
+.workspace-shell .button {
+  color: var(--atlas-text-primary);
+  background: var(--atlas-surface-3);
+  border-color: var(--atlas-border-strong);
+  border-radius: var(--atlas-radius-md);
+  box-shadow: var(--atlas-shadow-sm);
+  transition:
+    color var(--atlas-transition-fast),
+    background-color var(--atlas-transition-fast),
+    border-color var(--atlas-transition-fast),
+    box-shadow var(--atlas-transition-fast),
+    transform var(--atlas-transition-fast);
+}
+
+.workspace-shell .button.primary {
+  color: #f8f5ec;
+  background: #386c4c;
+  border-color: #56866a;
+}
+
+.workspace-shell .button.secondary {
+  color: var(--atlas-text-secondary);
+  background: var(--atlas-surface-2);
+  border-color: var(--atlas-border-default);
+}
+
+.workspace-shell .button.saved {
+  color: #a5dbb6;
+  background: var(--atlas-accent-soft);
+  border-color: #416a50;
+}
+
+.workspace-shell :is(input, select, textarea) {
+  color: var(--atlas-text-primary);
+  background-color: var(--atlas-surface-inset);
+  border-color: var(--atlas-border-strong);
+  border-radius: var(--atlas-radius-sm);
+}
+
+.workspace-shell :is(input, textarea)::placeholder {
+  color: var(--atlas-text-subtle);
+  opacity: 1;
+}
+
+.workspace-shell .text-link,
+.workspace-shell .row-arrow {
+  color: var(--atlas-accent-strong);
+}
+
+.workspace-shell .tag {
+  color: #acd4b8;
+  background: var(--atlas-accent-soft);
+  border-color: #395a46;
+}
+
+.workspace-shell .stat,
+.workspace-shell .company-selector,
+.workspace-shell .workspace-method-grid article {
+  background: var(--atlas-surface-1);
+  border-color: var(--atlas-border-default);
+  border-radius: var(--atlas-radius-lg);
+}
+
+.workspace-shell th {
+  color: var(--atlas-text-muted);
+  background: var(--atlas-surface-2);
+}
+
+.workspace-shell td,
+.workspace-shell .panel-foot,
+.workspace-shell .chart-note {
+  border-color: var(--atlas-border-subtle);
+}
+
+.workspace-shell .tickerbox {
+  color: #b8d9c2;
+  background: var(--atlas-accent-soft);
+  border: 1px solid #335340;
+}
+
+.workspace-shell .skip-link {
+  color: var(--atlas-text-primary);
+  background: #315b42;
+  border: 1px solid #679278;
+  border-radius: var(--atlas-radius-sm);
+  box-shadow: var(--atlas-shadow-md);
+}
+
+.workspace-shell :is(a, button, summary, input, select, textarea):focus-visible {
+  outline: 2px solid var(--atlas-focus);
+  outline-offset: 3px;
+}
+
+/* Preserve the established semantic hierarchy for financial metrics. */
+.workspace-shell :is(.positive-text, .atlas-tone-positive) {
+  color: var(--atlas-positive) !important;
+}
+
+.workspace-shell :is(.negative-text, .atlas-tone-negative) {
+  color: var(--atlas-negative) !important;
+}
+
+.workspace-shell .atlas-tone-neutral {
+  color: var(--atlas-neutral) !important;
+}
+
+.workspace-shell .atlas-tone-caution {
+  color: var(--atlas-warning) !important;
+}
+
+.workspace-shell .score-high {
+  color: #91cda4;
+  background: #183525;
+}
+
+.workspace-shell .score-med {
+  color: #dec083;
+  background: #352d1f;
+}
+
+.workspace-shell .score-low {
+  color: #df9999;
+  background: var(--atlas-negative-soft);
+}
+
+.workspace-shell footer,
+.workspace-footer {
+  color: var(--atlas-text-subtle);
+  border-top-color: var(--atlas-border-subtle);
+}
+
+.workspace-shell footer span:first-child,
+.workspace-footer span:first-child {
+  color: var(--atlas-text-secondary);
+}
+
+@media (hover: hover) {
+  .workspace-shell .navitem:hover,
+  .workspace-tool-links button:hover {
+    color: var(--atlas-text-primary);
+    background: transparent;
+    border-color: transparent;
+    filter: none;
+  }
+
+  .workspace-shell .navitem:hover::after {
+    background: var(--atlas-border-strong);
+  }
+
+  .workspace-shell .button:hover {
+    border-color: #526459;
+    box-shadow: var(--atlas-shadow-md);
+    filter: none;
+    transform: translateY(-1px);
+  }
+
+  .workspace-shell .button.primary:hover {
+    background: #427b58;
+    border-color: #6a9b7b;
+  }
+
+  .workspace-shell .panel:hover {
+    border-color: #354139;
+    box-shadow: var(--atlas-shadow-md);
+  }
+}
+
+@media (max-width: 1180px) {
+  .workspace-masthead-inner {
+    grid-template-columns: minmax(160px, auto) minmax(460px, 1fr) auto;
+    gap: 20px;
+  }
+
+  .workspace-context-path {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .workspace-masthead-inner {
+    min-height: 76px;
+    grid-template-columns: 1fr auto auto;
+    padding: 0 24px;
+  }
+
+  .workspace-navigation {
+    width: min(88vw, 380px);
+    height: 100dvh;
+    position: fixed;
+    z-index: 70;
+    top: 0;
+    right: 0;
+    left: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    visibility: hidden;
+    background:
+      radial-gradient(circle at 80% 0, rgba(99, 155, 120, 0.1), transparent 18rem),
+      var(--atlas-bg-sidebar);
+    border-left: 1px solid var(--atlas-border-default);
+    box-shadow: var(--atlas-shadow-lg);
+    clip-path: inset(0 0 0 100%);
+    pointer-events: none;
+    transform: none;
+    transition: clip-path var(--atlas-transition-base), visibility var(--atlas-transition-base);
+  }
+
+  .workspace-navigation.sidebar-open {
+    left: auto;
+    visibility: visible;
+    clip-path: inset(0);
+    pointer-events: auto;
+  }
+
+  .workspace-mobile-menu-head {
+    min-height: 52px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    color: var(--atlas-text-muted);
+    border-bottom: 1px solid var(--atlas-border-subtle);
+    font: 500 9px var(--atlas-font-mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .workspace-navigation nav[aria-label='ATLAS workspace'] {
+    display: grid;
+    justify-content: stretch;
+    gap: 0;
+    padding: 26px 0;
+  }
+
+  .workspace-shell .navitem {
+    min-height: 58px;
+    justify-content: flex-start;
+    padding: 0;
+    border-bottom: 1px solid var(--atlas-border-subtle);
+    font: 400 24px 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  }
+
+  .workspace-shell .navitem::after {
+    top: 50%;
+    right: 0;
+    bottom: auto;
+    left: auto;
+    width: 18px;
+    height: 1px;
+  }
+
+  .workspace-sidebar-note {
+    margin-top: auto;
+    display: block;
+    padding: 24px 0 0;
+    color: var(--atlas-text-secondary);
+    border-top: 1px solid var(--atlas-border-subtle);
+    font-size: 11px;
+    line-height: 1.7;
+  }
+
+  .workspace-sidebar-note small {
+    display: block;
+    color: var(--atlas-text-muted);
+  }
+
+  .workspace-shell .mobile-menu,
+  .workspace-shell .mobile-close {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--atlas-text-secondary);
+    background: transparent;
+    border: 1px solid var(--atlas-border-default);
+    border-radius: 50%;
+  }
+
+  .workspace-shell .mobile-menu {
+    width: auto;
+    padding: 0 13px;
+    border-radius: 22px;
+    font-size: 10px;
+  }
+
+  .workspace-shell .mobile-close {
+    width: 42px;
+    padding: 0;
+  }
+
+  .workspace-context {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .workspace-mode {
+    font-size: 7px;
+  }
+
+  .workspace-shell .overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(4, 6, 5, 0.78);
+    border: 0;
+    backdrop-filter: blur(3px);
+  }
+
+  .workspace-shell .content {
+    padding: 42px 24px 56px;
+  }
+}
+
+@media (max-width: 600px) {
+  .workspace-masthead-inner {
+    padding: 0 16px;
+  }
+
+  .workspace-shell .brand small,
+  .workspace-context {
+    display: none;
+  }
+
+  .workspace-shell .content {
+    padding: 34px 16px 44px;
+  }
+
+  .workspace-heading {
+    margin-bottom: var(--atlas-space-5);
+  }
+
+  .workspace-heading h1 {
+    font-size: clamp(2.3rem, 13vw, 3.35rem);
+  }
+
+  .workspace-shell .panel {
+    border-radius: var(--atlas-radius-md);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-shell *,
+  .workspace-shell *::before,
+  .workspace-shell *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .workspace-shell :is(a, button, summary, input, select, textarea):focus-visible {
+    outline-color: Highlight;
+  }
+}

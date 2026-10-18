@@ -1,6 +1,7 @@
 // Institutional 13F research: quarterly reported holdings, NOT trades or investor motives.
 // Reuses the SEC_USER_AGENT and bounded archive reader from the existing SEC pipeline.
 import {readBoundedFiling} from './filing-review-api.mjs';
+import {fetchSec,malformedSecResponse,publicSecError,requireSecIdentity} from './sec-request-client.mjs';
 
 export const RESEARCH_MANAGERS=[
  {cik:'1743937',name:'TOMS Capital Investment Management LP',category:'Classification unverified',role:'Identity documented in SEC 13F accession 0000902664-26-003522'},
@@ -95,15 +96,14 @@ export function compare13FHoldings(latest,previous){
  return results;
 }
 async function secGet(url,headers,maxBytes){
- const response=await fetch(url,{headers,redirect:'error',signal:AbortSignal.timeout(16000)});
- if(!response.ok)throw Error('SEC HTTP '+response.status+' at '+new URL(url).pathname);
+ const response=await fetchSec(url,{accept:headers?.Accept||'application/json,application/xml,text/xml,text/plain',redirect:'error',timeoutMs:16000});
  const read=await readBoundedFiling(response,maxBytes);
  if(read.truncated)throw Error('SEC document exceeds '+maxBytes.toLocaleString('en-US')+' bytes. Holdings incomplete; comparison withheld.');
  return read.text;
 }
 export async function retrieve13FInformationTable(report,cik,headers){
  const base=archive(cik,report.accession),indexUrl=base+'index.json';
- const index=JSON.parse(await secGet(indexUrl,headers,1200000));
+ let index;try{index=JSON.parse(await secGet(indexUrl,headers,1200000))}catch(e){if(e instanceof SyntaxError)throw malformedSecResponse();throw e}
  const items=Array.isArray(index?.directory?.item)?index.directory.item:[];
  // Do not assume primary_doc.xml is the holdings table. Prefer a named
  // information-table XML, but validate the content itself before using.
@@ -125,13 +125,12 @@ export async function retrieve13FInformationTable(report,cik,headers){
 }
 export async function load13FManager(cik,opts={}){
  if(!safeCik(cik))throw Error('Manager CIK must contain 1–10 digits');
- const agent=process.env.SEC_USER_AGENT;
- if(!agent||!agent.includes('@'))throw Error('SEC_USER_AGENT not configured');
+ requireSecIdentity();
  const normalized=String(Number(cik)),cached=memory.get(normalized);
  if(!opts.refresh&&cached&&Date.now()-cached.at<15*60000)return cached.value;
- const headers={'User-Agent':agent,'Accept':'application/json,application/xml,text/xml,text/plain'};
+ const headers={'Accept':'application/json,application/xml,text/xml,text/plain'};
  const submissionsUrl='https://data.sec.gov/submissions/CIK'+normalized.padStart(10,'0')+'.json';
- const submission=JSON.parse(await secGet(submissionsUrl,headers,5000000));
+ let submission;try{submission=JSON.parse(await secGet(submissionsUrl,headers,5000000))}catch(e){if(e instanceof SyntaxError)throw malformedSecResponse();throw e}
  const choice=select13FReports(submission);
  if(choice.issue)throw Error(choice.issue);
  const [latest,previous]=choice.reports;
@@ -153,6 +152,6 @@ export async function handleInstitutionalRequest(req,res){
  const cik=url.searchParams.get('cik')||'';
  if(!safeCik(cik)){respond(res,400,{error:'Enter a valid SEC manager CIK'});return true}
  try{respond(res,200,await load13FManager(cik))}
- catch(e){respond(res,503,{error:e instanceof Error?e.message:'SEC manager filings unavailable',cik,coverage:'No holdings comparison produced'})}
+ catch(e){respond(res,503,{...publicSecError(e,'SEC manager filings unavailable'),cik,coverage:'No holdings comparison produced'})}
  return true;
 }

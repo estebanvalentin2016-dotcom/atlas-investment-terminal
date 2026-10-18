@@ -2,6 +2,7 @@
 // Expected figures below were transcribed independently from the original
 // 2026-05-15 and 2026-08-14 SEC complete-submission documents.
 import {retrieve13FInformationTable,retrieve13FCoverage,compare13FHoldings} from './institutional-api.mjs';
+import {publicSecError,requireSecIdentity} from './sec-request-client.mjs';
 const CIK='1418814';
 export const HISTORICAL_VALUEACT={
  manager:'ValueAct Holdings, L.P.',cik:CIK,
@@ -18,9 +19,8 @@ const cache=new Map();
 export async function verifyValueActCase({refresh=false}={}){
  const cached=cache.get('valueact');
  if(!refresh&&cached&&Date.now()-cached.at<3600000)return cached.result;
- const agent=process.env.SEC_USER_AGENT;
- if(!agent||!agent.includes('@'))throw Error('SEC_USER_AGENT not configured');
- const headers={'User-Agent':agent,Accept:'application/json,application/xml,text/xml,text/plain'};
+ requireSecIdentity();
+ const headers={Accept:'application/json,application/xml,text/xml,text/plain'};
  const c=HISTORICAL_VALUEACT;
  const [current,prior,cover]=await Promise.all([
   retrieve13FInformationTable(c.latest,c.cik,headers),
@@ -61,6 +61,6 @@ export async function handleInstitutionalCase(req,res){
  const reply=(status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
  if(req.method!=='GET'){reply(405,{error:'Method not allowed'});return true}
  try{const result=await verifyValueActCase({refresh:url.searchParams.get('refresh')==='1'});reply(result.status==='verified_against_live_sec'?200:503,result)}
- catch(e){reply(503,{status:'unavailable',error:e instanceof Error?e.message:'SEC verification unavailable',note:'No historical comparison validated in this session.'})}
+ catch(e){reply(503,{status:'unavailable',...publicSecError(e,'SEC verification unavailable'),note:'No historical comparison validated in this session.'})}
  return true;
 }

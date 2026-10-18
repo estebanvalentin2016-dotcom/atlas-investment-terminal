@@ -1,5 +1,6 @@
 // SEC daily master indexes are market-wide filing discovery, not sentiment or financial evaluation.
 import {gunzipSync} from 'node:zlib';
+import {fetchSec,fetchSecJson,publicSecError,requireSecIdentity} from './sec-request-client.mjs';
 
 // Inspect raw bytes: some SEC endpoints serve octet-stream text, and transport
 // layers may leave raw gzip bytes. Never classify undecodable files as empty.
@@ -98,15 +99,13 @@ export async function handleWideDiscovery(req,res){
  const u=new URL(req.url,'http://localhost');
  if(u.pathname!=='/api/opportunities/sec-wide')return false;
  if(req.method!=='GET'){send(res,405,{error:'Method not allowed'});return true}
- const agent=process.env.SEC_USER_AGENT;
- if(!agent||!agent.includes('@')){send(res,503,{error:'SEC_USER_AGENT not configured'});return true}
+ try{requireSecIdentity()}catch(e){send(res,503,publicSecError(e,'SEC_USER_AGENT not configured'));return true}
  if(cache&&Date.now()-cache.at<10*60000){send(res,200,cache.body);return true}
  const errors=[],found=[],diagnostics=[],fallbackDiagnostics=[];let successfulDays=0;
  try{
-  const headers={'User-Agent':agent,Accept:'text/plain,application/json'};
-  const meta=await fetch('https://www.sec.gov/files/company_tickers.json',{headers,signal:AbortSignal.timeout(12000)});
-  if(!meta.ok)throw Error('SEC ticker index HTTP '+meta.status);
-  const symbols=Object.values(await meta.json());
+  const headers={Accept:'text/plain,application/json'};
+  const meta=await fetchSecJson('https://www.sec.gov/files/company_tickers.json',{cacheTtlMs:30*60*1000,timeoutMs:12000});
+  const symbols=Object.values(meta.data);
   const now=new Date(),today=Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate());
   for(let offset=0;offset<7;offset++){
    const d=new Date(today-offset*86400000);
@@ -115,9 +114,8 @@ export async function handleWideDiscovery(req,res){
    const quarter=Math.floor(d.getUTCMonth()/3)+1;
    const url='https://www.sec.gov/Archives/edgar/daily-index/'+d.getUTCFullYear()+'/QTR'+quarter+'/master.'+day.replaceAll('-','')+'.idx';
    try{
-    const r=await fetch(url,{headers,signal:AbortSignal.timeout(12000)});
+    const r=await fetchSec(url,{accept:headers.Accept,timeoutMs:12000,allowedStatuses:[404]});
     if(r.status===404)continue;
-    if(!r.ok){diagnostics.push({date:day,status:r.status,matched:0,bytes:0,valid:false});errors.push(day+': SEC HTTP '+r.status);continue}
     const wire=new Uint8Array(await r.arrayBuffer());
     let raw='',encoding='unreadable';
     try{const decoded=decodeIndexBytes(wire);raw=decoded.text;encoding=decoded.encoding}
@@ -136,13 +134,11 @@ export async function handleWideDiscovery(req,res){
    const matches=new Map(symbols.filter(x=>x?.ticker&&Number.isSafeInteger(Number(x.cik_str))).map(x=>[x.ticker.toUpperCase(),x]));
    for(const ticker of FALLBACK){
     const item=matches.get(ticker);if(!item)continue;
-    await new Promise(resolve=>setTimeout(resolve,260)); // well below SEC's 10 requests/sec guideline
     try{
      const cik=String(item.cik_str).padStart(10,'0');
-     const r=await fetch('https://data.sec.gov/submissions/CIK'+cik+'.json',{headers,signal:AbortSignal.timeout(10000)});
+     const r=await fetchSecJson('https://data.sec.gov/submissions/CIK'+cik+'.json',{accept:headers.Accept,cacheTtlMs:10*60*1000,timeoutMs:10000});
      fallbackChecked++;
-     if(!r.ok){fallbackFailed++;fallbackDiagnostics.push({ticker,error:'SEC HTTP '+r.status});continue}
-     const data=await r.json();
+     const data=r.data;
      const leads=recentSubmissions(data,ticker);
      found.push(...leads);
      fallbackDiagnostics.push(summarizeSubmissions(data,ticker));
@@ -158,6 +154,6 @@ export async function handleWideDiscovery(req,res){
    note:'SEC index failures and delayed submissions can cause missing leads. No filing type alone proves a bullish opportunity.'
   };
   cache={at:Date.now(),body};send(res,200,body);
- }catch(e){send(res,502,{error:e instanceof Error?e.message:'SEC-wide discovery unavailable',errorDays:errors,diagnostics})}
+ }catch(e){send(res,502,{...publicSecError(e,'SEC-wide discovery unavailable'),errorDays:errors,diagnostics})}
  return true;
 }

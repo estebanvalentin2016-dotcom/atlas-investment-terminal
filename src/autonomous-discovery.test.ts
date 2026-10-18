@@ -154,7 +154,7 @@ describe('Independent discovery user journey',()=>{
  it('offers real tickerless discovery from home while keeping all older research tabs',()=>{
   const home=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{}}));
   const app=renderToStaticMarkup(createElement(App))+renderToStaticMarkup(createElement(SecondaryNavigation,{page:'Autonomous Discovery',navigate:()=>{}}))+renderToStaticMarkup(createElement(SecondaryNavigation,{page:'Company Research',navigate:()=>{}}));
-  expect(home).toContain('Discover Opportunities');
+  expect(home).toContain('Run Autonomous Discovery');
   expect(app).toContain('Autonomous Discovery');
   expect(app).toContain('Opportunity Radar');
   expect(app).toContain('Institutional Consensus');

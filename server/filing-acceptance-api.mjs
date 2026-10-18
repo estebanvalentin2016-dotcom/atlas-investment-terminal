@@ -1,6 +1,7 @@
 // SEC accepted time from the raw EDGAR SGML header, never the ambiguous
 // submissions JSON acceptanceDateTime timestamp. This is NOT issuer release time.
 import {permittedFilingUrl,parseArchiveFiling,readBoundedFiling} from './filing-review-api.mjs';
+import {fetchSec,publicSecError,requireSecIdentity} from './sec-request-client.mjs';
 const reply=(res,code,body)=>{res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(body))};
 export function extractSecAcceptanceHeader(raw,accession){
  if(typeof raw!=='string'||raw.length<20)return null;
@@ -30,20 +31,18 @@ export async function handleFilingAcceptanceRequest(req,res){
  const url=permittedFilingUrl(route.searchParams.get('url'));
  const filing=url&&parseArchiveFiling(url);
  if(!filing){reply(res,400,{error:'Invalid SEC accession source URL'});return true}
- const agent=process.env.SEC_USER_AGENT;
- if(!agent||!agent.includes('@')){reply(res,503,{error:'SEC_USER_AGENT not configured'});return true}
+ try{requireSecIdentity()}catch(e){reply(res,503,publicSecError(e,'SEC_USER_AGENT not configured'));return true}
  const cached=cache.get(url);
  if(cached&&Date.now()-cached.at<15*60000){reply(res,200,cached.result);return true}
  let response;
  try{
-  response=await fetch(url,{headers:{'User-Agent':agent,Accept:'text/plain'},redirect:'error',signal:AbortSignal.timeout(12000)});
-  if(!response.ok)throw Error('SEC HTTP '+response.status);
+  response=await fetchSec(url,{accept:'text/plain',redirect:'error',timeoutMs:12000});
   const read=await readBoundedFiling(response,96000);
   const accepted=extractSecAcceptanceHeader(read.text,filing.accession);
   const result={sourceUrl:url,sourceStatus:accepted?'verified_header':'unavailable',accepted,bytesRead:read.bytesRead,headerWindowTruncated:read.truncated,retrievedAt:new Date().toISOString(),note:accepted?'Raw EDGAR header acceptance clock in Eastern Time, not verified issuer first-publication time.':'No trustworthy accession-matched raw EDGAR acceptance time found in the inspected header.'};
   if(cache.size>40)cache.clear();
   cache.set(url,{at:Date.now(),result});
   reply(res,200,result);
- }catch(e){reply(res,200,{sourceUrl:url,sourceStatus:'unavailable',accepted:null,note:e instanceof Error?e.message:'Raw filing time unavailable',retrievedAt:new Date().toISOString()})}
+ }catch(e){const failure=publicSecError(e,'Raw filing time unavailable');reply(res,200,{sourceUrl:url,sourceStatus:'unavailable',accepted:null,note:failure.error,errorCategory:failure.errorCategory,retrievedAt:new Date().toISOString()})}
  return true;
 }

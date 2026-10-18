@@ -1,12 +1,7 @@
-import {LayoutDashboard,Compass,Search,Bookmark,Settings2} from 'lucide-react';
 import {workspaces,workspaceFor,isDemoPage,pageLabel,type Page} from './workspace-navigation';
-const icons=[LayoutDashboard,Compass,Search,Bookmark,Settings2];
 export function PrimaryNavigation({page,navigate}:{page:Page;navigate:(page:Page)=>void}){
  const current=workspaceFor(page);
- return <nav aria-label="ATLAS workspace">{workspaces.map((group,i)=>{
-  const Icon=icons[i];
-  return <button type="button" key={group.name} className={'navitem '+(group.name===current.name?'active':'')} aria-current={group.name===current.name?'page':undefined} onClick={()=>navigate(group.name===current.name?page:group.pages[0])}><Icon size={19}/>{group.name}</button>;
- })}</nav>;
+ return <nav aria-label="ATLAS workspace">{workspaces.map(group=><button type="button" key={group.name} className={'navitem '+(group.name===current.name?'active':'')} aria-current={group.name===current.name?'page':undefined} onClick={()=>navigate(group.name===current.name?page:group.pages[0])}><span>{group.name}</span></button>)}</nav>;
 }
 export function SecondaryNavigation({page,navigate}:{page:Page;navigate:(page:Page)=>void}){
  const current=workspaceFor(page);

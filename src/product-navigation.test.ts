@@ -12,7 +12,7 @@ describe('Conviction-first navigation without deleting legacy capabilities',()=>
   const markup=renderToStaticMarkup(createElement(WorkspaceMethodology))+renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{}}));
   for(const step of ['Discover','Investigate','Value','Decide','Monitor'])expect(markup).toContain('>'+step+'</h3>');
   expect(workspaceFor('Conviction Lab').name).toBe('Research');
-  expect(markup).toContain('Discover Opportunities');
+  expect(markup).toContain('Run Autonomous Discovery');
  });
  it('starts the conviction investigation without manufacturing a live score',()=>{
   const markup=renderToStaticMarkup(createElement(ConvictionLab));
@@ -22,7 +22,9 @@ describe('Conviction-first navigation without deleting legacy capabilities',()=>
  });
  it('puts demo components behind a distinct sandbox while preserving all historic routes',()=>{
   const markup=renderToStaticMarkup(createElement(App));
-  expect(markup).toContain('Your research, prioritized');
+  expect(markup).toContain('Opportunity intelligence');
+  expect(markup).toContain('workspace-masthead');
+  expect(markup).not.toContain('class="topbar"');
   expect(workspaces.map(group=>group.name)).toEqual(['Home','Discover','Research','Watchlist','Settings / Tools']);
   const demo=renderToStaticMarkup(createElement(SecondaryNavigation,{page:'Methodology',navigate:()=>{}}));
   expect(demo).toContain('Demo Sandbox · fictional data');
@@ -36,6 +38,7 @@ describe('Conviction-first navigation without deleting legacy capabilities',()=>
    const group=workspaceFor(page);
    const primary=renderToStaticMarkup(createElement(PrimaryNavigation,{page,navigate:()=>{}}));
    expect((primary.match(/class="navitem /g)||[])).toHaveLength(5);
+   expect(primary).not.toContain('<svg');
    if(group.pages.length>1){const secondary=renderToStaticMarkup(createElement(SecondaryNavigation,{page,navigate:()=>{}}));expect(secondary).toContain('aria-current="page"');}
   }
  });

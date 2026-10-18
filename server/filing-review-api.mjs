@@ -1,6 +1,7 @@
 // Inspect public 8-K source text for research-review phrases, NOT trading signals.
 // The SEC filing itself is the evidence source; phrases may be negated, historical,
 // boilerplate, or financially immaterial. Never infer remaining upside.
+import {fetchSec,malformedSecResponse,publicSecError,requireSecIdentity} from './sec-request-client.mjs';
 const respond=(res,status,value)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(value))};
 const patterns=[
  {label:'Raised outlook / guidance',kind:'potential',re:/\b(?:rais(?:es|ed|ing)|increas(?:es|ed|ing)|lift(?:s|ed|ing)|boost(?:s|ed|ing))\s+(?:its\s+|the\s+|our\s+)?(?:full[- ]year\s+|annual\s+|revenue\s+|earnings\s+)?(?:guidance|outlook|forecast)\b/gi},
@@ -143,11 +144,10 @@ export async function reviewSelectedDocuments(filing,headers){
  const indexUrl=filing.root+'index.json';
  for(const [kind,url] of [['submissions',metadataUrl],['filing index',indexUrl]]){
   try{
-   const response=await fetch(url,{headers,redirect:'error',signal:AbortSignal.timeout(12000)});
-   if(!response.ok){problems.push(kind+' HTTP '+response.status);continue}
+   const response=await fetchSec(url,{accept:headers?.Accept||'application/json,text/plain,text/html',redirect:'error',timeoutMs:12000});
    const body=await readBoundedFiling(response,5000000);
    if(body.truncated){problems.push(kind+' metadata exceeded size limit');continue}
-   const json=JSON.parse(body.text);
+    let json;try{json=JSON.parse(body.text)}catch{throw malformedSecResponse()}
    if(kind==='submissions')submission=json;else index=json;
   }catch(e){problems.push(kind+' metadata unavailable: '+(e instanceof Error?e.message:'Unknown error'))}
  }
@@ -157,15 +157,14 @@ export async function reviewSelectedDocuments(filing,headers){
  for(const entry of selection.documents){
   const sourceUrl=filing.root+encodeURIComponent(entry.name);
   try{
-   const response=await fetch(sourceUrl,{headers,redirect:'error',signal:AbortSignal.timeout(12000)});
-   if(!response.ok){documents.push({role:entry.role,name:entry.name,url:sourceUrl,status:'unavailable',error:'SEC HTTP '+response.status});continue}
+   const response=await fetchSec(sourceUrl,{accept:headers?.Accept||'application/json,text/plain,text/html',redirect:'error',timeoutMs:12000});
    const result=await readBoundedFiling(response,1400000);
    if(/^\s*(?:<!doctype html>)?\s*<html[\s\S]{0,1000}(?:access denied|request rate threshold exceeded|request blocked)/i.test(result.text)){
     documents.push({role:entry.role,name:entry.name,url:sourceUrl,status:'unavailable',error:'Non-document SEC response'});continue;
    }
    const evidence=assessFilingEvidence(result.text);
    documents.push({role:entry.role,name:entry.name,url:sourceUrl,status:result.truncated?'partial':'reviewed',bytesRead:result.bytesRead,declaredBytes:result.declaredBytes,evidence});
-  }catch(e){documents.push({role:entry.role,name:entry.name,url:sourceUrl,status:'unavailable',error:e instanceof Error?e.message:'Document retrieval failed'})}
+   }catch(e){const failure=publicSecError(e,'Document retrieval failed');documents.push({role:entry.role,name:entry.name,url:sourceUrl,status:'unavailable',error:failure.error,errorCategory:failure.errorCategory})}
  }
  return {documents,problems,selection};
 }
@@ -176,12 +175,11 @@ export async function handleFilingReview(req,res){
  if(req.method!=='GET'){respond(res,405,{error:'Method not allowed'});return true}
  const url=permittedFilingUrl(route.searchParams.get('url'));
  if(!url){respond(res,400,{error:'Enter a valid SEC 8-K source URL'});return true}
- const agent=process.env.SEC_USER_AGENT;
- if(!agent||!agent.includes('@')){respond(res,503,{error:'SEC_USER_AGENT is not configured'});return true}
+ try{requireSecIdentity()}catch(e){respond(res,503,publicSecError(e,'SEC_USER_AGENT is not configured'));return true}
  const prior=cache.get(url);
  if(prior&&Date.now()-prior.at<15*60000){respond(res,200,prior.data);return true}
  try{
-  const headers={'User-Agent':agent,Accept:'application/json,text/plain,text/html'};
+  const headers={Accept:'application/json,text/plain,text/html'};
   const filing=parseArchiveFiling(url);
   if(filing){
    const targeted=await reviewSelectedDocuments(filing,headers);
@@ -202,11 +200,7 @@ export async function handleFilingReview(req,res){
     cache.set(url,{at:Date.now(),data});respond(res,200,data);return true;
    }
   }
-  const response=await fetch(url,{headers,redirect:'error',signal:AbortSignal.timeout(12000)});
-  if(!response.ok){
-   const data={url,sourceStatus:'unavailable',httpStatus:response.status,evidence:null,retrievedAt:new Date().toISOString(),note:'SEC source could not be retrieved. No classification is possible.'};
-   respond(res,200,data);return true;
-  }
+  const response=await fetchSec(url,{accept:headers.Accept,redirect:'error',timeoutMs:12000});
   const read=await readBoundedFiling(response);
   const source=read.text;
   if(!/<SEC-DOCUMENT\b|<DOCUMENT>|\bFORM\s+8[- ]K\b/i.test(source)){
@@ -218,6 +212,6 @@ export async function handleFilingReview(req,res){
   if(cache.size>30)cache.clear();
   cache.set(url,{at:Date.now(),data});
   respond(res,200,data);
- }catch(e){respond(res,200,{url,sourceStatus:'unavailable',evidence:null,retrievedAt:new Date().toISOString(),note:e instanceof Error?e.message:'SEC filing could not be reviewed'})}
+ }catch(e){const failure=publicSecError(e,'SEC filing could not be reviewed');respond(res,200,{url,sourceStatus:'unavailable',evidence:null,errorCategory:failure.errorCategory,retrievedAt:new Date().toISOString(),note:failure.error})}
  return true;
 }

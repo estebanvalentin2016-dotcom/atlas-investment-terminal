@@ -1,14 +1,13 @@
+import {fetchSecJson,publicSecError} from './sec-request-client.mjs';
 const SEC_ROOT='https://data.sec.gov';
 const TICKERS='https://www.sec.gov/files/company_tickers.json';
 const ttl=30*60*1000;
-const cache=new Map();
-function cached(key,loader){const item=cache.get(key);if(item&&item.until>Date.now())return Promise.resolve(item.data);return loader().then(data=>{cache.set(key,{data,until:Date.now()+ttl});return data});}
-async function secJson(url){
- const identity=process.env.SEC_USER_AGENT;
- if(!identity||!identity.includes('@'))throw new Error('SEC_USER_AGENT is not configured. Set a contact name and real email as explained in README.');
- const response=await fetch(url,{headers:{'User-Agent':identity,'Accept':'application/json'},signal:AbortSignal.timeout(15000)});
- if(!response.ok)throw new Error('SEC responded with HTTP '+response.status+'. Try again later.');
- return response.json();
+export function secIndustryClassification(submission,source,retrievedAt,reason='SEC submissions metadata did not include a valid SIC code and description'){
+ const rawCode=submission?.sic;
+ const code=(typeof rawCode==='string'||typeof rawCode==='number')?String(rawCode).trim():'';
+ const description=typeof submission?.sicDescription==='string'?submission.sicDescription.trim():'';
+ if(/^\d{4}$/.test(code)&&description)return {status:'reported',system:'SEC SIC',code,description,source,retrievedAt};
+ return {status:'unavailable',system:'SEC SIC',code:null,description:null,source,retrievedAt,reason};
 }
 export function annualValues(fact,unit='USD'){
  const entries=fact?.units?.[unit]||[];
@@ -136,10 +135,10 @@ export async function handleSecRequest(req,res){
   const limitRaw=url.searchParams.get('limit')||'24';
   if(!/^\d{1,7}$/.test(cursorRaw)||!/^\d{1,2}$/.test(limitRaw)||Number(limitRaw)<1||Number(limitRaw)>30){json(res,400,{error:'Invalid scanner cursor or batch limit'});return true}
   try{
-   const index=await cached('tickers',()=>secJson(TICKERS));
-   const page=enumerateTickerUniverse(index,Number(cursorRaw),Number(limitRaw));
-   json(res,200,{...page,provider:'SEC public ticker index',indexUrl:TICKERS,retrievedAt:new Date().toISOString(),scope:'SEC-indexed ticker universe, not verified exchange/sector eligibility; batch scanning is incomplete until all index rows are examined',seedTickersUsed:false});
-  }catch(e){json(res,503,{error:e instanceof Error?e.message:'SEC ticker universe unavailable',coverage:'No universe scan performed'})}
+   const index=await fetchSecJson(TICKERS,{cacheTtlMs:ttl});
+   const page=enumerateTickerUniverse(index.data,Number(cursorRaw),Number(limitRaw));
+   json(res,200,{...page,provider:'SEC public ticker index',indexUrl:TICKERS,retrievedAt:index.retrievedAt,sourceCacheStatus:index.cacheStatus,scope:'SEC-indexed ticker universe, not verified exchange/sector eligibility; batch scanning is incomplete until all index rows are examined',seedTickersUsed:false});
+  }catch(e){json(res,503,{...publicSecError(e,'SEC ticker universe unavailable'),coverage:'No universe scan performed'})}
   return true;
  }
  if(url.pathname==='/api/sec/search'){
@@ -147,15 +146,15 @@ export async function handleSecRequest(req,res){
   const query=(url.searchParams.get('q')||'').trim().toLowerCase();
   if(query.length<1||query.length>80){json(res,400,{error:'Search for a ticker or company name (1–80 characters)'});return true}
   try{
-   const index=await cached('tickers',()=>secJson(TICKERS));
-   const candidates=Object.values(index).filter(x=>typeof x.ticker==='string'&&typeof x.title==='string');
+   const index=await fetchSecJson(TICKERS,{cacheTtlMs:ttl});
+   const candidates=Object.values(index.data).filter(x=>typeof x.ticker==='string'&&typeof x.title==='string');
    const entries=candidates.filter(x=>x.ticker.toLowerCase().includes(query)||x.title.toLowerCase().includes(query))
     .sort((a,b)=>{
      const score=x=>(x.ticker.toLowerCase()===query?0:x.ticker.toLowerCase().startsWith(query)?1:x.title.toLowerCase().startsWith(query)?2:3);
      return score(a)-score(b)||a.ticker.localeCompare(b.ticker)
     }).slice(0,15).map(x=>({ticker:x.ticker,name:x.title,cik:x.cik_str}));
-   json(res,200,{provider:'SEC company ticker index',query,items:entries,retrievedAt:new Date().toISOString()});
-  }catch(e){json(res,503,{error:e instanceof Error?e.message:'SEC company search unavailable'})}
+   json(res,200,{provider:'SEC company ticker index',query,items:entries,retrievedAt:index.retrievedAt,sourceCacheStatus:index.cacheStatus});
+  }catch(e){json(res,503,publicSecError(e,'SEC company search unavailable'))}
   return true;
  }
  if(url.pathname!=='/api/sec/company')return false;
@@ -163,12 +162,21 @@ export async function handleSecRequest(req,res){
  const ticker=(url.searchParams.get('ticker')||'').toUpperCase().trim();
  if(!/^[A-Z0-9.\-]{1,12}$/.test(ticker)){json(res,400,{error:'Enter a valid ticker symbol'});return true;}
  try{
-  const index=await cached('tickers',()=>secJson(TICKERS));
-  const match=Object.values(index).find(c=>c.ticker?.toUpperCase()===ticker);
+  const index=await fetchSecJson(TICKERS,{cacheTtlMs:ttl});
+  const match=Object.values(index.data).find(c=>c.ticker?.toUpperCase()===ticker);
   if(!match){json(res,404,{error:'Ticker not found in SEC company ticker list'});return true;}
   const cik=String(match.cik_str).padStart(10,'0');
   const source=SEC_ROOT+'/api/xbrl/companyfacts/CIK'+cik+'.json';
-  const facts=await cached(cik,()=>secJson(source));
+  const classificationSource=SEC_ROOT+'/submissions/CIK'+cik+'.json';
+  const [factsResult,submissionResult]=await Promise.all([
+   fetchSecJson(source,{cacheTtlMs:ttl}),
+   fetchSecJson(classificationSource,{cacheTtlMs:ttl}).then(value=>({value,error:null}),error=>({value:null,error}))
+  ]);
+  const facts=factsResult.data,retrievedAt=factsResult.retrievedAt;
+  const classification=secIndustryClassification(
+   submissionResult.value?.data,classificationSource,submissionResult.value?.retrievedAt||retrievedAt,
+   submissionResult.error instanceof Error?submissionResult.error.message:'SEC submissions metadata unavailable'
+  );
   const revenueSelection=selectConsolidatedRevenue(facts.facts);
   const metrics=[
    ['Revenue',['Revenues']],
@@ -200,7 +208,7 @@ export async function handleSecRequest(req,res){
    ['Latest loan-loss allowance',['AllowanceForLoanAndLeaseLosses','FinancingReceivableAllowanceForCreditLosses']],
 
   ].map(([name,tags])=>{const unit=name==='Diluted EPS'?'USD/shares':name==='Weighted-average diluted shares'||name==='Common shares outstanding (DEI)'?'shares':'USD';const result=name==='Revenue'?revenueSelection:name==='Common shares outstanding (DEI)'?instantOutstandingShares(facts.facts):name.startsWith('Latest ')?latestInstantFact(facts.facts,tags,unit):selectFact(facts.facts,tags,unit);return {name,unit,...result};});
-  json(res,200,{ticker,name:facts.entityName||match.title,cik,source,retrievedAt:new Date().toISOString(),metrics});
- }catch(e){json(res,503,{error:e instanceof Error?e.message:'SEC data temporarily unavailable'});}
+  json(res,200,{ticker,name:facts.entityName||match.title,cik,source,retrievedAt,sourceCacheStatus:factsResult.cacheStatus,classification,metrics});
+ }catch(e){json(res,503,publicSecError(e,'SEC data temporarily unavailable'));}
  return true;
 }

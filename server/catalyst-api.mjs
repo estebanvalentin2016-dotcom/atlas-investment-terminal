@@ -1,4 +1,7 @@
+import {fetchSecJson,publicSecError} from './sec-request-client.mjs';
 const SEC='https://data.sec.gov';
+const TICKERS='https://www.sec.gov/files/company_tickers.json';
+const TICKER_TTL=30*60*1000,SUBMISSIONS_TTL=10*60*1000;
 function output(res,status,value){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(value))}
 export function recentCatalysts(data,cik,limit=12){
  const r=data?.filings?.recent;
@@ -28,14 +31,12 @@ export async function handleCatalystRequest(req,res){
  const ticker=(u.searchParams.get('ticker')||'').trim().toUpperCase();
  if(!/^[A-Z0-9.-]{1,12}$/.test(ticker)){output(res,400,{error:'Invalid ticker'});return true}
  try{
- const agent=process.env.SEC_USER_AGENT;if(!agent||!agent.includes('@'))throw new Error('SEC_USER_AGENT is not configured');
- const fetchJson=async url=>{const x=await fetch(url,{headers:{'User-Agent':agent,'Accept':'application/json'},signal:AbortSignal.timeout(15000)});if(!x.ok)throw new Error('SEC HTTP '+x.status);return x.json()};
- const index=await fetchJson('https://www.sec.gov/files/company_tickers.json');
- const match=Object.values(index).find(x=>x.ticker?.toUpperCase()===ticker);
+ const index=await fetchSecJson(TICKERS,{cacheTtlMs:TICKER_TTL});
+ const match=Object.values(index.data).find(x=>x.ticker?.toUpperCase()===ticker);
  if(!match){output(res,404,{error:'Ticker not in SEC index'});return true}
  const cik=String(match.cik_str).padStart(10,'0');
- const raw=await fetchJson(SEC+'/submissions/CIK'+cik+'.json');
- output(res,200,{ticker,cik,name:raw.name||match.title,retrievedAt:new Date().toISOString(),filings:recentCatalysts(raw,cik)});
- }catch(e){output(res,502,{error:e instanceof Error?e.message:'SEC lookup unavailable'})}
+ const submission=await fetchSecJson(SEC+'/submissions/CIK'+cik+'.json',{cacheTtlMs:SUBMISSIONS_TTL});
+ output(res,200,{ticker,cik,name:submission.data.name||match.title,retrievedAt:submission.retrievedAt,sourceCacheStatus:submission.cacheStatus,filings:recentCatalysts(submission.data,cik)});
+ }catch(e){output(res,502,publicSecError(e,'SEC lookup unavailable'))}
  return true;
 }

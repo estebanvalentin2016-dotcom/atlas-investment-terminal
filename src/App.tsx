@@ -26,7 +26,7 @@ import './catalyst.css';
 import './discovery.css';
 import './breakthrough.css';
 import './real-research.css';
-import {Activity,ArrowDownRight,ArrowRight,ArrowUpRight,Check,ChevronDown,Download,Menu,Plus,Search,ShieldAlert,SlidersHorizontal,TrendingUp,X} from 'lucide-react';
+import {Activity,ArrowDownRight,ArrowRight,ArrowUpRight,Asterisk,Check,ChevronDown,Download,Menu,Plus,Search,ShieldAlert,SlidersHorizontal,TrendingUp,X} from 'lucide-react';
 import {calculateValuation,companies,fmtMoney,fmtPct,makeScenarios,opportunityScore,startingInputs,type Company,type Inputs} from './model';
 
 function loadJSON<T>(key:string,fallback:T):T {try{const v=localStorage.getItem(key);return v?JSON.parse(v) as T:fallback}catch{return fallback}}
@@ -43,6 +43,7 @@ export default function App(){
  useEffect(()=>{localStorage.setItem('atlas.watch',JSON.stringify(watch))},[watch]);useEffect(()=>{localStorage.setItem('atlas.val',JSON.stringify(savedInputs))},[savedInputs]);
  const previousMenu=useRef(false),previousPage=useRef(page);
  const navigate=(next:Page)=>{setPage(next);setMenuOpen(false)};
+ const toggleNavigation=()=>{const next=!menuOpen;setMenuOpen(next);if(next)requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>('#workspace-sidebar .navitem')?.focus())};
  useEffect(()=>{document.getElementById('workspace-title')?.focus({preventScroll:true})},[page]);
  useEffect(()=>{if(!menuOpen)return;const close=(event:KeyboardEvent)=>{if(event.key==='Tab'&&window.matchMedia('(max-width:900px)').matches){const items=document.querySelectorAll<HTMLButtonElement>('#workspace-sidebar button');const first=items[0],last=items[items.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus()}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus()}}if(event.key==='Escape'){setMenuOpen(false)}};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[menuOpen]);
  useEffect(()=>{
@@ -58,16 +59,17 @@ export default function App(){
  const toggleWatch=(ticker:string)=>setWatch(prev=>prev.includes(ticker)?prev.filter(x=>x!==ticker):[...prev,ticker]);
  const openCompany=(ticker:string,next:Page='Valuation Lab')=>{setSelected(ticker);setPage(next);setMenuOpen(false)};
  const top=useMemo(()=>[...companies].sort((a,b)=>opportunityScore(b).total-opportunityScore(a).total),[]);
- return <div className="shell workspace-shell"><a className="skip-link" href="#workspace-title">Skip to research</a><aside id="workspace-sidebar" className={`sidebar ${menuOpen?'sidebar-open':''}`}><div className="brand"><div className="brandmark"><Activity size={23}/></div><div><b>ATLAS<span className="brand-dot">.</span></b><small>RESEARCH TERMINAL</small></div><button className="mobile-close" aria-label="Close navigation" onClick={()=>setMenuOpen(false)}><X size={20}/></button></div>
- <PrimaryNavigation page={page} navigate={navigate}/><div className="workspace-sidebar-note"><span className="status-dot"/> Personal workspace<small>Evidence first · saved locally</small></div></aside>
+ return <div className="shell workspace-shell"><a className="skip-link" href="#workspace-title">Skip to research</a><header className="workspace-masthead"><div className="workspace-masthead-inner"><div className="brand"><div className="brandmark"><Asterisk size={18}/></div><div><b>ATLAS</b><small>RESEARCH TERMINAL</small></div></div>
+ <button id="workspace-menu" className="mobile-menu" aria-label="Open navigation" aria-expanded={menuOpen} aria-controls="workspace-sidebar" onClick={toggleNavigation}><Menu size={20}/><span>Menu</span></button>
+ <aside id="workspace-sidebar" className={`workspace-navigation ${menuOpen?'sidebar-open':''}`} aria-label="Primary navigation panel"><div className="workspace-mobile-menu-head"><span>Research workspace</span><button className="mobile-close" aria-label="Close navigation" onClick={()=>setMenuOpen(false)}><X size={20}/></button></div><PrimaryNavigation page={page} navigate={navigate}/><div className="workspace-sidebar-note"><span className="status-dot"/> Personal workspace<small>Evidence first · saved locally</small></div></aside>
+ <div className="workspace-context"><span className="workspace-context-path">{workspaceFor(page).name}{workspaceFor(page).name!==pageLabel(page)&&<><i>/</i><b>{pageLabel(page)}</b></>}</span><span className="workspace-mode">{isDemoPage(page)?'FICTIONAL DEMO':'PERSONAL RESEARCH'}</span></div></div></header>
  {menuOpen&&<button aria-label="Close navigation overlay" className="overlay" onClick={()=>setMenuOpen(false)}/>}
- <div className="mainarea"><header className="topbar"><div className="top-left"><button id="workspace-menu" className="mobile-menu icon-btn" aria-label="Open navigation" aria-expanded={menuOpen} aria-controls="workspace-sidebar" onClick={()=>setMenuOpen(v=>!v)}><Menu size={20}/></button><span className="breadcrumb">{workspaceFor(page).name}</span>{workspaceFor(page).name!==pageLabel(page)&&<><span className="slash">/</span><b>{pageLabel(page)}</b></>}</div><span className="workspace-mode">{isDemoPage(page)?'FICTIONAL DEMO':'PERSONAL RESEARCH'}</span></header>
- <main className="content"><div className="workspace-heading"><div><span className="eyebrow">{workspaceFor(page).name}</span><h1 id="workspace-title" tabIndex={-1}>{page==='Research Home'?'Your research, prioritized':pageLabel(page)}</h1></div>{page==='Research Home'&&<button className="button secondary" onClick={()=>navigate('Company Research')}>Research a company <ArrowRight size={16}/></button>}</div>
+ <div className="mainarea"><main className="content"><div className={`workspace-heading ${page==='Research Home'?'workspace-heading-home':page==='Company Research'?'workspace-heading-research':''}`}><div><span className="eyebrow">{workspaceFor(page).name}</span><h1 id="workspace-title" tabIndex={-1}>{page==='Research Home'?'Opportunity intelligence':pageLabel(page)}</h1></div></div>
  <SecondaryNavigation page={page} navigate={navigate}/>
  <div className={'workspace-notice '+(isDemoPage(page)?'workspace-notice-demo':'')}><ShieldAlert size={16}/><span>{isDemoPage(page)?'Fictional companies and hypothetical outcomes. Separate from real investment research.':'Research, not investment advice. Missing evidence stays unknown; saved research is not live monitoring.'}</span><button className="text-link" onClick={()=>navigate('Methodology')}>Research standards</button></div>
  {page==='Methodology'&&<WorkspaceMethodology/>}
  {page==='Demo Notes'&&<DemoNotes watch={watch} toggle={toggleWatch} onModel={ticker=>{setSelected(ticker);navigate('Valuation Lab')}}/>}
- {page==='Research Home'&&<ResearchHome navigate={next=>{setPage(next);setMenuOpen(false)}} onConviction={ticker=>{setConvictionTicker(ticker);setPage('Conviction Lab');setMenuOpen(false)}}/>}
+ {page==='Research Home'&&<ResearchHome navigate={next=>{setPage(next);setMenuOpen(false)}} onResearch={ticker=>{setRealTicker(ticker);setPage('Company Research');setMenuOpen(false)}} onConviction={ticker=>{setConvictionTicker(ticker);setPage('Conviction Lab');setMenuOpen(false)}}/>}
  {page==='Autonomous Discovery'&&<AutonomousDiscovery onResearch={ticker=>{setRealTicker(ticker);setPage('Company Research')}} onConviction={ticker=>{setConvictionTicker(ticker);setPage('Conviction Lab')}}/>}
  {page==='Conviction Lab'&&<ConvictionLab key={convictionTicker} initialTicker={convictionTicker}/>}
  {page==='Institutional Discovery'&&<InstitutionalDiscovery/>}

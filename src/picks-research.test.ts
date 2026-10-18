@@ -46,17 +46,18 @@ describe('Source-dated filing-led home and rolling SEC research ledger',()=>{
   const html=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{}}));
   expect(html).toContain('Recent catalysts and SEC filing intelligence');
   expect(html).toContain('RESEARCH BRIEF');
-  expect(html).toContain('Separate research processes:');
-  expect(html).toContain('may reach different provisional conclusions');
+  expect(html).toContain('Separate evidence paths.');
+  expect(html).toContain('may reach a different provisional conclusion');
   expect(html).not.toContain('Explore $500 dollar scenarios');
   expect(html).toContain('Review saved research');
-  expect(html.indexOf('Recent catalysts and SEC filing intelligence')).toBeLessThan(html.indexOf('Discover Opportunities'));
+  expect(html).toContain('<details class="atlas-home-secondary-intelligence">');
+  expect(html.indexOf('No evidence-backed lead')).toBeLessThan(html.indexOf('Recent catalysts and SEC filing intelligence'));
   expect(html).toContain('This month');
   expect(html).toContain('Last 90 days');
   expect(html).toContain('does not backfill a complete three-month SEC universe');
   expect(html).toContain('How ATLAS orders this research queue');
   expect(html).toContain('ATLAS is reviewing this batch');
-  expect(html).toContain('Discover Opportunities');
+  expect(html).toContain('Run Autonomous Discovery');
  });
  it('renders an amount slider that starts with $500 and a holding period without implying returns are assured',()=>{
   const html=renderToStaticMarkup(createElement(InvestmentOutcomeSimulator,{ticker:'TEST'}));
