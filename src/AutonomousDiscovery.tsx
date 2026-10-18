@@ -1,8 +1,10 @@
 import {useState} from 'react';
-import {annualPeFromSec,defaultRankWeights,rankCompanies,deriveRankingMetrics,type AnnualPe,type MarketValuationClose,type SecCompany} from './ranking-model';
+import {annualPeFromSec,defaultRankWeights,rankCompanies,deriveRankingMetrics,assessEmergingFcfStrength,type AnnualPe,type MarketValuationClose,type SecCompany,type FcfStrengthAssessment} from './ranking-model';
 import {initialAutonomousScreen,scanCounts,type ScreenResult} from './autonomous-screen';
 import {writeSavedPasses} from './autonomous-pass-ledger';
 import {flagIndicativeFyValuation} from './valuation-triage';
+import {buildDiscoveryBriefing,type DiscoveryBriefingInput,type DiscoveryBriefingSnapshot} from './discovery-briefing-model';
+import {writeDiscoveryBriefing} from './discovery-briefing-storage';
 import SurvivalEvidencePanel from './SurvivalEvidencePanel';
 import MarketCapEvidencePanel from './MarketCapEvidencePanel';
 import FinancingAutomationPanel from './FinancingAutomationPanel';
@@ -11,6 +13,7 @@ import {assessPriceHistory,combineResearchPriority,type HistoricalPriceResponse,
 type Listed={ticker:string;name:string;cik:number};
 type UniversePage={total:number;start:number;nextCursor:number;completedCycle:boolean;rows:Listed[];indexUrl:string;retrievedAt:string;error?:string;seedTickersUsed:boolean;scope:string};
 type Candidate={company:SecCompany;screen:ScreenResult;valuation:AnnualPe|null;quote:MarketValuationClose|null;priceIssue:string|null;history:HistoricalPriceResponse|null;trend:PriceHistoryAssessment;historyIssue:string|null;priority:{score:number|null;priceWeighted:boolean}};
+type RecordEntry={company:SecCompany;screen:ScreenResult;emerging:FcfStrengthAssessment};
 const BATCH=24,CURSOR_KEY='atlas.autonomous.sec.cursor.v1';
 const initialCursor=()=>{try{const n=Number(localStorage.getItem(CURSOR_KEY)||0);return Number.isSafeInteger(n)&&n>=0?n:0}catch{return 0}};
 const money=(n:number|null)=>n===null?'N/A':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',notation:'compact',maximumFractionDigits:2}).format(n);
@@ -18,25 +21,27 @@ const dollars=(n:number|null)=>n===null?'N/A':new Intl.NumberFormat('en-US',{sty
 const pct=(n:number|null)=>n===null?'N/A':(n>=0?'+':'')+n.toFixed(1)+'%';
 const easternDate=()=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const x=Object.fromEntries(p.filter(k=>k.type!=='literal').map(k=>[k.type,k.value]));return x.year+'-'+x.month+'-'+x.day};
 export default function AutonomousDiscovery({onResearch,onConviction}:{onResearch?:(ticker:string)=>void;onConviction?:(ticker:string)=>void}){
- const [cursor,setCursor]=useState(initialCursor);
- const [universe,setUniverse]=useState<UniversePage|null>(null);
- const [batchCount,setBatchCount]=useState(1);
- const [scannedBatches,setScannedBatches]=useState(0);
- const [allListed,setAllListed]=useState<Listed[]>([]);
- const [screened,setScreened]=useState<ScreenResult[]>([]);
- const [failed,setFailed]=useState<{ticker:string;reason:string}[]>([]);
- const [candidates,setCandidates]=useState<Candidate[]>([]);
- const [busy,setBusy]=useState(false);
- const [error,setError]=useState('');
- const [progress,setProgress]=useState('');
- const [done,setDone]=useState(false);
- const [quotesChecked,setQuotesChecked]=useState(0);
+const [cursor,setCursor]=useState(initialCursor);
+  const [universe,setUniverse]=useState<UniversePage|null>(null);
+  const [batchCount,setBatchCount]=useState(1);
+  const [scannedBatches,setScannedBatches]=useState(0);
+  const [allListed,setAllListed]=useState<Listed[]>([]);
+  const [screened,setScreened]=useState<ScreenResult[]>([]);
+  const [failed,setFailed]=useState<{ticker:string;reason:string}[]>([]);
+  const [researchRecords,setResearchRecords]=useState<RecordEntry[]>([]); // eslint-disable-line no-unused-vars
+  const [candidates,setCandidates]=useState<Candidate[]>([]);
+  const [briefing,setBriefing]=useState<DiscoveryBriefingSnapshot | null>(null);
+  const [busy,setBusy]=useState(false);
+  const [error,setError]=useState('');
+  const [progress,setProgress]=useState('');
+  const [done,setDone]=useState(false);
+  const [quotesChecked,setQuotesChecked]=useState(0);
  async function discover(){
   if(busy)return;
-  setBusy(true);setDone(false);setUniverse(null);setScreened([]);setCandidates([]);setFailed([]);setError('');setQuotesChecked(0);setScannedBatches(0);setAllListed([]);
+   setBusy(true);setDone(false);setUniverse(null);setScreened([]);setCandidates([]);setFailed([]);setResearchRecords([]);setError('');setQuotesChecked(0);setScannedBatches(0);setAllListed([]);
   setProgress('Enumerating actual companies from the SEC ticker index…');
   try{
-   const today=easternDate(),records:{company:SecCompany;screen:ScreenResult}[]=[],sourceIssues:{ticker:string;reason:string}[]=[];
+   const today=easternDate(),records:RecordEntry[]=[],sourceIssues:{ticker:string;reason:string}[]=[];
    const listed:Listed[]=[];
    let firstPage:UniversePage|null=null,nextCursor=cursor,completed=0;
    // A single explicit scan can walk several consecutive SEC index batches.
@@ -52,13 +57,14 @@ export default function AutonomousDiscovery({onResearch,onConviction}:{onResearc
     for(let i=0;i<page.rows.length;i+=2){
      const group=page.rows.slice(i,i+2);
      await Promise.all(group.map(async ({ticker})=>{
-      try{
-       const response=await fetch('/api/sec/company?ticker='+encodeURIComponent(ticker));
-       const company=await response.json() as SecCompany&{error?:string};
-       if(!response.ok||!company.source?.startsWith('https://data.sec.gov/')||company.ticker!==ticker||!Array.isArray(company.metrics))throw Error(company.error||'SEC annual source incomplete');
-       const screen=initialAutonomousScreen(company,today);
-       records.push({company,screen});
-      }catch(e){sourceIssues.push({ticker,reason:e instanceof Error?e.message:'SEC company facts unavailable'})}
+       try{
+        const response=await fetch('/api/sec/company?ticker='+encodeURIComponent(ticker));
+        const company=await response.json() as SecCompany&{error?:string};
+        if(!response.ok||!company.source?.startsWith('https://data.sec.gov/')||company.ticker!==ticker||!Array.isArray(company.metrics))throw Error(company.error||'SEC annual source incomplete');
+        const screen=initialAutonomousScreen(company,today);
+        const emerging = assessEmergingFcfStrength(company);
+        records.push({company,screen,emerging});
+       }catch(e){sourceIssues.push({ticker,reason:e instanceof Error?e.message:'SEC company facts unavailable'})}
       setProgress('Checked '+(records.length+sourceIssues.length)+' / '+(batchCount*BATCH)+' planned SEC companies · batch '+(batch+1)+' / '+batchCount);
      }));
     }
@@ -70,7 +76,8 @@ export default function AutonomousDiscovery({onResearch,onConviction}:{onResearc
    setUniverse(firstPage);setAllListed(listed);
    const passes=records.filter(x=>x.screen.status==='preliminary_pass')
     .sort((a,b)=>(b.screen.score??-1)-(a.screen.score??-1)||a.company.ticker.localeCompare(b.company.ticker));
-   setScreened(records.map(x=>x.screen));setFailed(sourceIssues);
+    setScreened(records.map(x=>x.screen));setFailed(sourceIssues);setResearchRecords(records);
+    // Store records for potential future use in UI or analytics
    writeSavedPasses(passes.filter(x=>x.screen.score!==null&&x.screen.filed!==null).map(x=>({ticker:x.company.ticker,observedAt:today,annualFiled:x.screen.filed!,preliminaryScore:x.screen.score!})),today);
    // Only the leading provisional passes receive price requests in this first
    // bounded scan. This must NEVER be interpreted as full market valuation coverage.
@@ -107,15 +114,47 @@ export default function AutonomousDiscovery({onResearch,onConviction}:{onResearc
     (b.priority.score??-1)-(a.priority.score??-1)||
     (b.priority.priceWeighted?1:0)-(a.priority.priceWeighted?1:0)||
     a.company.ticker.localeCompare(b.company.ticker));
-   setCandidates(research);
-   setProgress('Completed provisional SEC screening and price research. Price history is weighted at 20% only when comparable 1Y and 3Y observations exist; valuations remain unverified.');
-   setDone(true);
-   setCursor(nextCursor);
-   try{localStorage.setItem(CURSOR_KEY,String(nextCursor))}catch{}
-  }catch(e){
-   setError(e instanceof Error?e.message:'Autonomous scan unavailable');
-   setProgress('Scan failed. No companies were silently substituted.');
-  }finally{setBusy(false)}
+    setCandidates(research);
+    setProgress('Completed provisional SEC screening and price research. Price history is weighted at 20% only when comparable 1Y and 3Y observations exist; valuations remain unverified.');
+    setDone(true);
+    setCursor(nextCursor);
+    try{localStorage.setItem(CURSOR_KEY,String(nextCursor))}catch{}
+
+    // Build discovery briefing from results
+    const briefingInput: DiscoveryBriefingInput = {
+      scanCompletedAt: new Date().toISOString(),
+      issuersExamined: records.length,
+      leads: research.map(item => {
+        // Find the matching record for emerging strength
+        const record = records.find(r => r.company.ticker === item.company.ticker);
+        // Use only valid Emerging Strength statuses: improving, not_improving, insufficient_evidence
+        let emergingStatus: 'improving' | 'not_improving' | 'insufficient_evidence' = 'insufficient_evidence';
+        if (record) {
+          emergingStatus = record.emerging.status;
+        }
+        return {
+          ticker: item.company.ticker,
+          companyName: item.company.name,
+          preliminaryScreenStatus: item.screen.status,
+          revenueGrowth: item.screen.growth,
+          fcfMargin: item.screen.fcfMargin,
+          annualPe: item.valuation?.pe ?? null,
+          emergingStrength: emergingStatus,
+          screeningReasons: item.screen.reasons,
+          evidenceLimitations: item.priceIssue || item.historyIssue ? [item.priceIssue || '', item.historyIssue || ''].filter(Boolean) as string[] : null
+        };
+      })
+    };
+
+    const briefingSnapshot = buildDiscoveryBriefing(briefingInput);
+    setBriefing(briefingSnapshot);
+
+    // Save briefing snapshot to localStorage
+    writeDiscoveryBriefing(localStorage, briefingSnapshot);
+   }catch(e){
+    setError(e instanceof Error?e.message:'Autonomous scan unavailable');
+    setProgress('Scan failed. No companies were silently substituted.');
+   }finally{setBusy(false)}
  }
  const summary=scanCounts(screened,failed.length,allListed.length);
  return <section className="panel real-panel atlas-autonomous-discovery">
@@ -139,30 +178,75 @@ export default function AutonomousDiscovery({onResearch,onConviction}:{onResearc
     <p><strong>{summary.enumerated}</strong> enumerated → <strong>{summary.financialRecordsChecked}</strong> annual SEC records checked → <strong>{summary.preliminary}</strong> preliminary financial passes → <strong>{quotesChecked}</strong> completed-price lookups attempted → <strong>0</strong> fully verified high-conviction investments.</p>
     <p className="chart-note">Other financial-screen outcomes: {summary.failed} below provisional thresholds, {summary.incomplete} missing required accounting values, {summary.stale} stale annual financials, {summary.accountingReview} accounting-review flags, {summary.sourceFailures} blocked/failed SEC sources. Up to eight preliminarily eligible companies receive valuation and split-adjusted long-term price research. Price signals affect only this provisional subset.</p>
    </div>}
-   {done&&<div className="atlas-autonomous-leads">
-    <h4>Research priorities from this independently discovered run</h4>
-    {!candidates.length&&<p className="opportunity-uncertainty"><strong>No candidates passed this run's initial financial screen.</strong> ATLAS will not manufacture a result. Select “Discover more companies” to examine the next index batch.</p>}
-    {candidates.map((item,i)=><article className="atlas-autonomous-lead" key={item.company.ticker}>
-     <div className="atlas-autonomous-heading"><div><small>Research candidate {i+1} · not a buy rating</small><strong>{item.company.ticker} · {item.company.name}</strong></div><span>INSUFFICIENT EVIDENCE</span></div>
-     <div className="atlas-key-return">
-      <div><span className="atlas-glance-label">Reported annual revenue growth</span><strong className={'atlas-glance-value '+(item.screen.growth!==null&&item.screen.growth>=0?'atlas-tone-positive':'atlas-tone-negative')}>{pct(item.screen.growth)}</strong></div>
-      <div><span className="atlas-glance-label">Free cash flow margin</span><strong className={'atlas-glance-value '+(item.screen.fcfMargin!==null&&item.screen.fcfMargin>=0?'atlas-tone-positive':'atlas-tone-negative')}>{pct(item.screen.fcfMargin)}</strong></div>
-      <div><span className="atlas-glance-label">Indicative FY P/E</span><strong className="atlas-glance-value">{item.valuation?.pe==null?'N/A':item.valuation.pe.toFixed(1)+'×'}</strong></div>
-      <div><span className="atlas-glance-label">Latest completed IEX close</span><strong className="atlas-glance-value">{money(item.quote?.price??null)}</strong><small>{item.quote?.sessionDate??'Price unavailable'}</small></div>
-     </div>
-     <div className={'atlas-autonomous-valuation '+(flagIndicativeFyValuation(item.valuation).level==='high_multiple'?'atlas-valuation-red':flagIndicativeFyValuation(item.valuation).level==='elevated_multiple'?'atlas-valuation-amber':'')}><strong>{flagIndicativeFyValuation(item.valuation).headline}</strong><p>{flagIndicativeFyValuation(item.valuation).explanation}</p></div>
-     <p className="chart-note"><strong>Combined research priority:</strong> {item.priority.score===null?'Unscored':item.priority.score.toFixed(0)+'/100'} · {item.priority.priceWeighted?'80% SEC fundamentals and indicative valuation + 20% historical price trend':'Fundamentals-only provisional score; comparable historical price data missing'}. This is a sorting heuristic among up to eight preliminary candidates, not a predicted return or buy verdict.</p>
-     <PriceHistoryPanel ticker={item.company.ticker} history={item.history} assessment={item.trend} asOf={easternDate()}/>
-     {item.historyIssue&&<p className="chart-note"><strong>Historical source limitation:</strong> {item.historyIssue}</p>}
-     <MarketCapEvidencePanel company={item.company} quote={item.quote} asOf={easternDate()}/>
-     <FinancingAutomationPanel company={item.company} asOf={easternDate()}/>
-     <SurvivalEvidencePanel company={item.company} asOf={item.quote?.sessionDate??easternDate()}/>
-     <details className="atlas-details"><summary>Verify SEC revenue, cash flow and calculated margins</summary>{(()=>{const m=deriveRankingMetrics(item.company);const tag=item.company.metrics.find(x=>x.name==='Revenue');const annual=tag?.values.find(x=>x.year===m.year);const prior=tag?.values.find(x=>x.year===(m.year??0)-1);return <><p><strong>Selected revenue field:</strong> {tag?.tag??'Not identified'} · {tag?.selectionNote??'Original SEC source must be checked'}</p><p><strong>Same-tag consolidated-scale revenue:</strong> current FY {dollars(m.revenue)} · prior FY {dollars(prior?.value??null)} · period end {annual?.end??'unknown'}.</p><p><strong>Operating cash flow:</strong> {dollars(item.company.metrics.find(x=>x.name==='Operating cash flow')?.values.find(x=>x.end===annual?.end)?.value??null)} · <strong>Capex:</strong> {dollars(m.capex)} · <strong>FCF after capex:</strong> {dollars(m.fcf)}.</p><p><strong>Calculation:</strong> revenue growth = current annual revenue / prior annual revenue − 1; FCF margin = (operating cash flow − capex) / revenue. Values are SEC facts, not independently normalized recurring earnings.</p><p><a href={item.company.source} target="_blank" rel="noopener noreferrer">Inspect original SEC tagged financial facts ↗</a></p></>})()}</details>
-     <p className="chart-note"><strong>FY filing:</strong> {item.screen.filed??'Unknown'}. <strong>Reason surfaced:</strong> {item.screen.reasons.join('; ')}. {item.priceIssue||item.valuation?.reason||'Price-sensitive earnings valuation incomplete.'}</p>
-     <p className="opportunity-uncertainty"><strong>Still not validated:</strong> verified current market cap, exchange, consolidated liquidity, dilution, debt/runway, sector durability, institutional consensus, original news timing and 5-year valuation scenarios. These are NOT investment recommendations.</p>
-     <div className="atlas-ranking-controls"><a href={item.company.source} target="_blank" rel="noopener noreferrer">Inspect original SEC financial data ↗</a>{onResearch&&<button className="button secondary" type="button" onClick={()=>onResearch(item.company.ticker)}>Research company →</button>}{onConviction&&<button className="button secondary" type="button" onClick={()=>onConviction(item.company.ticker)}>Check conviction gates →</button>}</div>
-    </article>)}
-   </div>}
+{done&&<div className="atlas-autonomous-leads">
+     <h4>Research priorities from this independently discovered run</h4>
+     {!candidates.length&&<p className="opportunity-uncertainty"><strong>No candidates passed this run's initial financial screen.</strong> ATLAS will not manufacture a result. Select “Discover more companies” to examine the next index batch.</p>}
+     {candidates.map((item,i)=><article className="atlas-autonomous-lead" key={item.company.ticker}>
+      <div className="atlas-autonomous-heading"><div><small>Research candidate {i+1} · not a buy rating</small><strong>{item.company.ticker} · {item.company.name}</strong></div><span>INSUFFICIENT EVIDENCE</span></div>
+      <div className="atlas-key-return">
+       <div><span className="atlas-glance-label">Reported annual revenue growth</span><strong className={'atlas-glance-value '+(item.screen.growth!==null&&item.screen.growth>=0?'atlas-tone-positive':'atlas-tone-negative')}>{pct(item.screen.growth)}</strong></div>
+       <div><span className="atlas-glance-label">Free cash flow margin</span><strong className={'atlas-glance-value '+(item.screen.fcfMargin!==null&&item.screen.fcfMargin>=0?'atlas-tone-positive':'atlas-tone-negative')}>{pct(item.screen.fcfMargin)}</strong></div>
+       <div><span className="atlas-glance-label">Indicative FY P/E</span><strong className="atlas-glance-value">{item.valuation?.pe==null?'N/A':item.valuation.pe.toFixed(1)+'×'}</strong></div>
+       <div><span className="atlas-glance-label">Latest completed IEX close</span><strong className="atlas-glance-value">{money(item.quote?.price??null)}</strong><small>{item.quote?.sessionDate??'Price unavailable'}</small></div>
+      </div>
+      <div className={'atlas-autonomous-valuation '+(flagIndicativeFyValuation(item.valuation).level==='high_multiple'?'atlas-valuation-red':flagIndicativeFyValuation(item.valuation).level==='elevated_multiple'?'atlas-valuation-amber':'')}><strong>{flagIndicativeFyValuation(item.valuation).headline}</strong><p>{flagIndicativeFyValuation(item.valuation).explanation}</p></div>
+      <p className="chart-note"><strong>Combined research priority:</strong> {item.priority.score===null?'Unscored':item.priority.score.toFixed(0)+'/100'} · {item.priority.priceWeighted?'80% SEC fundamentals and indicative valuation + 20% historical price trend':'Fundamentals-only provisional score; comparable historical price data missing'}. This is a sorting heuristic among up to eight preliminary candidates, not a predicted return or buy verdict.</p>
+      <PriceHistoryPanel ticker={item.company.ticker} history={item.history} assessment={item.trend} asOf={easternDate()}/>
+      {item.historyIssue&&<p className="chart-note"><strong>Historical source limitation:</strong> {item.historyIssue}</p>}
+      <MarketCapEvidencePanel company={item.company} quote={item.quote} asOf={easternDate()}/>
+      <FinancingAutomationPanel company={item.company} asOf={easternDate()}/>
+      <SurvivalEvidencePanel company={item.company} asOf={item.quote?.sessionDate??easternDate()}/>
+      <details className="atlas-details"><summary>Verify SEC revenue, cash flow and calculated margins</summary>{(()=>{const m=deriveRankingMetrics(item.company);const tag=item.company.metrics.find(x=>x.name==='Revenue');const annual=tag?.values.find(x=>x.year===m.year);const prior=tag?.values.find(x=>x.year===(m.year??0)-1);return <><p><strong>Selected revenue field:</strong> {tag?.tag??'Not identified'} · {tag?.selectionNote??'Original SEC source must be checked'}</p><p><strong>Same-tag consolidated-scale revenue:</strong> current FY {dollars(m.revenue)} · prior FY {dollars(prior?.value??null)} · period end {annual?.end??'unknown'}.</p><p><strong>Operating cash flow:</strong> {dollars(item.company.metrics.find(x=>x.name==='Operating cash flow')?.values.find(x=>x.end===annual?.end)?.value??null)} · <strong>Capex:</strong> {dollars(m.capex)} · <strong>FCF after capex:</strong> {dollars(m.fcf)}.</p><p><strong>Calculation:</strong> revenue growth = current annual revenue / prior annual revenue − 1; FCF margin = (operating cash flow − capex) / revenue. Values are SEC facts, not independently normalized recurring earnings.</p><p><a href={item.company.source} target="_blank" rel="noopener noreferrer">Inspect original SEC tagged financial facts ↗</a></p></>})()}</details>
+      <p className="chart-note"><strong>FY filing:</strong> {item.screen.filed??'Unknown'}. <strong>Reason surfaced:</strong> {item.screen.reasons.join('; ')}. {item.priceIssue||item.valuation?.reason||'Price-sensitive earnings valuation incomplete.'}</p>
+      <p className="opportunity-uncertainty"><strong>Still not validated:</strong> verified current market cap, exchange, consolidated liquidity, dilution, debt/runway, sector durability, institutional consensus, original news timing and 5-year valuation scenarios. These are NOT investment recommendations.</p>
+      <div className="atlas-ranking-controls"><a href={item.company.source} target="_blank" rel="noopener noreferrer">Inspect original SEC financial data ↗</a>{onResearch&&<button className="button secondary" type="button" onClick={()=>onResearch(item.company.ticker)}>Research company →</button>}{onConviction&&<button className="button secondary" type="button" onClick={()=>onConviction(item.company.ticker)}>Check conviction gates →</button>}</div>
+     </article>)}
+    </div>}
+{done && researchRecords.length > 0 && briefing && (
+        <div className="atlas-autonomous-leads">
+          <h4>Discovery Briefing</h4>
+          <p className="chart-note">Summary of findings from this run.</p>
+          <div className="atlas-briefing-summary">
+            <p><strong>Scan completed:</strong> {briefing.scanCompletedAt}</p>
+            <p><strong>Companies examined:</strong> {briefing.issuersExamined}</p>
+            <p><strong>Emerging strength leads:</strong> {briefing.leads.filter(l => l.emergingStrength === 'improving').length}</p>
+          </div>
+          {briefing.leads.map((lead, index) => (
+            <article className="atlas-autonomous-lead" key={lead.ticker}>
+              <div className="atlas-autonomous-heading">
+                <div>
+                  <small>Lead {index + 1}</small>
+                  <strong>{lead.ticker} · {lead.companyName}</strong>
+                </div>
+                <span>NOT A BUY RATING</span>
+              </div>
+              <div className="atlas-key-return">
+                <div>
+                  <span className="atlas-glance-label">Preliminary Screen Status</span>
+                  <strong>{lead.preliminaryScreenStatus.replaceAll('_', ' ')}</strong>
+                </div>
+                <div>
+                  <span className="atlas-glance-label">Revenue Growth</span>
+                  <strong>{pct(lead.revenueGrowth)}</strong>
+                </div>
+                <div>
+                  <span className="atlas-glance-label">FCF Margin</span>
+                  <strong>{pct(lead.fcfMargin)}</strong>
+                </div>
+                <div>
+                  <span className="atlas-glance-label">Annual P/E</span>
+                  <strong>{lead.annualPe === null ? 'N/A' : lead.annualPe.toFixed(1) + '×'}</strong>
+                </div>
+              </div>
+              <p className="chart-note"><strong>Emerging Strength:</strong> {lead.emergingStrength}</p>
+              <p className="chart-note"><strong>Screening Reasons:</strong> {lead.screeningReasons.join('; ')}</p>
+              {lead.evidenceLimitations && (
+                <p className="chart-note"><strong>Evidence Limitations:</strong> {lead.evidenceLimitations.join('; ')}</p>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
    {done&&failed.length>0&&<details className="atlas-details"><summary>Source failures ({failed.length})</summary>{failed.map((x,i)=><p key={x.ticker+'-'+i}><strong>{x.ticker}:</strong> {x.reason}</p>)}</details>}
    {done&&<details className="atlas-details"><summary>Every issuer scanned and why it passed or failed</summary>{allListed.map(row=>{const match=screened.find(s=>s.ticker===row.ticker),issue=failed.find(f=>f.ticker===row.ticker);return <p key={row.cik}><strong>{row.ticker} · {row.name}</strong> — {match?match.status.replaceAll('_',' ')+(match.reasons.length?' ('+match.reasons.join('; ')+')':''):issue?'SEC source unavailable: '+issue.reason:'Not examined'} · CIK {row.cik}</p>})}</details>}
   </div>}

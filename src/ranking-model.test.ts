@@ -1,6 +1,6 @@
 import {describe,expect,it} from 'vitest';
 import {toneForReportedMetric,toneForReturn} from './filing-metric-tone';
-import {defaultRankWeights,deriveRankingMetrics,rankCompanies,scoreCompany,type SecCompany} from './ranking-model';
+import {defaultRankWeights,deriveRankingMetrics,rankCompanies,scoreCompany,assessEmergingFcfStrength,type SecCompany} from './ranking-model';
 const annual=(year:number,value:number)=>({year,end:year+'-12-31',filed:(year+1)+'-02-15',form:'10-K',accession:'0000000000-26-000010',value});
 const company=(ticker:string,includeCapex=true):SecCompany=>({ticker,name:ticker+' Inc',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0123456789.json',retrievedAt:'2026-10-15T12:00:00Z',metrics:[
  {name:'Revenue',values:[annual(2025,150),annual(2024,100)]},
@@ -87,4 +87,100 @@ describe('SEC annual fundamental ranking model',()=>{
   sample.metrics.find(m=>m.name==='Capital expenditures')!.values=[annual(2025,-100)];
   expect(deriveRankingMetrics(sample).fcf).toBeNull();
  });
+it('assesses emerging FCF strength correctly - improving trend',()=>{
+   // Test case 1: FCF margins -15%, -5%, +6% across 2023-2025 → improving
+   const improvingCompany = {
+     ticker:'IMPROVING',
+     name:'Improving Inc',
+     source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0000000000.json',
+     retrievedAt:'2026-10-15T12:00:00Z',
+     metrics:[
+       {name:'Revenue',values:[annual(2025,100),annual(2024,100),annual(2023,100)]},
+       {name:'Net income',values:[annual(2025,10),annual(2024,5),annual(2023,2)]},
+       {name:'Operating cash flow',values:[annual(2025,6),annual(2024,5),annual(2023,15)]},
+       {name:'Capital expenditures',values:[annual(2025,0),annual(2024,10),annual(2023,30)]}
+     ]
+   };
+   
+   const result = assessEmergingFcfStrength(improvingCompany);
+   expect(result.status).toBe('improving');
+   expect(result.years).toEqual([2025,2024,2023]);
+   expect(result.margins).toEqual([6, -5, -15]); // margins calculated from FCF/revenue
+  });
+
+  it('assesses emerging FCF strength correctly - declining trend',()=>{
+   // Test case 2: FCF margins +20%, +10%, +6% → not_improving
+   const decliningCompany = {
+     ticker:'DECLINING',
+     name:'Declining Inc',
+     source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0000000001.json',
+     retrievedAt:'2026-10-15T12:00:00Z',
+     metrics:[
+       {name:'Revenue',values:[annual(2025,100),annual(2024,100),annual(2023,100)]},
+       {name:'Net income',values:[annual(2025,20),annual(2024,10),annual(2023,6)]},
+       {name:'Operating cash flow',values:[annual(2025,6),annual(2024,10),annual(2023,20)]},
+       {name:'Capital expenditures',values:[annual(2025,0),annual(2024,0),annual(2023,0)]}
+     ]
+   };
+   
+   const result = assessEmergingFcfStrength(decliningCompany);
+   expect(result.status).toBe('not_improving');
+  });
+
+  it('assesses emerging FCF strength correctly - slightly improving',()=>{
+   // Test case 3: Improving margins totaling less than 10 percentage points → not_improving
+   const slightlyImprovingCompany = {
+     ticker:'SLIGHTLY_IMPROVING',
+     name:'Slightly Improving Inc',
+     source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0000000002.json',
+     retrievedAt:'2026-10-15T12:00:00Z',
+     metrics:[
+       {name:'Revenue',values:[annual(2025,100),annual(2024,100),annual(2023,100)]},
+       {name:'Net income',values:[annual(2025,10),annual(2024,9),annual(2023,8)]},
+       {name:'Operating cash flow',values:[annual(2025,10),annual(2024,9),annual(2023,8)]},
+       {name:'Capital expenditures',values:[annual(2025,0),annual(2024,1),annual(2023,2)]}
+     ]
+   };
+   
+   const result = assessEmergingFcfStrength(slightlyImprovingCompany);
+   expect(result.status).toBe('not_improving');
+  });
+
+  it('assesses emerging FCF strength correctly - missing fiscal year',()=>{
+   // Test case 4: Missing fiscal year (2023, 2025, 2026) → insufficient_evidence
+   const missingYearCompany = {
+     ticker:'MISSING_YEAR',
+     name:'Missing Year Inc',
+     source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0000000003.json',
+     retrievedAt:'2026-10-15T12:00:00Z',
+     metrics:[
+       {name:'Revenue',values:[annual(2026,100),annual(2025,100),annual(2023,100)]},
+       {name:'Net income',values:[annual(2026,10),annual(2025,10),annual(2023,10)]},
+       {name:'Operating cash flow',values:[annual(2026,10),annual(2025,10),annual(2023,10)]},
+       {name:'Capital expenditures',values:[annual(2026,0),annual(2025,0),annual(2023,0)]}
+     ]
+   };
+   
+   const result = assessEmergingFcfStrength(missingYearCompany);
+   expect(result.status).toBe('insufficient_evidence');
+  });
+
+  it('assesses emerging FCF strength correctly - missing data',()=>{
+   // Test case 5: Missing operating cash flow or capex for one year → insufficient_evidence
+   const missingDataCompany = {
+     ticker:'MISSING_DATA',
+     name:'Missing Data Inc',
+     source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0000000004.json',
+     retrievedAt:'2026-10-15T12:00:00Z',
+     metrics:[
+       {name:'Revenue',values:[annual(2025,100),annual(2024,100),annual(2023,100)]},
+       {name:'Net income',values:[annual(2025,10),annual(2024,10),annual(2023,10)]},
+       {name:'Operating cash flow',values:[annual(2025,10),annual(2024,10)]}, // Missing 2023
+       {name:'Capital expenditures',values:[annual(2025,0),annual(2024,0),annual(2023,0)]}
+     ]
+   };
+   
+   const result = assessEmergingFcfStrength(missingDataCompany);
+   expect(result.status).toBe('insufficient_evidence');
+  });
 });

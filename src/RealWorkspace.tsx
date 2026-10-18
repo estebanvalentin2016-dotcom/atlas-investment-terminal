@@ -4,6 +4,7 @@ import {readResearchContext} from './watchlist-research';
 import {useEffect,useState,type FormEvent} from 'react';
 import CompanyComparison from './CompanyComparison';
 import {deriveRankingMetrics,type SecCompany} from './ranking-model';
+import DiscoveryBriefingPanel from './DiscoveryBriefingPanel';
 
 type Research=SecCompany&{cik:string};
 type Mode='research'|'watchlist';
@@ -55,6 +56,8 @@ export default function RealWorkspace({mode,defaultTicker='BLK',onView,onConvict
  return <section className="panel real-panel atlas-live-workspace">
   <div className="panel-head"><div><span className="eyebrow">{mode==='watchlist'?'SAVED RESEARCH':'SEC COMPANY ANALYSIS'}</span><h3>{mode==='watchlist'?'Saved companies ('+watch.length+')':'Search and investigate any SEC-listed company'}</h3></div><span className="tag">{mode==='watchlist'?'Browser only':'Real SEC facts · not sample companies'}</span></div>
   <p className="description">{mode==='watchlist'?'Dated conclusions, thesis notes and previously observed filings. Saved locally; no background monitoring.':'Search a company to examine reported financials and develop a thesis. Missing values remain unavailable.'}</p>
+
+  <DiscoveryBriefingPanel/>
   <form className="atlas-ranking-controls atlas-company-search" onSubmit={search}><label>Company name or ticker
    <input aria-label="Search real company" value={query} onChange={e=>setQuery(e.target.value)} maxLength={80} placeholder="CrowdStrike, BlackRock, NVDA…" required/>
   </label><button className="button primary" type="submit">Search companies</button></form>

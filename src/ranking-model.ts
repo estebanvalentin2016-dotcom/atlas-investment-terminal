@@ -48,33 +48,120 @@ export function deriveRankingMetrics(company:SecCompany,pe:number|null=null):Ran
  return {year,growth,fcfMargin,profitMargin,pe:validPe(pe),fcf,revenue,capex};
 }
 function validPe(pe:number|null):number|null{return pe!==null&&finite(pe)&&pe>0&&pe<=1000?pe:null}
+export type FcfStrengthAssessment = {
+  status: 'improving' | 'not_improving' | 'insufficient_evidence';
+  years: number[];
+  margins: (number|null)[];
+};
+
+export function assessEmergingFcfStrength(company:SecCompany): FcfStrengthAssessment{
+  const m=new Map(company.metrics.map(x=>[x.name,x]));
+  const rev=recent(m.get('Revenue')?.values||[]);
+  
+  // Need at least 3 years to evaluate consecutive trends
+  if(rev.length < 3) return {status:'insufficient_evidence',years:[],margins:[]};
+  
+  // Find three consecutive years starting from the most recent
+  const latestYear = rev[0].year;
+  let consecYears: number[] = [];
+  
+  // Try to find 3 consecutive years by checking if year n, n-1, n-2 all exist in the data
+  for (let i = 0; i < rev.length - 2; i++) {
+    const y1 = rev[i].year;
+    const y2 = rev[i+1].year;
+    const y3 = rev[i+2].year;
+    
+    // Check if these years are consecutive (latest, previous, previous-previous)
+    if (y1 === latestYear && y2 === latestYear - 1 && y3 === latestYear - 2) {
+      consecYears = [y1, y2, y3];
+      break;
+    }
+  }
+  
+  // If no consecutive years found
+  if (consecYears.length !== 3) {
+    return {status:'insufficient_evidence',years:[],margins:[]};
+  }
+  
+  // Get margins for the three consecutive years
+  const years: number[] = [];
+  const margins: (number|null)[] = [];
+  
+  for(let i = 0; i < consecYears.length; i++){
+    const year = consecYears[i];
+    
+    // Find the specific record that matches this year and period-end
+    const yearData = rev.find(d => d.year === year);
+    if (!yearData) {
+      return {status:'insufficient_evidence',years:[],margins:[]};
+    }
+    
+    years.push(year);
+    
+    // Match all required financial components for this specific fiscal year/period
+    const operating = matchYear(m.get('Operating cash flow'), year, yearData.end);
+    const rawCapex = matchYear(m.get('Capital expenditures'), year, yearData.end);
+    const revenue = yearData.value;
+    
+    // Must have all components available for a valid calculation
+    if(operating === null || rawCapex === null || revenue <= 0) {
+      return {status:'insufficient_evidence',years:[],margins:[]};
+    }
+    
+    const capex = rawCapex >= 0 ? rawCapex : null;
+    if(capex === null) return {status:'insufficient_evidence',years:[],margins:[]};
+    
+    const fcf = operating - capex;
+    const margin = revenue > 0 ? Math.round((fcf/revenue)*10000)/100 : null;
+    margins.push(margin);
+  }
+  
+  // Verify all three years have valid data for the complete calculation
+  if(years.length !== 3 || margins.some(m => m === null)) {
+    return {status:'insufficient_evidence',years:[],margins:[]};
+  }
+  
+  // Calculate improvements from oldest to newest (year1 to year2, then year2 to year3)
+  const improvement1 = margins[1] !== null && margins[2] !== null ? margins[1] - margins[2] : null;
+  const improvement2 = margins[0] !== null && margins[1] !== null ? margins[0] - margins[1] : null;
+  
+  // Check if both yearly changes are positive and total improvement is at least 10 percentage points
+  const bothPositive = improvement1 !== null && improvement2 !== null && improvement1 > 0 && improvement2 > 0;
+  const totalImprovement = improvement1 !== null && improvement2 !== null ? improvement1 + improvement2 : null;
+  
+  if(bothPositive && totalImprovement !== null && totalImprovement >= 10) {
+    return {status:'improving',years, margins};
+  } else {
+    return {status:'not_improving',years, margins};
+  }
+}
 export function scoreCompany(company:SecCompany,weights:RankWeights,manualPe:number|null=null):Ranked{
- const metrics=deriveRankingMetrics(company,manualPe);
- const annualFiled=company.metrics.find(m=>m.name==='Revenue')?.values.find(v=>v.year===metrics.year)?.filed??null;
- const age=annualFiled?Date.now()-Date.parse(annualFiled+'T00:00:00Z'):NaN;
- const stale=!Number.isFinite(age)||age>550*86400000||age<0;
- const total=Object.values(weights).reduce((sum,n)=>sum+(finite(n)&&n>0?n:0),0);
- const points:{key:keyof RankWeights;value:number|null;grade:number}[]=[
-  {key:'growth',value:metrics.growth,grade:metrics.growth===null?0:normalized(metrics.growth,-10,35)},
-  {key:'fcf',value:metrics.fcfMargin,grade:metrics.fcfMargin===null?0:normalized(metrics.fcfMargin,-5,25)},
-  {key:'profit',value:metrics.profitMargin,grade:metrics.profitMargin===null?0:normalized(metrics.profitMargin,-5,25)},
-  {key:'pe',value:metrics.pe,grade:metrics.pe===null?0:metrics.pe<=0?0:cap((60-metrics.pe)/55*100)}
- ];
- const active=points.filter(p=>weights[p.key]>0);
- const observed=active.filter(p=>p.value!==null);
- const evidenceWeight=observed.reduce((sum,p)=>sum+weights[p.key],0);
- const coverage=total>0?percent(evidenceWeight/total*100):0;
- const missing:string[]=active.filter(p=>p.value===null).map(p=>p.key==='growth'?'Revenue growth':p.key==='fcf'?'FCF margin':p.key==='profit'?'Net margin':'Automatic FY P/E');
- const reasons=observed.map(p=>(p.key==='growth'?'Revenue growth':p.key==='fcf'?'Free cash flow margin':p.key==='profit'?'Net margin':'SEC earnings / IEX close FY P/E')+': '+(p.value===null?'unknown':p.value.toFixed(2))+(p.key==='pe'?'x':'%'));
- if(metrics.year===null)missing.push('SEC fiscal-year revenue');
- if(stale)missing.push('Fresh SEC fiscal financials');
- const hasCore=observed.filter(p=>p.key!=='pe').length>=2;
- const suspicious=metrics.fcfMargin!==null&&metrics.fcfMargin>100;
- if(suspicious)missing.push('FCF exceeds annual revenue — verify issuer accounting concepts and one-off cash flows');
- const eligible=total>0&&coverage>=60&&hasCore&&metrics.year!==null&&!stale&&!suspicious;
- // Missing factors get ZERO weighted credit, not a perfect score.
- const score=eligible?Math.round(observed.reduce((sum,p)=>sum+p.grade*weights[p.key],0)/total):null;
- return {ticker:company.ticker,name:company.name,year:metrics.year,source:company.source,metrics,score,coverage,count:observed.length,reasons,missing,annualFiled};
+  const metrics=deriveRankingMetrics(company,manualPe);
+  const annualFiled=company.metrics.find(m=>m.name==='Revenue')?.values.find(v=>v.year===metrics.year)?.filed??null;
+  const age=annualFiled?Date.now()-Date.parse(annualFiled+'T00:00:00Z'):NaN;
+  const stale=!Number.isFinite(age)||age>550*86400000||age<0;
+  const total=Object.values(weights).reduce((sum,n)=>sum+(finite(n)&&n>0?n:0),0);
+  const points:{key:keyof RankWeights;value:number|null;grade:number}[]=[
+   {key:'growth',value:metrics.growth,grade:metrics.growth===null?0:normalized(metrics.growth,-10,35)},
+   {key:'fcf',value:metrics.fcfMargin,grade:metrics.fcfMargin===null?0:normalized(metrics.fcfMargin,-5,25)},
+   {key:'profit',value:metrics.profitMargin,grade:metrics.profitMargin===null?0:normalized(metrics.profitMargin,-5,25)},
+   {key:'pe',value:metrics.pe,grade:metrics.pe===null?0:metrics.pe<=0?0:cap((60-metrics.pe)/55*100)}
+  ];
+  const active=points.filter(p=>weights[p.key]>0);
+  const observed=active.filter(p=>p.value!==null);
+  const evidenceWeight=observed.reduce((sum,p)=>sum+weights[p.key],0);
+  const coverage=total>0?percent(evidenceWeight/total*100):0;
+  const missing:string[]=active.filter(p=>p.value===null).map(p=>p.key==='growth'?'Revenue growth':p.key==='fcf'?'FCF margin':p.key==='profit'?'Net margin':'Automatic FY P/E');
+  const reasons=observed.map(p=>(p.key==='growth'?'Revenue growth':p.key==='fcf'?'Free cash flow margin':p.key==='profit'?'Net margin':'SEC earnings / IEX close FY P/E')+': '+(p.value===null?'unknown':p.value.toFixed(2))+(p.key==='pe'?'x':'%'));
+  if(metrics.year===null)missing.push('SEC fiscal-year revenue');
+  if(stale)missing.push('Fresh SEC fiscal financials');
+  const hasCore=observed.filter(p=>p.key!=='pe').length>=2;
+  const suspicious=metrics.fcfMargin!==null&&metrics.fcfMargin>100;
+  if(suspicious)missing.push('FCF exceeds annual revenue — verify issuer accounting concepts and one-off cash flows');
+  const eligible=total>0&&coverage>=60&&hasCore&&metrics.year!==null&&!stale&&!suspicious;
+  // Missing factors get ZERO weighted credit, not a perfect score.
+  const score=eligible?Math.round(observed.reduce((sum,p)=>sum+p.grade*weights[p.key],0)/total):null;
+  return {ticker:company.ticker,name:company.name,year:metrics.year,source:company.source,metrics,score,coverage,count:observed.length,reasons,missing,annualFiled};
 }
 export function rankCompanies(data:SecCompany[],weights:RankWeights,pe:Record<string,number|null>={}):Ranked[]{
  return data.map(c=>scoreCompany(c,weights,pe[c.ticker]??null)).sort((a,b)=>(b.score??-1)-(a.score??-1)||b.coverage-a.coverage||a.ticker.localeCompare(b.ticker));
