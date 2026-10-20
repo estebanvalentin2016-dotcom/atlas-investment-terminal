@@ -2,6 +2,7 @@ import {fetchSecJson,publicSecError} from './sec-request-client.mjs';
 const SEC_ROOT='https://data.sec.gov';
 const TICKERS='https://www.sec.gov/files/company_tickers.json';
 const ttl=30*60*1000;
+const REVENUE_TAGS=['Revenues','RevenueFromContractWithCustomerExcludingAssessedTax','RevenueFromContractWithCustomerIncludingAssessedTax','RevenueFromContractWithCustomer','SalesRevenueNet'];
 export function secIndustryClassification(submission,source,retrievedAt,reason='SEC submissions metadata did not include a valid SIC code and description'){
  const rawCode=submission?.sic;
  const code=(typeof rawCode==='string'||typeof rawCode==='number')?String(rawCode).trim():'';
@@ -43,7 +44,7 @@ export function selectFact(facts,tags,unit='USD'){
 // total-revenue series. Prefer the largest eligible standardized annual revenue
 // concept and keep ALL comparison years from that SAME SEC tag.
 export function selectConsolidatedRevenue(facts){
- const tags=['Revenues','RevenueFromContractWithCustomerExcludingAssessedTax','RevenueFromContractWithCustomerIncludingAssessedTax','RevenueFromContractWithCustomer','SalesRevenueNet'];
+ const tags=REVENUE_TAGS;
  const available=tags.map(tag=>({tag,values:annualValues(facts?.['us-gaap']?.[tag])})).filter(x=>x.values.length);
  if(!available.length)return {tag:null,values:[],quality:'missing',selectionNote:'No supported US-GAAP revenue fact found'};
  const year=Math.max(...available.flatMap(x=>x.values.map(v=>v.year)));
@@ -178,6 +179,9 @@ export async function handleSecRequest(req,res){
    submissionResult.error instanceof Error?submissionResult.error.message:'SEC submissions metadata unavailable'
   );
   const revenueSelection=selectConsolidatedRevenue(facts.facts);
+  const revenuePeriod=revenueSelection.values[0];
+  const broaderCapex=annualValues(facts.facts?.['us-gaap']?.PaymentsToAcquireProductiveAssets)
+   .find(value=>value.end===revenuePeriod?.end&&value.accession===revenuePeriod?.accession);
   const metrics=[
    ['Revenue',['Revenues']],
    ['Net income',['NetIncomeLoss']],
@@ -207,8 +211,9 @@ export async function handleSecRequest(req,res){
    ['Latest loans receivable',['LoansAndLeasesReceivableNetReportedAmount','LoansAndLeasesReceivableNetOfDeferredIncome']],
    ['Latest loan-loss allowance',['AllowanceForLoanAndLeaseLosses','FinancingReceivableAllowanceForCreditLosses']],
 
-  ].map(([name,tags])=>{const unit=name==='Diluted EPS'?'USD/shares':name==='Weighted-average diluted shares'||name==='Common shares outstanding (DEI)'?'shares':'USD';const result=name==='Revenue'?revenueSelection:name==='Common shares outstanding (DEI)'?instantOutstandingShares(facts.facts):name.startsWith('Latest ')?latestInstantFact(facts.facts,tags,unit):selectFact(facts.facts,tags,unit);return {name,unit,...result};});
-  json(res,200,{ticker,name:facts.entityName||match.title,cik,source,retrievedAt,sourceCacheStatus:factsResult.cacheStatus,classification,metrics});
+  ].map(([name,tags])=>{const unit=name==='Diluted EPS'?'USD/shares':name==='Weighted-average diluted shares'||name==='Common shares outstanding (DEI)'?'shares':'USD';const result=name==='Revenue'?revenueSelection:name==='Common shares outstanding (DEI)'?instantOutstandingShares(facts.facts):name.startsWith('Latest ')?latestInstantFact(facts.facts,tags,unit):selectFact(facts.facts,tags,unit);const supportedTags=name==='Revenue'?REVENUE_TAGS:tags;return {name,unit,...result,sourceFactPresent:supportedTags.some(tag=>Boolean(facts.facts?.['us-gaap']?.[tag])),excludedBroaderFact:name==='Capital expenditures'&&broaderCapex?{...broaderCapex,tag:'PaymentsToAcquireProductiveAssets'}:undefined};});
+  const factTaxonomies={usGaap:Boolean(facts.facts?.['us-gaap']),ifrsFull:Boolean(facts.facts?.['ifrs-full'])};
+  json(res,200,{ticker,name:facts.entityName||match.title,cik,source,retrievedAt,sourceCacheStatus:factsResult.cacheStatus,classification,factTaxonomies,metrics});
  }catch(e){json(res,503,publicSecError(e,'SEC data temporarily unavailable'));}
  return true;
 }

@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {annualPeFromSec,defaultRankWeights,rankCompanies,deriveRankingMetrics,assessEmergingFcfStrength,type AnnualPe,type MarketValuationClose,type SecCompany,type FcfStrengthAssessment} from './ranking-model';
-import {initialAutonomousScreen,scanCounts,type ScreenResult} from './autonomous-screen';
+import {initialAutonomousScreen,scanCounts,coverageCauseCounts,type ScreenResult} from './autonomous-screen';
 import {writeSavedPasses} from './autonomous-pass-ledger';
 import {flagIndicativeFyValuation} from './valuation-triage';
 import {buildDiscoveryBriefing,type DiscoveryBriefingInput,type DiscoveryBriefingSnapshot} from './discovery-briefing-model';
@@ -13,6 +13,7 @@ import {assessPriceHistory,combineResearchPriority,type HistoricalPriceResponse,
 import {appendIndustryComparabilityLimitations} from './industry-classification';
 import {buildResearchHistoryRecords,createResearchHistoryRunId} from './research-history-model';
 import {appendBrowserResearchHistory} from './research-history-storage';
+import {reportedFinancialEvidence} from './reported-financial-evidence';
 type Listed={ticker:string;name:string;cik:number};
 type UniversePage={total:number;start:number;nextCursor:number;completedCycle:boolean;rows:Listed[];indexUrl:string;retrievedAt:string;error?:string;seedTickersUsed:boolean;scope:string};
 type Candidate={company:SecCompany;screen:ScreenResult;valuation:AnnualPe|null;quote:MarketValuationClose|null;priceIssue:string|null;history:HistoricalPriceResponse|null;trend:PriceHistoryAssessment;historyIssue:string|null;priority:{score:number|null;priceWeighted:boolean}};
@@ -174,6 +175,7 @@ const [cursor,setCursor]=useState(initialCursor);
    }finally{setBusy(false)}
  }
  const summary=scanCounts(screened,failed.length,allListed.length);
+ const coverage=coverageCauseCounts(screened,failed.length);
  return <section className="panel real-panel atlas-autonomous-discovery">
   <div className="panel-head"><div><span className="eyebrow">ATLAS / AUTONOMOUS INVESTMENT DISCOVERY</span><h3>Discover companies without entering a ticker</h3></div><span className="tag">Real SEC universe · Initial research stage</span></div>
   <p className="description"><strong>ATLAS chooses the companies to examine.</strong> Each scan draws the next batch from the public SEC company index, checks actual annual financials and investigates the leading preliminary matches. No favorite ticker list drives discovery.</p>
@@ -193,7 +195,8 @@ const [cursor,setCursor]=useState(initialCursor);
    {done&&<div className="atlas-autonomous-funnel">
     <strong>Screening audit · this run only</strong>
     <p><strong>{summary.enumerated}</strong> enumerated → <strong>{summary.financialRecordsChecked}</strong> annual SEC records checked → <strong>{summary.preliminary}</strong> preliminary financial passes → <strong>{quotesChecked}</strong> completed-price lookups attempted → <strong>0</strong> fully verified high-conviction investments.</p>
-    <p className="chart-note">Other financial-screen outcomes: {summary.failed} below provisional thresholds, {summary.incomplete} missing required accounting values, {summary.stale} stale annual financials, {summary.accountingReview} accounting-review flags, {summary.sourceFailures} blocked/failed SEC sources. Up to eight preliminarily eligible companies receive valuation and split-adjusted long-term price research. Price signals affect only this provisional subset.</p>
+    <p className="chart-note">Other financial-screen outcomes: {summary.failed} below provisional thresholds, {summary.incomplete} requiring accounting reconciliation for this screen, {summary.stale} stale or unestablished annual records, {summary.accountingReview} accounting-review flags, {summary.sourceFailures} blocked/failed SEC sources. Up to eight preliminarily eligible companies receive valuation and split-adjusted long-term price research. Price signals affect only this provisional subset.</p>
+    <p className="chart-note"><strong>Unresolved screening evidence, this run:</strong> {coverage.absentSourceFact} issuer(s) without a supported source fact, {coverage.unsupportedTaxonomy} with an unsupported IFRS-only taxonomy, {coverage.incompatibleFiscalPeriods} with nonmatching or nonqualifying annual periods, {coverage.missingComparablePriorYear} without a comparable prior revenue year, {coverage.unusableValue} with a nonpositive or invalid required value, {coverage.sourcePresenceUnknown} without source-tag metadata, and {coverage.sourceRetrievalFailure} source retrieval failure(s). Causes can overlap for one issuer. {coverage.incompleteWithObservedFailures} incomplete issuer(s) also have an independently observable threshold failure; incomplete is not a pass.</p>
    </div>}
 {done&&<div className="atlas-autonomous-leads">
      <h4>Research priorities from this independently discovered run</h4>
@@ -265,7 +268,7 @@ const [cursor,setCursor]=useState(initialCursor);
         </div>
       )}
    {done&&failed.length>0&&<details className="atlas-details"><summary>Source failures ({failed.length})</summary>{failed.map((x,i)=><p key={x.ticker+'-'+i}><strong>{x.ticker}:</strong> {x.reason}</p>)}</details>}
-   {done&&<details className="atlas-details"><summary>Every issuer scanned and why it passed or failed</summary>{allListed.map(row=>{const match=screened.find(s=>s.ticker===row.ticker),issue=failed.find(f=>f.ticker===row.ticker);return <p key={row.cik}><strong>{row.ticker} · {row.name}</strong> — {match?match.status.replaceAll('_',' ')+(match.reasons.length?' ('+match.reasons.join('; ')+')':''):issue?'SEC source unavailable: '+issue.reason:'Not examined'} · CIK {row.cik}</p>})}</details>}
+   {done&&<details className="atlas-details"><summary>Every issuer scanned and why it passed or failed</summary>{allListed.map(row=>{const match=screened.find(s=>s.ticker===row.ticker),issue=failed.find(f=>f.ticker===row.ticker),record=researchRecords.find(item=>item.company.ticker===row.ticker);const evidence=record?reportedFinancialEvidence(record.company):null;return <p key={row.cik}><strong>{row.ticker} · {row.name}</strong> — {match?match.status.replaceAll('_',' ')+(match.reasons.length?' ('+match.reasons.join('; ')+')':''):issue?'SEC source retrieval failed: '+issue.reason:'Not examined'} · CIK {row.cik}{match?.status==='incomplete_financials'&&evidence&&<> · <strong>SEC-reported FY figures:</strong> revenue {dollars(evidence.revenue?.value??null)}, net income {dollars(evidence.netIncome?.value??null)}, operating cash flow {dollars(evidence.operating?.value??null)}{evidence.productiveAssets&&`, property/equipment/intangible-asset purchases ${dollars(evidence.productiveAssets.value)} (accession ${evidence.productiveAssets.accession})`}{evidence.cashAfterProductiveAssets!==null&&`, cash after those purchases ${dollars(evidence.cashAfterProductiveAssets)} (separate from ATLAS screening FCF)`}. <a href={record!.company.source} target="_blank" rel="noopener noreferrer">SEC tagged facts ↗</a></>}</p>})}</details>}
   </div>}
  </section>;
 }

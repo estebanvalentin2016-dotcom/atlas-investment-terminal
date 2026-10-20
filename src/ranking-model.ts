@@ -1,12 +1,12 @@
 // Transparent first-stage SEC research ranking. Not a statistically validated
 // return model. Missing inputs never earn points and are ALWAYS disclosed.
 export type Annual={year:number;end:string;filed:string;value:number;form:string;accession:string;tag?:string};
-export type SecMetric={name:string;values:Annual[];tag?:string|null;quality?:string;selectionNote?:string;alternativeTags?:string[]};
+export type SecMetric={name:string;values:Annual[];tag?:string|null;quality?:string;selectionNote?:string;alternativeTags?:string[];sourceFactPresent?:boolean;excludedBroaderFact?:Annual};
 type SecIndustryBase={system:'SEC SIC';source:string;retrievedAt:string};
 export type SecIndustryClassification=
  | SecIndustryBase&{status:'reported';code:string;description:string}
  | SecIndustryBase&{status:'unavailable';code:null;description:null;reason:string};
-export type SecCompany={ticker:string;name:string;cik?:string;source:string;retrievedAt:string;classification?:SecIndustryClassification;metrics:SecMetric[]};
+export type SecCompany={ticker:string;name:string;cik?:string;source:string;retrievedAt:string;classification?:SecIndustryClassification;factTaxonomies?:{usGaap:boolean;ifrsFull:boolean};metrics:SecMetric[]};
 export type RankWeights={growth:number;fcf:number;profit:number;pe:number};
 export type RankMetrics={year:number|null;growth:number|null;fcfMargin:number|null;profitMargin:number|null;pe:number|null;fcf:number|null;revenue:number|null;capex:number|null};
 export type Ranked={ticker:string;name:string;year:number|null;source:string;metrics:RankMetrics;score:number|null;coverage:number;count:number;reasons:string[];missing:string[];annualFiled:string|null};

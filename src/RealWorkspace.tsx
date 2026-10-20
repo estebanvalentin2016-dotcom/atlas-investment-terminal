@@ -4,7 +4,8 @@ import SavedResearchContext from './SavedResearchContext';
 import {readResearchContext} from './watchlist-research';
 import {useEffect,useRef,useState,type FormEvent} from 'react';
 import CompanyComparison from './CompanyComparison';
-import {deriveRankingMetrics,type SecCompany} from './ranking-model';
+import type {SecCompany} from './ranking-model';
+import {reportedFinancialEvidence} from './reported-financial-evidence';
 import {industryComparabilityLimitations} from './industry-classification';
 import DiscoveryBriefingPanel from './DiscoveryBriefingPanel';
 import './research-workspace.css';
@@ -18,6 +19,27 @@ const dateTime=(value:string)=>{
  const date=new Date(value);
  return Number.isNaN(date.getTime())?'Unavailable':new Intl.DateTimeFormat('en-US',{year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZone:'UTC',timeZoneName:'short'}).format(date);
 };
+
+export function ReportedFundamentals({company}:{company:SecCompany}){
+ const {metrics,revenue,operating,netIncome,productiveAssets,cashAfterProductiveAssets}=reportedFinancialEvidence(company);
+ const review='Needs filing review';
+ return <section className="atlas-research-section" aria-labelledby="reported-fundamentals">
+  <div className="atlas-research-section-heading"><span>01</span><div><small>Reported fundamentals</small><h4 id="reported-fundamentals">What the annual filings support</h4></div></div>
+  <dl className="atlas-research-metrics">
+   <div><dt>Annual revenue</dt><dd>{revenue?money(revenue.value):review}</dd></div>
+   <div><dt>Revenue growth</dt><dd className={tone(metrics.growth)}>{metrics.growth===null?review:change(metrics.growth)}</dd></div>
+   <div><dt>Reported net income</dt><dd className={tone(netIncome?.value??null)}>{netIncome?money(netIncome.value):review}</dd></div>
+   <div><dt>Net margin</dt><dd className={tone(metrics.profitMargin)}>{metrics.profitMargin===null?review:change(metrics.profitMargin)}</dd></div>
+   <div><dt>Reported operating cash flow</dt><dd className={tone(operating?.value??null)}>{operating?money(operating.value):review}</dd></div>
+   {productiveAssets&&<div><dt>Reported property, equipment and intangible-asset purchases</dt><dd>{money(productiveAssets.value)}</dd></div>}
+   {cashAfterProductiveAssets!==null&&<div><dt>Cash after those reported purchases</dt><dd className={tone(cashAfterProductiveAssets)}>{money(cashAfterProductiveAssets)}</dd></div>}
+   {metrics.fcf!==null&&<div><dt>Derived free cash flow</dt><dd className={tone(metrics.fcf)}>{money(metrics.fcf)}</dd></div>}
+   {metrics.fcfMargin!==null&&<div><dt>FCF margin</dt><dd className={tone(metrics.fcfMargin)}>{change(metrics.fcfMargin)}</dd></div>}
+   {metrics.fcf===null&&!productiveAssets&&<div><dt>Screening cash-spending basis</dt><dd>{review}</dd></div>}
+  </dl>
+  <p className="atlas-research-method"><strong>{revenue?`Fiscal year ${revenue.year}, ended ${revenue.end}.`:'Fiscal-year revenue needs filing review.'}</strong> ATLAS screening FCF uses operating cash flow less the narrower SEC PP&amp;E cash-purchases concept. {productiveAssets?`The issuer also reported a broader property, equipment and intangible-asset purchase line (SEC tag ${productiveAssets.tag}, accession ${productiveAssets.accession}). Cash after those purchases is shown separately; it is not substituted into the existing FCF screen.`:'When the required SEC concepts or comparable periods cannot be reconciled, ATLAS does not infer a value.'} <a href={company.source} target="_blank" rel="noopener noreferrer">Inspect SEC tagged facts ↗</a></p>
+ </section>;
+}
 
 export function createRequestSequence(){
  let latest=0;
@@ -75,7 +97,6 @@ export default function RealWorkspace({mode,defaultTicker='BLK',onView,onConvict
   setShowComparison(false);
   setComparison(old=>selectComparison(old,ticker));
  }
- const fundamentals=company?deriveRankingMetrics(company):null;
  const limitations=company?industryComparabilityLimitations(company.classification):[];
  const isResearch=mode==='research';
 
@@ -123,17 +144,7 @@ export default function RealWorkspace({mode,defaultTicker='BLK',onView,onConvict
 
     <div className="atlas-research-flow">
      <main>
-      <section className="atlas-research-section" aria-labelledby="reported-fundamentals">
-       <div className="atlas-research-section-heading"><span>01</span><div><small>Reported fundamentals</small><h4 id="reported-fundamentals">What the annual filings support</h4></div></div>
-       <dl className="atlas-research-metrics">
-        <div><dt>Annual revenue</dt><dd>{money(fundamentals?.revenue??null)}</dd></div>
-        <div><dt>Revenue growth</dt><dd className={tone(fundamentals?.growth??null)}>{change(fundamentals?.growth??null)}</dd></div>
-        <div><dt>Derived free cash flow</dt><dd className={tone(fundamentals?.fcf??null)}>{money(fundamentals?.fcf??null)}</dd></div>
-        <div><dt>FCF margin</dt><dd className={tone(fundamentals?.fcfMargin??null)}>{change(fundamentals?.fcfMargin??null)}</dd></div>
-        <div><dt>Net margin</dt><dd className={tone(fundamentals?.profitMargin??null)}>{change(fundamentals?.profitMargin??null)}</dd></div>
-       </dl>
-       <p className="atlas-research-method"><strong>Fiscal year {fundamentals?.year??'unavailable'}.</strong> Free cash flow is derived from SEC-reported operating cash flow less capital expenditures. Nonstandard GAAP tags and missing periods remain unresolved rather than estimated.</p>
-      </section>
+      <ReportedFundamentals company={company}/>
 
       <section className="atlas-research-section" aria-labelledby="research-conclusion">
        <div className="atlas-research-section-heading"><span>05</span><div><small>Research conclusion</small><h4 id="research-conclusion">Record the case that would survive challenge</h4></div></div>
