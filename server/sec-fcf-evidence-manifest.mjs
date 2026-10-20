@@ -41,12 +41,19 @@ export function buildSecFcfEvidenceManifestV1({companyFacts,submissions,cik,fili
  const url=filingUrl(cik,filing);
  const normalized=normalizeSecFinancialFacts(companyFacts,{cik,concepts:CONCEPTS,filingUrls:url?{[filingAccession]:url}:{}});
  const accessionFacts=normalized.filter(fact=>fact.accession===filingAccession);
- const operating=accessionFacts.filter(fact=>GROUPS.operatingCashFlow.includes(fact.concept)&&fact.periodEnd===filing.reportDate);
+ const periodEnd=isoDay(filing.reportDate)?filing.reportDate:null;
+ const operating=accessionFacts.filter(fact=>GROUPS.operatingCashFlow.includes(fact.concept)&&fact.periodEnd===periodEnd);
  const starts=distinct(operating.map(fact=>fact.periodStart));
  const periodStart=starts.length===1?starts[0]:null;
- const periodEnd=isoDay(filing.reportDate)?filing.reportDate:null;
+ const fiscalYears=distinct(operating.map(fact=>fact.fiscalYear));
+ const fiscalYear=fiscalYears.length===1?fiscalYears[0]:null;
  const selected=periodStart&&periodEnd?accessionFacts.filter(fact=>fact.periodStart===periodStart&&fact.periodEnd===periodEnd):[];
- const incompatible=accessionFacts.filter(fact=>!selected.includes(fact));
+ // Annual filings normally include prior-year columns under the same accession.
+ // Preserve those comparatives, but never use them as target-period inputs.
+ const historicalComparatives=periodEnd?accessionFacts.filter(fact=>fact.periodEnd<periodEnd):[];
+ const incompatible=periodEnd?accessionFacts.filter(fact=>
+  fact.periodEnd>periodEnd||(fact.periodEnd===periodEnd&&fact.periodStart!==periodStart)||
+  (selected.includes(fact)&&fiscalYear!==null&&fact.fiscalYear!==fiscalYear)):[];
  const samePeriod=periodStart&&periodEnd?normalized.filter(fact=>fact.accession!==filingAccession&&fact.periodStart===periodStart&&fact.periodEnd===periodEnd):[];
  const relatedFilings=rows.filter(row=>row.accession!==filingAccession&&row.reportDate===filing.reportDate&&['10-K','10-K/A'].includes(row.form));
  const issues=[];
@@ -59,8 +66,9 @@ export function buildSecFcfEvidenceManifestV1({companyFacts,submissions,cik,fili
  if(selected.some(fact=>fact.filedDate>asOfDate))issues.push(note('fact_not_available_as_of','At least one selected fact was filed after the requested assessment day.'));
  if(selected.some(fact=>fact.form!==filing.form||fact.filedDate!==filing.filedDate))
   issues.push(note('filing_metadata_conflict','Company Facts form or filing date differs from the selected submissions record.'));
- if(starts.length!==1)issues.push(note('operating_period_unverified','The selected filing has no unique annual operating-cash-flow start and end.',operating));
- if(incompatible.length)issues.push(note('incompatible_period','Some same-accession observations use another fiscal period.',incompatible));
+ if(starts.length!==1||fiscalYears.length!==1||fiscalYear===null)
+  issues.push(note('operating_period_unverified','The selected filing has no unique annual operating-cash-flow period and fiscal-year designation.',operating));
+ if(incompatible.length)issues.push(note('incompatible_period','Some target-period observations conflict on fiscal dates or fiscal-year designation.',incompatible));
  if(!selected.some(fact=>GROUPS.operatingCashFlow.includes(fact.concept)))issues.push(note('operating_cash_flow_missing','No compatible annual operating-cash-flow observation was available.'));
  const purchases=selected.filter(fact=>PURCHASES.has(fact.concept));
  if(!purchases.length)issues.push(note('cash_purchase_fact_missing','No supported cash-purchase concept was reported for this annual period.'));
@@ -96,7 +104,8 @@ export function buildSecFcfEvidenceManifestV1({companyFacts,submissions,cik,fili
  if(suppliedLines.length)issues.push(note('financing_asset_payment_review','Caller-supplied financing-section payments may be relevant but require filing review.'));
  if(!sic||!/^\d{4}$/.test(sic))issues.push(note('industry_unverified','SEC submissions did not provide a valid four-digit SIC.'));
  issues.push(note('caption_and_completeness_review','SEC tags alone do not establish cash-flow section, economic equivalence, or complete productive spending.'));
- const overflow=selected.length+samePeriod.length>MAX_FACTS||incompatible.length>MAX_FACTS||relatedFilings.length>MAX_FACTS||suppliedLines.length>MAX_FACTS;
+ const overflow=selected.length+samePeriod.length>MAX_FACTS||historicalComparatives.length>MAX_FACTS||
+  incompatible.length>MAX_FACTS||relatedFilings.length>MAX_FACTS||suppliedLines.length>MAX_FACTS;
  if(overflow)issues.push(note('manifest_truncated','The bounded evidence output is incomplete; it must not feed a calculation.'));
  const unusableContext=new Set(['not_available_as_of','fact_not_available_as_of','filing_metadata_conflict','filing_date_missing',
   'operating_period_unverified','incompatible_period','manifest_truncated']);
@@ -104,10 +113,11 @@ export function buildSecFcfEvidenceManifestV1({companyFacts,submissions,cik,fili
  const source={companyFactsUrl:`https://data.sec.gov/api/xbrl/companyfacts/CIK${String(cik).padStart(10,'0')}.json`,submissionsUrl:`https://data.sec.gov/submissions/CIK${String(cik).padStart(10,'0')}.json`,retrievedAt};
  return {
   ok:true,version:SEC_FCF_MANIFEST_VERSION,status:'review_required',cik,reportingEntity:companyFacts.entityName??null,
-  accession:filingAccession,filing:{...filing,url,acceptedAt},period:{start:periodStart,end:periodEnd,currency:'USD'},asOfDate,source,
+  accession:filingAccession,filing:{...filing,url,acceptedAt},period:{start:periodStart,end:periodEnd,fiscalYear,currency:'USD'},asOfDate,source,
   secClassification:/^\d{4}$/.test(sic)?{status:'reported',code:sic,description:submissions.sicDescription??null,sourceUrl:source.submissionsUrl}:{status:'unavailable',code:null,description:null,sourceUrl:source.submissionsUrl},
   observations:{operatingCashFlow:group('operatingCashFlow'),cashPurchases:group('cashPurchases'),possibleFinancingAssetPayments:funding.slice(0,MAX_FACTS),
    mixedBusinessIndicators:finance.slice(0,MAX_FACTS),contextualFacts:group('contextualFacts'),reportedZeros:selected.filter(fact=>fact.value===0).slice(0,MAX_FACTS),
+   historicalComparatives:historicalComparatives.slice(0,MAX_FACTS),
    incompatiblePeriod:incompatible.slice(0,MAX_FACTS),samePeriodOtherFilings:samePeriod.slice(0,MAX_FACTS),
    callerSuppliedFilingLines:suppliedLines.slice(0,MAX_FACTS)},
   relatedFilings:relatedFilings.slice(0,MAX_FACTS),reviewRequired:issues,

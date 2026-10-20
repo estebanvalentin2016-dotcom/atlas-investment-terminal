@@ -39,7 +39,7 @@ describe('filing-bound SEC FCF evidence manifest',()=>{
   expect(manifest.cik).toBe(c.cik);
   expect(manifest.filing.url).toBe(url(c));
   expect(manifest.filing.acceptedAt).toBe(c.accepted);
-  expect(manifest.period).toEqual({start:c.start,end:c.end,currency:'USD'});
+  expect(manifest.period).toEqual({start:c.start,end:c.end,fiscalYear:Number(c.end.slice(0,4)),currency:'USD'});
   const observed=[...Object.values(manifest.observations).flat()].filter((fact:any)=>fact.concept);
   for(const [concept,value] of Object.entries(c.values)){
    expect(observed.some((fact:any)=>fact.concept===concept&&fact.value===value&&fact.unit==='USD'&&fact.accession===c.accession&&fact.filingUrl===url(c))).toBe(true);
@@ -53,7 +53,33 @@ describe('filing-bound SEC FCF evidence manifest',()=>{
   expect(m.observations.operatingCashFlow.map((f:any)=>[f.concept,f.value,f.scope.operations])).toEqual(expect.arrayContaining([
    [OCF,7709000000,'total'],['NetCashProvidedByUsedInOperatingActivitiesContinuingOperations',6493000000,'continuing'],['CashProvidedByUsedInOperatingActivitiesDiscontinuedOperations',1216000000,'discontinued']]));
   expect(codes(m)).toContain('discontinued_operations_scope');
+  expect(codes(m)).not.toContain('incompatible_period');
   expect(m.observations.contextualFacts.some((f:any)=>f.concept==='PaymentsForProceedsFromProductiveAssets')).toBe(true);
+ });
+ it.each<{caseIndex:number;years:Array<{start:string;end:string;fy:number;ocf:number;spending:number}>}>([
+  // SEC Company Facts `fy` identifies the filing's fiscal year even for its prior-year columns.
+  {caseIndex:0,years:[
+   {start:'2024-01-29',end:'2025-01-26',fy:2026,ocf:64089000000,spending:3236000000},
+   {start:'2023-01-30',end:'2024-01-28',fy:2026,ocf:28090000000,spending:1069000000}]},
+  {caseIndex:6,years:[
+   {start:'2024-01-01',end:'2024-12-31',fy:2025,ocf:6805000000,spending:2064000000},
+   {start:'2023-01-01',end:'2023-12-31',fy:2025,ocf:11599000000,spending:1852000000}]}
+ ])('retains genuine $caseIndex comparative-year columns as history, not target conflicts',({caseIndex,years})=>{
+  const base=inputs(cases[caseIndex]);
+  const spending=caseIndex===0?AGG:PPE;
+  for(const concept of [OCF,spending]){
+   const rows=base.companyFacts.facts['us-gaap'][concept].units.USD;
+   for(const year of years)rows.push({...rows[0],start:year.start,end:year.end,fy:year.fy,
+    val:concept===OCF?year.ocf:year.spending});
+  }
+  const m=buildSecFcfEvidenceManifestV1(base);
+  expect(m.observations.historicalComparatives).toHaveLength(4);
+  expect(m.observations.historicalComparatives.every((f:any)=>f.periodEnd<cases[caseIndex].end)).toBe(true);
+  expect(m.observations.historicalComparatives.every((f:any)=>f.fiscalYear===Number(cases[caseIndex].end.slice(0,4)))).toBe(true);
+  expect(m.observations.incompatiblePeriod).toHaveLength(0);
+  expect(codes(m)).not.toContain('incompatible_period');
+  expect(m.candidateContext).not.toBeNull();
+  expect(m.candidateContext.facts.every((f:any)=>f.periodEnd===cases[caseIndex].end)).toBe(true);
  });
  it('retains CRWD reported zero and treats software additions as context, not cash spending',()=>{
   const m=buildSecFcfEvidenceManifestV1(inputs(cases[2]));
@@ -87,6 +113,14 @@ describe('filing-bound SEC FCF evidence manifest',()=>{
   base.companyFacts.facts['us-gaap'][PPE]={units:{USD:[{...usd(AGG)[0],val:5000000000},{...usd(AGG)[0],start:'2025-02-01',val:1}]}};
   const m=buildSecFcfEvidenceManifestV1(base);
   expect(codes(m)).toEqual(expect.arrayContaining(['aggregate_component_overlap','conflicting_facts','incompatible_period']));
+ });
+ it('blocks a target-year spending fact with a conflicting fiscal-year designation',()=>{
+  const base=inputs(cases[6]);
+  base.companyFacts.facts['us-gaap'][PPE].units.USD[0].fy=2024;
+  const m=buildSecFcfEvidenceManifestV1(base);
+  expect(codes(m)).toContain('incompatible_period');
+  expect(m.observations.incompatiblePeriod).toEqual(expect.arrayContaining([expect.objectContaining({concept:PPE,fiscalYear:2024})]));
+  expect(m.candidateContext).toBeNull();
  });
  it('flags later amended/restated facts without substituting them into the chosen accession',()=>{
   const base=inputs(cases[6]);
