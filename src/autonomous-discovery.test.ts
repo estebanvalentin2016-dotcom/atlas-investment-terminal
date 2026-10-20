@@ -5,7 +5,7 @@ import {initialAutonomousScreen,scanCounts} from './autonomous-screen';
 import {flagIndicativeFyValuation} from './valuation-triage';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import AutonomousDiscovery from './AutonomousDiscovery';
+import AutonomousDiscovery,{financialScreenOutcomeSummary} from './AutonomousDiscovery';
 import ResearchHome from './ResearchHome';
 import App from './App';
 import {SecondaryNavigation} from './WorkspaceNavigation';
@@ -122,6 +122,19 @@ describe('Autonomous first-stage evidence screening',()=>{
  it('reports a count for every screening stage without inventing a qualifying buy verdict',()=>{
   const records=[{...initialAutonomousScreen(company(),'2026-10-15'),status:'preliminary_pass' as const},{...initialAutonomousScreen(company(),'2026-10-15'),status:'incomplete_financials' as const}];
   expect(scanCounts(records,2,4)).toEqual({enumerated:4,financialRecordsChecked:2,sourceFailures:2,preliminary:1,incomplete:1,failed:0,stale:0,accountingReview:0});
+ });
+ it('describes incomplete evidence without implying every issuer needs accounting reconciliation',()=>{
+  const records=[
+   {...initialAutonomousScreen(company(),'2026-10-15'),status:'incomplete_financials' as const},
+   {...initialAutonomousScreen(company(),'2026-10-15'),status:'failed_thresholds' as const},
+   {...initialAutonomousScreen(company(),'2026-10-15'),status:'stale_financials' as const}
+  ];
+  const summary=financialScreenOutcomeSummary(scanCounts(records,1,4));
+  expect(summary).toContain('1 with incomplete financial evidence');
+  expect(summary).toContain('1 below provisional thresholds');
+  expect(summary).toContain('1 stale or unestablished annual records');
+  expect(summary).toContain('1 blocked/failed SEC sources');
+  expect(summary).not.toContain('requiring accounting reconciliation');
  });
 });
 describe('Preliminary valuation evidence warnings',()=>{

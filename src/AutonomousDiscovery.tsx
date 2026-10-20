@@ -24,6 +24,7 @@ const money=(n:number|null)=>n===null?'N/A':new Intl.NumberFormat('en-US',{style
 const dollars=(n:number|null)=>n===null?'N/A':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(n);
 const pct=(n:number|null)=>n===null?'N/A':(n>=0?'+':'')+n.toFixed(1)+'%';
 const easternDate=()=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const x=Object.fromEntries(p.filter(k=>k.type!=='literal').map(k=>[k.type,k.value]));return x.year+'-'+x.month+'-'+x.day};
+export const financialScreenOutcomeSummary=(summary:ReturnType<typeof scanCounts>)=>`Other financial-screen outcomes: ${summary.failed} below provisional thresholds, ${summary.incomplete} with incomplete financial evidence, ${summary.stale} stale or unestablished annual records, ${summary.accountingReview} accounting-review flags, ${summary.sourceFailures} blocked/failed SEC sources.`;
 export default function AutonomousDiscovery({onResearch,onConviction}:{onResearch?:(ticker:string)=>void;onConviction?:(ticker:string)=>void}){
 const [cursor,setCursor]=useState(initialCursor);
   const [universe,setUniverse]=useState<UniversePage|null>(null);
@@ -195,7 +196,7 @@ const [cursor,setCursor]=useState(initialCursor);
    {done&&<div className="atlas-autonomous-funnel">
     <strong>Screening audit · this run only</strong>
     <p><strong>{summary.enumerated}</strong> enumerated → <strong>{summary.financialRecordsChecked}</strong> annual SEC records checked → <strong>{summary.preliminary}</strong> preliminary financial passes → <strong>{quotesChecked}</strong> completed-price lookups attempted → <strong>0</strong> fully verified high-conviction investments.</p>
-    <p className="chart-note">Other financial-screen outcomes: {summary.failed} below provisional thresholds, {summary.incomplete} requiring accounting reconciliation for this screen, {summary.stale} stale or unestablished annual records, {summary.accountingReview} accounting-review flags, {summary.sourceFailures} blocked/failed SEC sources. Up to eight preliminarily eligible companies receive valuation and split-adjusted long-term price research. Price signals affect only this provisional subset.</p>
+    <p className="chart-note">{financialScreenOutcomeSummary(summary)} Up to eight preliminarily eligible companies receive valuation and split-adjusted long-term price research. Price signals affect only this provisional subset.</p>
     <p className="chart-note"><strong>Unresolved screening evidence, this run:</strong> {coverage.absentSourceFact} issuer(s) without a supported source fact, {coverage.unsupportedTaxonomy} with an unsupported IFRS-only taxonomy, {coverage.incompatibleFiscalPeriods} with nonmatching or nonqualifying annual periods, {coverage.missingComparablePriorYear} without a comparable prior revenue year, {coverage.unusableValue} with a nonpositive or invalid required value, {coverage.sourcePresenceUnknown} without source-tag metadata, and {coverage.sourceRetrievalFailure} source retrieval failure(s). Causes can overlap for one issuer. {coverage.incompleteWithObservedFailures} incomplete issuer(s) also have an independently observable threshold failure; incomplete is not a pass.</p>
    </div>}
 {done&&<div className="atlas-autonomous-leads">
