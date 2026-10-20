@@ -1,27 +1,39 @@
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import {coverageCauseCounts,diagnoseFinancialCoverage,initialAutonomousScreen} from './autonomous-screen';
-import {deriveRankingMetrics,type SecCompany} from './ranking-model';
+import {assessEmergingFcfStrength,deriveRankingMetrics,type SecCompany} from './ranking-model';
 import {reportedFinancialEvidence} from './reported-financial-evidence';
 import {ReportedFundamentals} from './RealWorkspace';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 // @ts-ignore JavaScript-only SEC backend module is tested directly.
-import {handleSecRequest} from '../server/sec-api.mjs';
+import {annualValues,handleSecRequest} from '../server/sec-api.mjs';
 
 const filings=[
- {ticker:'NVDA',cik:1045810,name:'NVIDIA CORP',year:2026,start:'2025-01-27',end:'2026-01-25',priorEnd:'2025-01-26',filed:'2026-02-25',accession:'0001045810-26-000021',revenueTag:'Revenues',revenue:215938000000,priorRevenue:130497000000,operating:102718000000,net:120067000000,capex:null,productiveAssets:6042000000},
- {ticker:'AMD',cik:2488,name:'ADVANCED MICRO DEVICES INC',year:2025,start:'2024-12-29',end:'2025-12-27',priorEnd:'2024-12-28',filed:'2026-02-04',accession:'0000002488-26-000018',revenueTag:'RevenueFromContractWithCustomerExcludingAssessedTax',revenue:34639000000,priorRevenue:25785000000,operating:7709000000,net:4335000000,capex:974000000,productiveAssets:null},
- {ticker:'CRWD',cik:1535527,name:'CrowdStrike Holdings, Inc.',year:2026,start:'2025-02-01',end:'2026-01-31',priorEnd:'2025-01-31',filed:'2026-03-05',accession:'0001535527-26-000010',revenueTag:'RevenueFromContractWithCustomerIncludingAssessedTax',revenue:4812005000,priorRevenue:3953624000,operating:1612349000,net:-162502000,capex:302108000,productiveAssets:null}
+ {ticker:'NVDA',cik:1045810,name:'NVIDIA CORP',year:2026,start:'2025-01-27',end:'2026-01-25',priorStart:'2024-01-29',priorEnd:'2025-01-26',filed:'2026-02-25',accession:'0001045810-26-000021',revenueTag:'Revenues',revenue:215938000000,priorRevenue:130497000000,operating:102718000000,net:120067000000,capex:null,productiveAssets:6042000000},
+ {ticker:'AMD',cik:2488,name:'ADVANCED MICRO DEVICES INC',year:2025,start:'2024-12-29',end:'2025-12-27',priorStart:'2023-12-31',priorEnd:'2024-12-28',filed:'2026-02-04',accession:'0000002488-26-000018',revenueTag:'RevenueFromContractWithCustomerExcludingAssessedTax',revenue:34639000000,priorRevenue:25785000000,operating:7709000000,net:4335000000,capex:974000000,productiveAssets:null,continuingOperating:6493000000,discontinuedOperating:1216000000,continuingNet:4269000000,discontinuedNet:66000000,discontinuedCapexInFiling:38000000},
+ {ticker:'CRWD',cik:1535527,name:'CrowdStrike Holdings, Inc.',year:2026,start:'2025-02-01',end:'2026-01-31',priorStart:'2024-02-01',priorEnd:'2025-01-31',filed:'2026-03-05',accession:'0001535527-26-000010',revenueTag:'RevenueFromContractWithCustomerIncludingAssessedTax',revenue:4812005000,priorRevenue:3953624000,operating:1612349000,net:-162502000,capex:302108000,productiveAssets:null,consolidatedNet:-161165000,noncontrollingNet:1337000,capitalizedSoftware:68751000}
 ] as const;
 
 const annual=(row:typeof filings[number],value:number,end:string=row.end,start:string=row.start)=>({form:'10-K',fp:'FY',start,end,filed:row.filed as string,accn:row.accession as string,val:value});
 const fact=(...values:ReturnType<typeof annual>[])=>({units:{USD:values}});
 function rawFacts(row:typeof filings[number]){
  const gaap:Record<string,unknown>={
-  [row.revenueTag]:fact(annual(row,row.revenue),annual(row,row.priorRevenue,row.priorEnd,'2024-01-01')),
+  [row.revenueTag]:fact(annual(row,row.revenue),annual(row,row.priorRevenue,row.priorEnd,row.priorStart)),
   NetCashProvidedByUsedInOperatingActivities:fact(annual(row,row.operating)),
   NetIncomeLoss:fact(annual(row,row.net))
  };
+ if(row.ticker==='AMD'){
+  gaap.NetCashProvidedByUsedInOperatingActivitiesContinuingOperations=fact(annual(row,row.continuingOperating));
+  gaap.CashProvidedByUsedInOperatingActivitiesDiscontinuedOperations=fact(annual(row,row.discontinuedOperating));
+  gaap.IncomeLossFromContinuingOperations=fact(annual(row,row.continuingNet));
+  gaap.IncomeLossFromDiscontinuedOperationsNetOfTaxAttributableToReportingEntity=fact(annual(row,row.discontinuedNet));
+ }
+ if(row.ticker==='CRWD'){
+  gaap.ProfitLoss=fact(annual(row,row.consolidatedNet));
+  gaap.NetIncomeLossAttributableToNoncontrollingInterest=fact(annual(row,row.noncontrollingNet));
+  gaap.PaymentsToDevelopSoftware=fact(annual(row,row.capitalizedSoftware));
+  gaap.PaymentsToAcquireIntangibleAssets=fact(annual(row,0));
+ }
  if(row.capex!==null)gaap.PaymentsToAcquirePropertyPlantAndEquipment=fact(annual(row,row.capex));
  else{
   gaap.PaymentsToAcquirePropertyPlantAndEquipment=fact({form:'10-K',fp:'FY',start:'2011-01-31',end:'2012-01-29',filed:'2012-03-13',accn:'0001045810-12-000007',val:138735000});
@@ -56,17 +68,17 @@ describe('SEC-backed financial coverage fixtures',()=>{
     expect(company.factTaxonomies).toEqual({usGaap:true,ifrsFull:false});
     const revenue=company.metrics.find(metric=>metric.name==='Revenue')!;
     expect(revenue).toMatchObject({tag:row.revenueTag,sourceFactPresent:true});
-    expect(revenue.values[0]).toMatchObject({value:row.revenue,end:row.end,filed:row.filed,accession:row.accession});
+    expect(revenue.values[0]).toMatchObject({value:row.revenue,start:row.start,end:row.end,filed:row.filed,accession:row.accession,form:'10-K',unit:'USD',reviewIssues:[]});
     const capex=company.metrics.find(metric=>metric.name==='Capital expenditures')!;
     expect(capex.sourceFactPresent).toBe(true);
     expect(capex.values.some(value=>value.end===row.end)).toBe(row.capex!==null);
-    if(row.capex!==null)expect(capex.values[0]).toMatchObject({value:row.capex,end:row.end,accession:row.accession,tag:'PaymentsToAcquirePropertyPlantAndEquipment'});
+    if(row.capex!==null)expect(capex.values[0]).toMatchObject({value:row.capex,start:row.start,end:row.end,accession:row.accession,tag:'PaymentsToAcquirePropertyPlantAndEquipment',unit:'USD'});
     const metrics=deriveRankingMetrics(company);
-    expect(metrics.capex).toBe(row.capex);
+    expect(metrics.capex).toBe(row.ticker==='AMD'?null:row.capex);
     vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-19T12:00:00Z'));
     const screen=initialAutonomousScreen(company,'2026-10-19');
     vi.useRealTimers();
-    expect(screen.status).toBe(row.ticker==='NVDA'?'incomplete_financials':'preliminary_pass');
+    expect(screen.status).toBe(row.ticker==='CRWD'?'preliminary_pass':'incomplete_financials');
     if(row.ticker==='NVDA'){
      expect(metrics.fcf).toBeNull();
      expect(capex.excludedBroaderFact).toMatchObject({tag:'PaymentsToAcquireProductiveAssets',value:6042000000,end:'2026-01-25',filed:'2026-02-25',accession:'0001045810-26-000021'});
@@ -75,7 +87,7 @@ describe('SEC-backed financial coverage fixtures',()=>{
      const reported=reportedFinancialEvidence(company);
      expect(reported).toMatchObject({revenue:{value:215938000000},netIncome:{value:120067000000},operating:{value:102718000000},productiveAssets:{value:6042000000,accession:row.accession},cashAfterProductiveAssets:96676000000});
      const html=renderToStaticMarkup(createElement(ReportedFundamentals,{company}));
-     expect(html).toContain('Reported net income');
+     expect(html).toContain('SEC-reported parent-attributable net income');
      expect(html).toContain('$120.07B');
      expect(html).toContain('$102.72B');
      expect(html).toContain('$6.04B');
@@ -84,7 +96,24 @@ describe('SEC-backed financial coverage fixtures',()=>{
      expect(html).toContain(row.accession);
      expect(html).not.toContain('Unavailable');
      expect(html).not.toContain('Needs filing review');
-    }else expect(metrics.fcf).toBe(row.operating-row.capex!);
+    }else if(row.ticker==='AMD'){
+     expect(company.metrics.find(metric=>metric.name==='Operating cash flow')?.values[0].reviewIssues).toContain('discontinued_operations_scope');
+     expect(company.metrics.find(metric=>metric.name==='Net income')?.values[0].reviewIssues).toContain('discontinued_operations_scope');
+     expect(metrics.fcf).toBeNull();
+     expect(metrics.fcfMargin).toBeNull();
+     expect(metrics.profitMargin).toBeNull();
+     expect(screen.missingEvidence).toEqual(expect.arrayContaining([expect.objectContaining({cause:'accounting_reconciliation_required'})]));
+     const html=renderToStaticMarkup(createElement(ReportedFundamentals,{company}));
+     expect(html).toContain('discontinued operations');
+     expect(html).not.toContain('ATLAS-derived PP&amp;E-only cash flow</dt>');
+    }else{
+     expect(company.metrics.find(metric=>metric.name==='Net income')).toMatchObject({tag:'ProfitLoss',reportingScope:'consolidated'});
+     expect(company.metrics.find(metric=>metric.name==='Net income')?.values[0].value).toBe(row.consolidatedNet);
+     expect(metrics.fcf).toBe(1310241000);
+     const html=renderToStaticMarkup(createElement(ReportedFundamentals,{company}));
+     expect(html).toContain('SEC-reported consolidated net income');
+     expect(html).toContain('separately reported software spending is not included');
+    }
   }
   const failed=await request('/api/sec/company?ticker=FAIL');
   expect(failed).toMatchObject({status:503,data:{errorCategory:'upstream_http_error'}});
@@ -141,5 +170,34 @@ describe('specific missing-data diagnostics without changing screening rules',()
   mismatch.metrics[2].excludedBroaderFact={...fy(2025,6,'2025-09-30'),'tag':'PaymentsToAcquireProductiveAssets'};
   expect(reportedFinancialEvidence(mismatch).cashAfterProductiveAssets).toBeNull();
   expect(deriveRankingMetrics(mismatch).fcf).toBeNull();
+ });
+ it('withholds mismatched starts, future-filed facts, and reviewed observations from derived screening values',()=>{
+  const mismatch=company();
+  mismatch.metrics[0].values[0].start='2025-01-01';
+  mismatch.metrics[1].values[0].start='2025-02-01';
+  expect(deriveRankingMetrics(mismatch,null,'2026-10-19').fcf).toBeNull();
+  expect(diagnoseFinancialCoverage(mismatch,'2026-10-19')).toContainEqual(expect.objectContaining({metric:'Operating cash flow',cause:'incompatible_fiscal_periods'}));
+  const future=company();future.metrics[1].values[0].filed='2026-11-01';
+  expect(deriveRankingMetrics(future,null,'2026-10-19').fcf).toBeNull();
+  expect(diagnoseFinancialCoverage(future,'2026-10-19')).toContainEqual(expect.objectContaining({metric:'Operating cash flow',cause:'as_of_date_unverified'}));
+  const reviewed=company();reviewed.metrics[2].values[0].reviewIssues=['overlapping_capex_concepts'];
+  expect(deriveRankingMetrics(reviewed).fcf).toBeNull();
+  expect(initialAutonomousScreen(reviewed,'2026-10-19').status).toBe('incomplete_financials');
+  expect(diagnoseFinancialCoverage(reviewed)).toContainEqual(expect.objectContaining({metric:'Capital expenditures',cause:'accounting_reconciliation_required'}));
+ });
+ it('flags conflicting 10-K values, amendments, and same-calendar-year period collisions without silently substituting them',()=>{
+  const base={form:'10-K',fp:'FY',start:'2025-01-01',end:'2025-12-31',filed:'2026-02-01',accn:'0000000000-26-000001',val:10};
+  const values=annualValues(fact(base,{...base,val:11,filed:'2027-02-01',accn:'0000000000-27-000001'},{...base,val:12,form:'10-K/A',filed:'2027-03-01',accn:'0000000000-27-000002'},{...base,start:'2024-12-30',end:'2025-12-28',val:9}));
+  expect(values[0]).toMatchObject({value:11,start:'2025-01-01',end:'2025-12-31',unit:'USD'});
+  expect(values[0].reviewIssues).toEqual(expect.arrayContaining(['conflicting_filing_values','amended_fact_requires_review','fiscal_period_collision']));
+ });
+ it('keeps an Emerging Strength trend unavailable when a historical year needs accounting reconciliation',()=>{
+  const trend=company();
+  for(const metric of trend.metrics){
+   metric.values.push(fy(2023,metric.name==='Revenue'?80:metric.name==='Operating cash flow'?12:metric.name==='Capital expenditures'?2:5));
+   if(metric.name!=='Revenue')metric.values.push(fy(2024,metric.name==='Operating cash flow'?20:metric.name==='Capital expenditures'?3:7));
+  }
+  trend.metrics.find(metric=>metric.name==='Capital expenditures')!.values.find(value=>value.year===2024)!.reviewIssues=['conflicting_filing_values'];
+  expect(assessEmergingFcfStrength(trend).status).toBe('insufficient_evidence');
  });
 });

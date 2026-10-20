@@ -1,7 +1,7 @@
 // Transparent first-stage SEC research ranking. Not a statistically validated
 // return model. Missing inputs never earn points and are ALWAYS disclosed.
-export type Annual={year:number;end:string;filed:string;value:number;form:string;accession:string;tag?:string};
-export type SecMetric={name:string;values:Annual[];tag?:string|null;quality?:string;selectionNote?:string;alternativeTags?:string[];sourceFactPresent?:boolean;excludedBroaderFact?:Annual};
+export type Annual={year:number;start?:string|null;end:string;filed:string;value:number;unit?:string;form:string;accession:string;tag?:string;reviewIssues?:string[]};
+export type SecMetric={name:string;values:Annual[];tag?:string|null;reportingScope?:string|null;quality?:string;selectionNote?:string;alternativeTags?:string[];sourceFactPresent?:boolean;excludedBroaderFact?:Annual};
 type SecIndustryBase={system:'SEC SIC';source:string;retrievedAt:string};
 export type SecIndustryClassification=
  | SecIndustryBase&{status:'reported';code:string;description:string}
@@ -18,6 +18,8 @@ export function annualPeFromSec(company:SecCompany,quote:MarketValuationClose|nu
  const rev=recent(company.metrics.find(x=>x.name==='Revenue')?.values||[])[0];
  const eps=recent(company.metrics.find(x=>x.name==='Diluted EPS')?.values||[]).find(x=>rev&&x.end===rev.end);
  if(!eps||eps.value<=0||!Number.isFinite(eps.value))return {...base,reason:'Matching positive annual diluted EPS not available'};
+ if(!rev||rev.filed>quote.sessionDate||rev.reviewIssues?.length||eps.reviewIssues?.length||
+  (rev.start&&eps.start&&rev.start!==eps.start)||rev.accession!==eps.accession)return {...base,reason:'Annual earnings and revenue filing evidence requires reconciliation as of the quoted close'};
  if(!/^\d{4}-\d{2}-\d{2}$/.test(eps.filed)||Date.parse(eps.filed+'T00:00:00Z')>Date.parse(quote.sessionDate+'T00:00:00Z'))return {...base,reason:'SEC EPS not yet published as of IEX close'};
  const age=Date.parse(quote.sessionDate+'T00:00:00Z')-Date.parse(eps.filed+'T00:00:00Z');
  if(!Number.isFinite(age)||age<0||age>550*86400000)return {...base,reason:'Reported annual EPS is stale'};
@@ -29,25 +31,30 @@ export const defaultRankWeights:RankWeights={growth:30,fcf:35,profit:20,pe:15};
 const finite=(n:number)=>Number.isFinite(n);
 const percent=(n:number)=>Math.round(n*100)/100;
 const recent=(list:Annual[])=>[...list].filter(r=>r&&finite(r.value)&&/^\d{4}-\d{2}-\d{2}$/.test(r.end)).sort((a,b)=>b.year-a.year);
-const matchYear=(metric:SecMetric|undefined,year:number,periodEnd:string)=>recent(metric?.values||[]).find(x=>x.year===year&&x.end===periodEnd)?.value??null;
+const usable=(value:Annual|undefined,asOf:string)=>Boolean(value&&(!value.reviewIssues?.length)&&value.filed<=asOf);
+const samePeriod=(value:Annual,reference:Annual)=>value.year===reference.year&&value.end===reference.end&&(!value.start||!reference.start||value.start===reference.start);
+const matchYear=(metric:SecMetric|undefined,reference:Annual,asOf:string)=>{
+ const value=recent(metric?.values||[]).find(x=>samePeriod(x,reference));
+ return usable(value,asOf)?value!.value:null;
+};
 const cap=(n:number)=>Math.max(0,Math.min(100,n));
 const normalized=(x:number,lo:number,hi:number)=>cap((x-lo)/(hi-lo)*100);
-export function deriveRankingMetrics(company:SecCompany,pe:number|null=null):RankMetrics{
+export function deriveRankingMetrics(company:SecCompany,pe:number|null=null,asOf=new Date().toISOString().slice(0,10)):RankMetrics{
  const m=new Map(company.metrics.map(x=>[x.name,x]));
  const rev=recent(m.get('Revenue')?.values||[]);
  const current=rev[0];
- if(!current)return {year:null,growth:null,fcfMargin:null,profitMargin:null,pe:validPe(pe),fcf:null,revenue:null,capex:null};
+ if(!current||!usable(current,asOf))return {year:null,growth:null,fcfMargin:null,profitMargin:null,pe:validPe(pe),fcf:null,revenue:null,capex:null};
  const year=current.year, revenue=current.value;
  const previous=rev.find(r=>r.year===year-1);
- const growth=previous&&previous.value>0?percent((revenue/previous.value-1)*100):null;
- const operating=matchYear(m.get('Operating cash flow'),year,current.end);
- const rawCapex=matchYear(m.get('Capital expenditures'),year,current.end);
+ const growth=previous&&usable(previous,asOf)&&previous.value>0?percent((revenue/previous.value-1)*100):null;
+ const operating=matchYear(m.get('Operating cash flow'),current,asOf);
+ const rawCapex=matchYear(m.get('Capital expenditures'),current,asOf);
  // SEC GAAP capex payments are normally nonnegative. Reject negative values
  // instead of silently applying the wrong cash flow sign.
  const capex=rawCapex!==null&&rawCapex>=0?rawCapex:null;
  const fcf=operating!==null&&capex!==null?operating-capex:null;
  const fcfMargin=revenue>0&&fcf!==null?percent(fcf/revenue*100):null;
- const net=matchYear(m.get('Net income'),year,current.end);
+ const net=matchYear(m.get('Net income'),current,asOf);
  const profitMargin=revenue>0&&net!==null?percent(net/revenue*100):null;
  return {year,growth,fcfMargin,profitMargin,pe:validPe(pe),fcf,revenue,capex};
 }
@@ -58,7 +65,7 @@ export type FcfStrengthAssessment = {
   margins: (number|null)[];
 };
 
-export function assessEmergingFcfStrength(company:SecCompany): FcfStrengthAssessment{
+export function assessEmergingFcfStrength(company:SecCompany,asOf=new Date().toISOString().slice(0,10)): FcfStrengthAssessment{
   const m=new Map(company.metrics.map(x=>[x.name,x]));
   const rev=recent(m.get('Revenue')?.values||[]);
   
@@ -103,8 +110,9 @@ export function assessEmergingFcfStrength(company:SecCompany): FcfStrengthAssess
     years.push(year);
     
     // Match all required financial components for this specific fiscal year/period
-    const operating = matchYear(m.get('Operating cash flow'), year, yearData.end);
-    const rawCapex = matchYear(m.get('Capital expenditures'), year, yearData.end);
+    if(!usable(yearData,asOf))return {status:'insufficient_evidence',years:[],margins:[]};
+    const operating = matchYear(m.get('Operating cash flow'), yearData,asOf);
+    const rawCapex = matchYear(m.get('Capital expenditures'), yearData,asOf);
     const revenue = yearData.value;
     
     // Must have all components available for a valid calculation
@@ -139,10 +147,10 @@ export function assessEmergingFcfStrength(company:SecCompany): FcfStrengthAssess
     return {status:'not_improving',years, margins};
   }
 }
-export function scoreCompany(company:SecCompany,weights:RankWeights,manualPe:number|null=null):Ranked{
-  const metrics=deriveRankingMetrics(company,manualPe);
+export function scoreCompany(company:SecCompany,weights:RankWeights,manualPe:number|null=null,asOf=new Date().toISOString().slice(0,10)):Ranked{
+  const metrics=deriveRankingMetrics(company,manualPe,asOf);
   const annualFiled=company.metrics.find(m=>m.name==='Revenue')?.values.find(v=>v.year===metrics.year)?.filed??null;
-  const age=annualFiled?Date.now()-Date.parse(annualFiled+'T00:00:00Z'):NaN;
+  const age=annualFiled?Date.parse(asOf+'T00:00:00Z')-Date.parse(annualFiled+'T00:00:00Z'):NaN;
   const stale=!Number.isFinite(age)||age>550*86400000||age<0;
   const total=Object.values(weights).reduce((sum,n)=>sum+(finite(n)&&n>0?n:0),0);
   const points:{key:keyof RankWeights;value:number|null;grade:number}[]=[

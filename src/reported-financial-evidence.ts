@@ -11,7 +11,9 @@ export function reportedFinancialEvidence(company:SecCompany){
  const netIncome=aligned('Net income');
  const broader=company.metrics.find(metric=>metric.name==='Capital expenditures')?.excludedBroaderFact;
  const productiveAssets=broader&&revenue&&operating&&broader.year===revenue.year&&broader.end===revenue.end&&
-  broader.accession===revenue.accession&&operating.accession===revenue.accession&&Number.isFinite(broader.value)&&broader.value>=0?broader:null;
+  (!broader.start||!revenue.start||broader.start===revenue.start)&&(!operating.start||!revenue.start||operating.start===revenue.start)&&
+  broader.accession===revenue.accession&&operating.accession===revenue.accession&&
+  !broader.reviewIssues?.length&&!operating.reviewIssues?.length&&Number.isFinite(broader.value)&&broader.value>=0?broader:null;
  const cashAfterProductiveAssets=productiveAssets&&operating?operating.value-productiveAssets.value:null;
  return {metrics,revenue:revenue??null,operating,netIncome,productiveAssets:productiveAssets??null,cashAfterProductiveAssets};
 }

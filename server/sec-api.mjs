@@ -19,9 +19,16 @@ export function annualValues(fact,unit='USD'){
   const year=Number(v.end.slice(0,4));
   if(!Number.isInteger(year))continue;
   const prior=byYear.get(year);
-  if(!prior||v.filed>prior.filed)byYear.set(year,{year,end:v.end,filed:v.filed,value:v.val,form:v.form,accession:v.accn});
+  if(!prior||v.filed>prior.filed)byYear.set(year,{year,start:v.start??null,end:v.end,filed:v.filed,value:v.val,unit,form:v.form,accession:v.accn});
  }
- return [...byYear.values()].sort((a,b)=>b.year-a.year).slice(0,4);
+ return [...byYear.values()].map(selected=>{
+  const samePeriod=entries.filter(v=>v.end===selected.end&&v.start===selected.start&&['10-K','10-K/A'].includes(v.form)&&v.fp==='FY'&&Number.isFinite(v.val));
+  const reviewIssues=[];
+  if(samePeriod.some(v=>v.form==='10-K'&&v.val!==selected.value))reviewIssues.push('conflicting_filing_values');
+  if(samePeriod.some(v=>v.form==='10-K/A'&&v.val!==selected.value))reviewIssues.push('amended_fact_requires_review');
+  if(entries.some(v=>v.form==='10-K'&&v.fp==='FY'&&v.end?.slice(0,4)===String(selected.year)&&v.end!==selected.end))reviewIssues.push('fiscal_period_collision');
+  return {...selected,reviewIssues};
+ }).sort((a,b)=>b.year-a.year).slice(0,4);
 }
 // Prefer a consistent accounting concept, but fill genuinely missing fiscal years
 // with lower-priority concepts. Never add distinct revenue tags together.
@@ -180,8 +187,13 @@ export async function handleSecRequest(req,res){
   );
   const revenueSelection=selectConsolidatedRevenue(facts.facts);
   const revenuePeriod=revenueSelection.values[0];
+  const discontinued=annualValues(facts.facts?.['us-gaap']?.CashProvidedByUsedInOperatingActivitiesDiscontinuedOperations);
+  const discontinuedIncome=annualValues(facts.facts?.['us-gaap']?.IncomeLossFromDiscontinuedOperationsNetOfTaxAttributableToReportingEntity);
+  const hasDiscontinued=(value)=>value&&[...discontinued,...discontinuedIncome].some(item=>item.start===value.start&&item.end===value.end&&item.accession===value.accession&&item.value!==0);
+  const noncontrolling=annualValues(facts.facts?.['us-gaap']?.NetIncomeLossAttributableToNoncontrollingInterest);
+  const hasNoncontrolling=(value)=>value&&noncontrolling.some(item=>item.start===value.start&&item.end===value.end&&item.accession===value.accession&&item.value!==0);
   const broaderCapex=annualValues(facts.facts?.['us-gaap']?.PaymentsToAcquireProductiveAssets)
-   .find(value=>value.end===revenuePeriod?.end&&value.accession===revenuePeriod?.accession);
+   .find(value=>value.start===revenuePeriod?.start&&value.end===revenuePeriod?.end&&value.accession===revenuePeriod?.accession);
   const metrics=[
    ['Revenue',['Revenues']],
    ['Net income',['NetIncomeLoss']],
@@ -211,7 +223,21 @@ export async function handleSecRequest(req,res){
    ['Latest loans receivable',['LoansAndLeasesReceivableNetReportedAmount','LoansAndLeasesReceivableNetOfDeferredIncome']],
    ['Latest loan-loss allowance',['AllowanceForLoanAndLeaseLosses','FinancingReceivableAllowanceForCreditLosses']],
 
-  ].map(([name,tags])=>{const unit=name==='Diluted EPS'?'USD/shares':name==='Weighted-average diluted shares'||name==='Common shares outstanding (DEI)'?'shares':'USD';const result=name==='Revenue'?revenueSelection:name==='Common shares outstanding (DEI)'?instantOutstandingShares(facts.facts):name.startsWith('Latest ')?latestInstantFact(facts.facts,tags,unit):selectFact(facts.facts,tags,unit);const supportedTags=name==='Revenue'?REVENUE_TAGS:tags;return {name,unit,...result,sourceFactPresent:supportedTags.some(tag=>Boolean(facts.facts?.['us-gaap']?.[tag])),excludedBroaderFact:name==='Capital expenditures'&&broaderCapex?{...broaderCapex,tag:'PaymentsToAcquireProductiveAssets'}:undefined};});
+  ].map(([name,tags])=>{
+   const unit=name==='Diluted EPS'?'USD/shares':name==='Weighted-average diluted shares'||name==='Common shares outstanding (DEI)'?'shares':'USD';
+   const selectedTags=name==='Net income'&&hasNoncontrolling(revenuePeriod)?['ProfitLoss','NetIncomeLoss']:tags;
+   const result=name==='Revenue'?revenueSelection:name==='Common shares outstanding (DEI)'?instantOutstandingShares(facts.facts):name.startsWith('Latest ')?latestInstantFact(facts.facts,tags,unit):selectFact(facts.facts,selectedTags,unit);
+   const supportedTags=name==='Revenue'?REVENUE_TAGS:selectedTags;
+   const values=result.values.map(value=>{
+    const reviewIssues=[...(value.reviewIssues||[])];
+    if(['Operating cash flow','Capital expenditures','Net income'].includes(name)&&hasDiscontinued(value))reviewIssues.push('discontinued_operations_scope');
+    if(name==='Net income'&&hasNoncontrolling(value)&&value.tag!=='ProfitLoss')reviewIssues.push('net_income_scope');
+    if(name==='Capital expenditures'&&annualValues(facts.facts?.['us-gaap']?.PaymentsToAcquireProductiveAssets).some(broad=>broad.start===value.start&&broad.end===value.end&&broad.accession===value.accession))reviewIssues.push('overlapping_capex_concepts');
+    return {...value,reviewIssues};
+   });
+   const reportingScope=name==='Net income'?(result.tag==='ProfitLoss'?'consolidated':'parent_attributable'):name==='Operating cash flow'?'total_operations':name==='Revenue'?'entity_wide':null;
+   return {name,unit,...result,values,reportingScope,sourceFactPresent:supportedTags.some(tag=>Boolean(facts.facts?.['us-gaap']?.[tag])),excludedBroaderFact:name==='Capital expenditures'&&broaderCapex?{...broaderCapex,tag:'PaymentsToAcquireProductiveAssets'}:undefined};
+  });
   const factTaxonomies={usGaap:Boolean(facts.facts?.['us-gaap']),ifrsFull:Boolean(facts.facts?.['ifrs-full'])};
   json(res,200,{ticker,name:facts.entityName||match.title,cik,source,retrievedAt,sourceCacheStatus:factsResult.cacheStatus,classification,factTaxonomies,metrics});
  }catch(e){json(res,503,publicSecError(e,'SEC data temporarily unavailable'));}

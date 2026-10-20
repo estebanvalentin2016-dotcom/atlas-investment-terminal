@@ -1,6 +1,6 @@
 import {deriveRankingMetrics,scoreCompany,defaultRankWeights,type SecCompany,type SecMetric} from './ranking-model';
 export type ScreenVerdict='preliminary_pass'|'incomplete_financials'|'failed_thresholds'|'stale_financials'|'accounting_review';
-export type CoverageCause='absent_source_fact'|'unsupported_taxonomy'|'incompatible_fiscal_periods'|'missing_comparable_prior_year'|'unusable_value'|'source_presence_unknown';
+export type CoverageCause='absent_source_fact'|'unsupported_taxonomy'|'incompatible_fiscal_periods'|'missing_comparable_prior_year'|'unusable_value'|'source_presence_unknown'|'accounting_reconciliation_required'|'as_of_date_unverified';
 export type CoverageIssue={metric:string;cause:CoverageCause;detail:string};
 export type ScreenResult={ticker:string;status:ScreenVerdict;reasons:string[];filed:string|null;growth:number|null;fcfMargin:number|null;netMargin:number|null;score:number|null;missingEvidence?:CoverageIssue[];observedCriterionFailures?:string[]};
 const DAY=86400000;
@@ -8,12 +8,17 @@ const DAY=86400000;
 // Describe only evidence gaps observable from the normalized SEC response.
 // The endpoint reports supported-tag presence separately from selected annual
 // values so an absent concept is not confused with an incompatible period.
-export function diagnoseFinancialCoverage(company:SecCompany):CoverageIssue[]{
- const m=deriveRankingMetrics(company);
+export function diagnoseFinancialCoverage(company:SecCompany,asOf=new Date().toISOString().slice(0,10)):CoverageIssue[]{
+ const m=deriveRankingMetrics(company,null,asOf);
  const byName=new Map(company.metrics.map(metric=>[metric.name,metric]));
  const revenue=byName.get('Revenue');
- const current=revenue?.values.find(value=>value.year===m.year);
+ const current=revenue?.values[0];
  const issue=(metric:string,cause:CoverageCause,detail:string):CoverageIssue=>({metric,cause,detail});
+ const review=(name:string,value:SecMetric['values'][number])=>{
+  if(value.filed>asOf)return issue(name,'as_of_date_unverified',`${name}: selected SEC fact was filed ${value.filed}, after the ${asOf} assessment date; no earlier value is substituted.`);
+  if(value.reviewIssues?.length)return issue(name,'accounting_reconciliation_required',`${name}: SEC observations require filing reconciliation (${value.reviewIssues.join(', ')}); this value is withheld from screening.`);
+  return null;
+ };
  const missingMetric=(name:string,metric:SecMetric|undefined):CoverageIssue=>{
   const broader=metric?.excludedBroaderFact;
   const broaderNote=name==='Capital expenditures'&&broader?` A separate ${broader.tag} fact reports USD ${broader.value} for ${broader.end}, accession ${broader.accession}; it can include intangible assets and is not substituted for PP&E capex. Source: ${company.source}.`:'';
@@ -24,28 +29,35 @@ export function diagnoseFinancialCoverage(company:SecCompany):CoverageIssue[]{
   return issue(name,'source_presence_unknown',`${name}: normalized annual evidence is unavailable; source-tag presence was not supplied.`);
  };
  if(!current)return [missingMetric('Revenue',revenue)];
+ const revenueReview=review('Revenue',current);
+ if(revenueReview)return [revenueReview];
  if(current.value<=0)return [issue('Revenue','unusable_value','Revenue: the selected annual value is not positive, so ratios cannot be calculated.')];
  const issues:CoverageIssue[]=[];
  if(m.growth===null){
   const prior=revenue?.values.find(value=>value.year===current.year-1);
-  issues.push(prior?issue('Revenue growth','unusable_value','Revenue growth: the comparable prior-year revenue is not positive.'):
+  issues.push(prior?(review('Revenue growth',prior)??issue('Revenue growth','unusable_value','Revenue growth: the comparable prior-year revenue is not positive.')):
    issue('Revenue growth','missing_comparable_prior_year',`Revenue growth: no comparable FY ${current.year-1} observation exists for the selected revenue tag.`));
  }
- const aligned=(metric:SecMetric|undefined)=>metric?.values.find(value=>value.year===current.year&&value.end===current.end);
+ const aligned=(metric:SecMetric|undefined)=>metric?.values.find(value=>value.year===current.year&&value.end===current.end&&(!value.start||!current.start||value.start===current.start));
  const operating=byName.get('Operating cash flow');
  const capex=byName.get('Capital expenditures');
  const net=byName.get('Net income');
- if(!aligned(operating))issues.push(missingMetric('Operating cash flow',operating));
+ const operatingValue=aligned(operating);
+ if(!operatingValue)issues.push(missingMetric('Operating cash flow',operating));
+ else {const problem=review('Operating cash flow',operatingValue);if(problem)issues.push(problem)}
  const capexValue=aligned(capex);
  if(!capexValue)issues.push(missingMetric('Capital expenditures',capex));
  else if(capexValue.value<0)issues.push(issue('Capital expenditures','unusable_value','Capital expenditures: the annual cash-outflow fact has an unsupported negative value.'));
- if(!aligned(net))issues.push(missingMetric('Net income',net));
+ else {const problem=review('Capital expenditures',capexValue);if(problem)issues.push(problem)}
+ const netValue=aligned(net);
+ if(!netValue)issues.push(missingMetric('Net income',net));
+ else {const problem=review('Net income',netValue);if(problem)issues.push(problem)}
  return issues;
 }
 
 export function initialAutonomousScreen(company:SecCompany,asOf:string):ScreenResult{
- const m=deriveRankingMetrics(company);
- const missingEvidence=diagnoseFinancialCoverage(company);
+ const m=deriveRankingMetrics(company,null,asOf);
+ const missingEvidence=diagnoseFinancialCoverage(company,asOf);
  const annual=company.metrics.find(x=>x.name==='Revenue')?.values.find(x=>x.year===m.year);
  const filed=annual?.filed||null;
  const age=filed?Date.parse(asOf+'T00:00:00Z')-Date.parse(filed+'T00:00:00Z'):NaN;
@@ -64,13 +76,13 @@ export function initialAutonomousScreen(company:SecCompany,asOf:string):ScreenRe
  const reasons=observedCriterionFailures;
  if(reasons.length)return {...base,status:'failed_thresholds',reasons};
  if(company.metrics.find(x=>x.name==='Revenue')?.quality==='alternative_revenue_concepts')return {...base,status:'accounting_review',reasons:['Conflicting smaller SEC revenue tags could represent business segments; confirm consolidated amounts against the annual 10-K']};
- const score=scoreCompany(company,{...defaultRankWeights,pe:0}).score;
+ const score=scoreCompany(company,{...defaultRankWeights,pe:0},null,asOf).score;
  if(score===null)return {...base,status:'incomplete_financials',reasons:['Insufficient or stale scored SEC fundamentals']};
  return {...base,status:'preliminary_pass',score,reasons:['Annual revenue growth ≥10%','Nonnegative FCF margin','Net margin ≥−10%']};
 }
 export function coverageCauseCounts(results:ScreenResult[],sourceFailures:number){
  const count=(cause:CoverageCause)=>results.filter(result=>result.missingEvidence?.some(item=>item.cause===cause)).length;
- return {absentSourceFact:count('absent_source_fact'),unsupportedTaxonomy:count('unsupported_taxonomy'),incompatibleFiscalPeriods:count('incompatible_fiscal_periods'),missingComparablePriorYear:count('missing_comparable_prior_year'),unusableValue:count('unusable_value'),sourcePresenceUnknown:count('source_presence_unknown'),sourceRetrievalFailure:sourceFailures,incompleteWithObservedFailures:results.filter(result=>result.status==='incomplete_financials'&&Boolean(result.observedCriterionFailures?.length)).length};
+ return {absentSourceFact:count('absent_source_fact'),unsupportedTaxonomy:count('unsupported_taxonomy'),incompatibleFiscalPeriods:count('incompatible_fiscal_periods'),missingComparablePriorYear:count('missing_comparable_prior_year'),unusableValue:count('unusable_value'),sourcePresenceUnknown:count('source_presence_unknown'),accountingReconciliationRequired:count('accounting_reconciliation_required'),asOfDateUnverified:count('as_of_date_unverified'),sourceRetrievalFailure:sourceFailures,incompleteWithObservedFailures:results.filter(result=>result.status==='incomplete_financials'&&Boolean(result.observedCriterionFailures?.length)).length};
 }
 export function scanCounts(results:ScreenResult[],sourceFailures:number,universeEnumerated:number){
  const count=(value:ScreenVerdict)=>results.filter(x=>x.status===value).length;

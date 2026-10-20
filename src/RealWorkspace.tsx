@@ -22,22 +22,25 @@ const dateTime=(value:string)=>{
 
 export function ReportedFundamentals({company}:{company:SecCompany}){
  const {metrics,revenue,operating,netIncome,productiveAssets,cashAfterProductiveAssets}=reportedFinancialEvidence(company);
+ const netScope=company.metrics.find(metric=>metric.name==='Net income')?.reportingScope;
+ const netLabel=netScope==='consolidated'?'SEC-reported consolidated net income (loss)':netScope==='parent_attributable'?'SEC-reported parent-attributable net income (loss)':'SEC-reported net income (scope unverified)';
+ const scopeReview=company.metrics.some(metric=>['Operating cash flow','Capital expenditures','Net income'].includes(metric.name)&&metric.values.some(value=>value.end===revenue?.end&&value.reviewIssues?.includes('discontinued_operations_scope')));
  const review='Needs filing review';
  return <section className="atlas-research-section" aria-labelledby="reported-fundamentals">
   <div className="atlas-research-section-heading"><span>01</span><div><small>Reported fundamentals</small><h4 id="reported-fundamentals">What the annual filings support</h4></div></div>
   <dl className="atlas-research-metrics">
    <div><dt>Annual revenue</dt><dd>{revenue?money(revenue.value):review}</dd></div>
    <div><dt>Revenue growth</dt><dd className={tone(metrics.growth)}>{metrics.growth===null?review:change(metrics.growth)}</dd></div>
-   <div><dt>Reported net income</dt><dd className={tone(netIncome?.value??null)}>{netIncome?money(netIncome.value):review}</dd></div>
-   <div><dt>Net margin</dt><dd className={tone(metrics.profitMargin)}>{metrics.profitMargin===null?review:change(metrics.profitMargin)}</dd></div>
-   <div><dt>Reported operating cash flow</dt><dd className={tone(operating?.value??null)}>{operating?money(operating.value):review}</dd></div>
-   {productiveAssets&&<div><dt>Reported property, equipment and intangible-asset purchases</dt><dd>{money(productiveAssets.value)}</dd></div>}
-   {cashAfterProductiveAssets!==null&&<div><dt>Cash after those reported purchases</dt><dd className={tone(cashAfterProductiveAssets)}>{money(cashAfterProductiveAssets)}</dd></div>}
-   {metrics.fcf!==null&&<div><dt>Derived free cash flow</dt><dd className={tone(metrics.fcf)}>{money(metrics.fcf)}</dd></div>}
-   {metrics.fcfMargin!==null&&<div><dt>FCF margin</dt><dd className={tone(metrics.fcfMargin)}>{change(metrics.fcfMargin)}</dd></div>}
+   <div><dt>{netLabel}</dt><dd className={tone(netIncome?.value??null)}>{netIncome?money(netIncome.value):review}</dd></div>
+   <div><dt>ATLAS-derived net margin</dt><dd className={tone(metrics.profitMargin)}>{metrics.profitMargin===null?review:change(metrics.profitMargin)}</dd></div>
+   <div><dt>SEC-reported total operating cash flow</dt><dd className={tone(operating?.value??null)}>{operating?money(operating.value):review}</dd></div>
+   {productiveAssets&&<div><dt>SEC-reported property, equipment and intangible-asset purchases</dt><dd>{money(productiveAssets.value)}</dd></div>}
+   {cashAfterProductiveAssets!==null&&<div><dt>ATLAS subtraction: cash after those reported purchases</dt><dd className={tone(cashAfterProductiveAssets)}>{money(cashAfterProductiveAssets)}</dd></div>}
+   {metrics.fcf!==null&&<div><dt>ATLAS-derived PP&amp;E-only cash flow</dt><dd className={tone(metrics.fcf)}>{money(metrics.fcf)}</dd></div>}
+   {metrics.fcfMargin!==null&&<div><dt>ATLAS-derived PP&amp;E-only FCF margin</dt><dd className={tone(metrics.fcfMargin)}>{change(metrics.fcfMargin)}</dd></div>}
    {metrics.fcf===null&&!productiveAssets&&<div><dt>Screening cash-spending basis</dt><dd>{review}</dd></div>}
   </dl>
-  <p className="atlas-research-method"><strong>{revenue?`Fiscal year ${revenue.year}, ended ${revenue.end}.`:'Fiscal-year revenue needs filing review.'}</strong> ATLAS screening FCF uses operating cash flow less the narrower SEC PP&amp;E cash-purchases concept. {productiveAssets?`The issuer also reported a broader property, equipment and intangible-asset purchase line (SEC tag ${productiveAssets.tag}, accession ${productiveAssets.accession}). Cash after those purchases is shown separately; it is not substituted into the existing FCF screen.`:'When the required SEC concepts or comparable periods cannot be reconciled, ATLAS does not infer a value.'} <a href={company.source} target="_blank" rel="noopener noreferrer">Inspect SEC tagged facts ↗</a></p>
+  <p className="atlas-research-method"><strong>{revenue?`Fiscal year ${revenue.year}, ended ${revenue.end}.`:'Fiscal-year revenue needs filing review.'}</strong> ATLAS screening FCF uses operating cash flow less the narrower SEC PP&amp;E cash-purchases concept; separately reported software spending is not included. {scopeReview?'This filing reports discontinued operations. Total-company cash flow or net income is shown as a reported fact, but incompatible derived margins are withheld pending scope reconciliation. ':''}{productiveAssets?`The issuer also reported a broader property, equipment and intangible-asset purchase line (SEC tag ${productiveAssets.tag}, accession ${productiveAssets.accession}). Cash after those purchases is shown separately; it is not substituted into the existing FCF screen.`:'When the required SEC concepts or comparable periods cannot be reconciled, ATLAS does not infer a value.'} <a href={company.source} target="_blank" rel="noopener noreferrer">Inspect SEC tagged facts ↗</a></p>
  </section>;
 }
 
