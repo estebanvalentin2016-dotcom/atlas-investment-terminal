@@ -2,7 +2,7 @@ import {ArrowRight,Search} from 'lucide-react';
 import {readWorkspaceStorage,removeSavedCompany,selectComparison,WATCH_KEY as STORE,NOTES_KEY as NOTES,type CompanyEntry} from './watchlist-storage';
 import SavedResearchContext from './SavedResearchContext';
 import {readResearchContext} from './watchlist-research';
-import {useEffect,useState,type FormEvent} from 'react';
+import {useEffect,useRef,useState,type FormEvent} from 'react';
 import CompanyComparison from './CompanyComparison';
 import {deriveRankingMetrics,type SecCompany} from './ranking-model';
 import {industryComparabilityLimitations} from './industry-classification';
@@ -19,6 +19,11 @@ const dateTime=(value:string)=>{
  return Number.isNaN(date.getTime())?'Unavailable':new Intl.DateTimeFormat('en-US',{year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZone:'UTC',timeZoneName:'short'}).format(date);
 };
 
+export function createRequestSequence(){
+ let latest=0;
+ return {begin:()=>++latest,isCurrent:(request:number)=>request===latest,invalidate:()=>{latest++}};
+}
+
 export default function RealWorkspace({mode,defaultTicker='BLK',onView,onConviction}:{mode:Mode;defaultTicker?:string;onView?:(ticker:string)=>void;onConviction?:(ticker:string)=>void}){
  const [query,setQuery]=useState(mode==='watchlist'?'':defaultTicker);
  const [matches,setMatches]=useState<CompanyEntry[]>([]);
@@ -27,6 +32,8 @@ export default function RealWorkspace({mode,defaultTicker='BLK',onView,onConvict
  const [busy,setBusy]=useState(false);
  const [searchBusy,setSearchBusy]=useState(false);
  const [error,setError]=useState('');
+ const companyRequests=useRef(createRequestSequence());
+ const queryEdits=useRef(0);
  const [savedData]=useState(()=>{try{return readWorkspaceStorage(localStorage)}catch{return {watch:[],notes:{},blocked:[STORE,NOTES],issues:['Browser storage unavailable. Saving is disabled.']}}});
  const [watch,setWatch]=useState<CompanyEntry[]>(savedData.watch);
  const [notes,setNotes]=useState<Record<string,string>>(savedData.notes);
@@ -47,15 +54,20 @@ export default function RealWorkspace({mode,defaultTicker='BLK',onView,onConvict
   finally{setSearchBusy(false)}
  }
  async function inspect(ticker:string){
+  const request=companyRequests.current.begin();
+  const queryEdit=queryEdits.current;
   setBusy(true);setError('');setSelected(ticker);setCompany(null);
   try{
    const r=await fetch('/api/sec/company?ticker='+encodeURIComponent(ticker));
    const data=await r.json() as Research&{error?:string};
+   if(!companyRequests.current.isCurrent(request))return;
    if(!r.ok||!Array.isArray(data.metrics))throw Error(data.error||'Company financials unavailable');
-   setCompany(data);setQuery(data.ticker);
-  }catch(e){setError(e instanceof Error?e.message:'SEC data unavailable')}
-  finally{setBusy(false)}
+   setCompany(data);
+   if(queryEdits.current===queryEdit)setQuery(data.ticker);
+  }catch(e){if(companyRequests.current.isCurrent(request))setError(e instanceof Error?e.message:'SEC data unavailable')}
+  finally{if(companyRequests.current.isCurrent(request))setBusy(false)}
  }
+ useEffect(()=>()=>companyRequests.current.invalidate(),[]);
  useEffect(()=>{if(mode==='research')void inspect(defaultTicker)},[mode,defaultTicker]);
  const saved=watch.some(w=>w.ticker===selected);
  function toggle(entry:CompanyEntry){const next=watch.some(w=>w.ticker===entry.ticker)?removeSavedCompany(watch,entry.ticker):[...watch,entry];if(persist(STORE,next)){setWatch(next);setComparison(old=>old.filter(ticker=>next.some(item=>item.ticker===ticker)));setShowComparison(false)}}
@@ -77,17 +89,17 @@ export default function RealWorkspace({mode,defaultTicker='BLK',onView,onConvict
     </div>
     <form className="atlas-research-search" onSubmit={search} aria-label="Search SEC-listed companies">
      <label htmlFor="atlas-company-query">Company name or ticker</label>
-     <div><Search size={19} aria-hidden="true"/><input id="atlas-company-query" aria-label="Search real company" value={query} onChange={e=>setQuery(e.target.value)} maxLength={80} placeholder="CrowdStrike, BlackRock, NVDA…" required/><button type="submit" disabled={searchBusy}>{searchBusy?'Searching…':'Search SEC index'}</button></div>
+     <div><Search size={19} aria-hidden="true"/><input id="atlas-company-query" aria-label="Search real company" value={query} onChange={e=>{queryEdits.current++;setQuery(e.target.value)}} maxLength={80} placeholder="CrowdStrike, BlackRock, NVDA…" required/><button type="submit" disabled={searchBusy}>{searchBusy?'Searching…':'Search SEC index'}</button></div>
      <small>Search resolves SEC issuer identity before financial evidence is requested.</small>
     </form>
    </header>
-   <DiscoveryBriefingPanel variant="handoff" onSelect={ticker=>{setQuery(ticker);void inspect(ticker)}}/>
+   <DiscoveryBriefingPanel variant="handoff" onSelect={ticker=>{queryEdits.current++;setQuery(ticker);void inspect(ticker)}}/>
   </>:<>
    <div className="panel-head"><div><span className="eyebrow">SAVED RESEARCH</span><h3>Saved companies ({watch.length})</h3></div><span className="tag">Browser only</span></div>
    <p className="description">Dated conclusions, thesis notes and previously observed filings. Saved locally; no background monitoring.</p>
    <DiscoveryBriefingPanel/>
    <form className="atlas-ranking-controls atlas-company-search" onSubmit={search}><label>Company name or ticker
-    <input aria-label="Search real company" value={query} onChange={e=>setQuery(e.target.value)} maxLength={80} placeholder="CrowdStrike, BlackRock, NVDA…" required/>
+    <input aria-label="Search real company" value={query} onChange={e=>{queryEdits.current++;setQuery(e.target.value)}} maxLength={80} placeholder="CrowdStrike, BlackRock, NVDA…" required/>
    </label><button className="button primary" type="submit" disabled={searchBusy}>{searchBusy?'Searching…':'Search companies'}</button></form>
   </>}
 
