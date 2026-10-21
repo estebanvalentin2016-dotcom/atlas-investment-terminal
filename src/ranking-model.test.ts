@@ -1,13 +1,14 @@
 import {describe,expect,it} from 'vitest';
 import {toneForReportedMetric,toneForReturn} from './filing-metric-tone';
 import {defaultRankWeights,deriveRankingMetrics,rankCompanies,scoreCompany,assessEmergingFcfStrength,type SecCompany} from './ranking-model';
-const annual=(year:number,value:number)=>({year,end:year+'-12-31',filed:(year+1)+'-02-15',form:'10-K',accession:'0000000000-26-000010',value});
+const annual=(year:number,value:number)=>({year,start:year+'-01-01',end:year+'-12-31',filed:(year+1)+'-02-15',unit:'USD',form:'10-K',accession:'0000000000-'+String(year%100).padStart(2,'0')+'-000010',value,reviewIssues:[] as string[]});
 const company=(ticker:string,includeCapex=true):SecCompany=>({ticker,name:ticker+' Inc',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0123456789.json',retrievedAt:'2026-10-15T12:00:00Z',metrics:[
- {name:'Revenue',values:[annual(2025,150),annual(2024,100)]},
- {name:'Net income',values:[annual(2025,30)]},
- {name:'Operating cash flow',values:[annual(2025,38)]},
- {name:'Capital expenditures',values:includeCapex?[annual(2025,8)]:[]}
+ {name:'Revenue',tag:'Revenues',unit:'USD',reportingScope:'entity_wide',values:[annual(2025,150),annual(2024,100)]},
+ {name:'Net income',tag:'NetIncomeLoss',unit:'USD',reportingScope:'parent_attributable',values:[annual(2025,30)]},
+ {name:'Operating cash flow',tag:'NetCashProvidedByUsedInOperatingActivities',unit:'USD',reportingScope:'total_operations',values:[annual(2025,38)]},
+ {name:'Capital expenditures',tag:'PaymentsToAcquirePropertyPlantAndEquipment',unit:'USD',reportingScope:'unallocated_cash_purchases',values:includeCapex?[annual(2025,8)]:[]}
 ]});
+const withProvenance=<T extends SecCompany>(sample:T):T=>{for(const metric of sample.metrics){metric.unit='USD';if(metric.name==='Revenue'){metric.tag='Revenues';metric.reportingScope='entity_wide'}else if(metric.name==='Operating cash flow'){metric.tag='NetCashProvidedByUsedInOperatingActivities';metric.reportingScope='total_operations'}else if(metric.name==='Capital expenditures'){metric.tag='PaymentsToAcquirePropertyPlantAndEquipment';metric.reportingScope='unallocated_cash_purchases'}else if(metric.name==='Net income'){metric.tag='NetIncomeLoss';metric.reportingScope='parent_attributable'}}return sample};
 describe('Semantically colored report figures',()=>{
  it('shows true EPS/revenue increases as green +percent',()=>{
   expect(toneForReportedMetric('Reported EPS growth','25% increase in GAAP diluted EPS')).toEqual({tone:'positive',headline:'+25%',detail:'25% increase in GAAP diluted EPS'});
@@ -102,7 +103,7 @@ it('assesses emerging FCF strength correctly - improving trend',()=>{
      ]
    };
    
-   const result = assessEmergingFcfStrength(improvingCompany);
+   const result = assessEmergingFcfStrength(withProvenance(improvingCompany));
    expect(result.status).toBe('improving');
    expect(result.years).toEqual([2025,2024,2023]);
    expect(result.margins).toEqual([6, -5, -15]); // margins calculated from FCF/revenue
@@ -123,7 +124,7 @@ it('assesses emerging FCF strength correctly - improving trend',()=>{
      ]
    };
    
-   const result = assessEmergingFcfStrength(decliningCompany);
+   const result = assessEmergingFcfStrength(withProvenance(decliningCompany));
    expect(result.status).toBe('not_improving');
   });
 
@@ -142,7 +143,7 @@ it('assesses emerging FCF strength correctly - improving trend',()=>{
      ]
    };
    
-   const result = assessEmergingFcfStrength(slightlyImprovingCompany);
+   const result = assessEmergingFcfStrength(withProvenance(slightlyImprovingCompany));
    expect(result.status).toBe('not_improving');
   });
 
@@ -161,7 +162,7 @@ it('assesses emerging FCF strength correctly - improving trend',()=>{
      ]
    };
    
-   const result = assessEmergingFcfStrength(missingYearCompany);
+   const result = assessEmergingFcfStrength(withProvenance(missingYearCompany));
    expect(result.status).toBe('insufficient_evidence');
   });
 
@@ -180,7 +181,7 @@ it('assesses emerging FCF strength correctly - improving trend',()=>{
      ]
    };
    
-   const result = assessEmergingFcfStrength(missingDataCompany);
+   const result = assessEmergingFcfStrength(withProvenance(missingDataCompany));
    expect(result.status).toBe('insufficient_evidence');
   });
 });

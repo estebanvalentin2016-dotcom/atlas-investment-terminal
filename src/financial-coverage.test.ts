@@ -121,12 +121,12 @@ describe('SEC-backed financial coverage fixtures',()=>{
  });
 });
 
-const fy=(year:number,value:number,end=year+'-12-31')=>({year,end,filed:(year+1)+'-02-15',value,form:'10-K',accession:'0000000000-26-000100'});
+const fy=(year:number,value:number,end=year+'-12-31')=>({year,start:year+'-01-01',end,filed:(year+1)+'-02-15',value,unit:'USD',form:'10-K',accession:'0000000000-'+String(year%100).padStart(2,'0')+'-000100',reviewIssues:[] as string[]});
 function company():SecCompany{return {ticker:'CASE',name:'Coverage Fixture',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0000000001.json',retrievedAt:'2026-10-19T12:00:00.000Z',factTaxonomies:{usGaap:true,ifrsFull:false},metrics:[
- {name:'Revenue',tag:'Revenues',sourceFactPresent:true,values:[fy(2025,150),fy(2024,100)]},
- {name:'Operating cash flow',sourceFactPresent:true,values:[fy(2025,32)]},
- {name:'Capital expenditures',sourceFactPresent:true,values:[fy(2025,6)]},
- {name:'Net income',sourceFactPresent:true,values:[fy(2025,12)]}
+ {name:'Revenue',tag:'Revenues',unit:'USD',reportingScope:'entity_wide',sourceFactPresent:true,values:[fy(2025,150),fy(2024,100)]},
+ {name:'Operating cash flow',tag:'NetCashProvidedByUsedInOperatingActivities',unit:'USD',reportingScope:'total_operations',sourceFactPresent:true,values:[fy(2025,32)]},
+ {name:'Capital expenditures',tag:'PaymentsToAcquirePropertyPlantAndEquipment',unit:'USD',reportingScope:'unallocated_cash_purchases',sourceFactPresent:true,values:[fy(2025,6)]},
+ {name:'Net income',tag:'NetIncomeLoss',unit:'USD',reportingScope:'parent_attributable',sourceFactPresent:true,values:[fy(2025,12)]}
 ]};}
 
 describe('specific missing-data diagnostics without changing screening rules',()=>{

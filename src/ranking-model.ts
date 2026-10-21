@@ -1,12 +1,15 @@
 // Transparent first-stage SEC research ranking. Not a statistically validated
 // return model. Missing inputs never earn points and are ALWAYS disclosed.
 export type Annual={year:number;start?:string|null;end:string;filed:string;value:number;unit?:string;form:string;accession:string;tag?:string;reviewIssues?:string[]};
-export type SecMetric={name:string;values:Annual[];tag?:string|null;reportingScope?:string|null;quality?:string;selectionNote?:string;alternativeTags?:string[];sourceFactPresent?:boolean;excludedBroaderFact?:Annual};
+export type SecMetric={name:string;unit?:string;values:Annual[];tag?:string|null;reportingScope?:string|null;quality?:string;selectionNote?:string;alternativeTags?:string[];sourceFactPresent?:boolean;excludedBroaderFact?:Annual};
+// An exceptional cross-filing comparison requires a reviewed record tied to
+// the exact observations. The SEC endpoint never creates these records.
+export type FilingComparisonReview={status:'reviewed_against_filings';metric:string;fiscalYear:number;periodStart:string;periodEnd:string;revenueAccession:string;metricAccession:string;revenueValue:number;metricValue:number;revenueReportingScope:'entity_wide';metricReportingScope:string;operationsScope:'total_operations';reviewer:string;reviewedAt:string;revenueFilingUrl:string;metricFilingUrl:string;scopeNote:string};
 type SecIndustryBase={system:'SEC SIC';source:string;retrievedAt:string};
 export type SecIndustryClassification=
  | SecIndustryBase&{status:'reported';code:string;description:string}
  | SecIndustryBase&{status:'unavailable';code:null;description:null;reason:string};
-export type SecCompany={ticker:string;name:string;cik?:string;source:string;retrievedAt:string;classification?:SecIndustryClassification;factTaxonomies?:{usGaap:boolean;ifrsFull:boolean};metrics:SecMetric[]};
+export type SecCompany={ticker:string;name:string;cik?:string;source:string;retrievedAt:string;classification?:SecIndustryClassification;factTaxonomies?:{usGaap:boolean;ifrsFull:boolean};filingComparisonReviews?:FilingComparisonReview[];metrics:SecMetric[]};
 export type RankWeights={growth:number;fcf:number;profit:number;pe:number};
 export type RankMetrics={year:number|null;growth:number|null;fcfMargin:number|null;profitMargin:number|null;pe:number|null;fcf:number|null;revenue:number|null;capex:number|null};
 export type Ranked={ticker:string;name:string;year:number|null;source:string;metrics:RankMetrics;score:number|null;coverage:number;count:number;reasons:string[];missing:string[];annualFiled:string|null};
@@ -31,30 +34,68 @@ export const defaultRankWeights:RankWeights={growth:30,fcf:35,profit:20,pe:15};
 const finite=(n:number)=>Number.isFinite(n);
 const percent=(n:number)=>Math.round(n*100)/100;
 const recent=(list:Annual[])=>[...list].filter(r=>r&&finite(r.value)&&/^\d{4}-\d{2}-\d{2}$/.test(r.end)).sort((a,b)=>b.year-a.year);
-const usable=(value:Annual|undefined,asOf:string)=>Boolean(value&&(!value.reviewIssues?.length)&&value.filed<=asOf);
-const samePeriod=(value:Annual,reference:Annual)=>value.year===reference.year&&value.end===reference.end&&(!value.start||!reference.start||value.start===reference.start);
-const matchYear=(metric:SecMetric|undefined,reference:Annual,asOf:string)=>{
+const iso=(value:string|undefined|null)=>Boolean(value&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&!Number.isNaN(Date.parse(value+'T00:00:00Z'))&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value);
+const accession=(value:string|undefined)=>Boolean(value&&/^\d{10}-\d{2}-\d{6}$/.test(value));
+const usable=(value:Annual|undefined,asOf:string)=>Boolean(value&&Array.isArray(value.reviewIssues)&&!value.reviewIssues.length&&value.filed<=asOf&&iso(value.filed)&&iso(value.start)&&iso(value.end)&&value.start!<value.end&&value.filed>=value.end&&value.year===Number(value.end.slice(0,4))&&
+ (Date.parse(value.end+'T00:00:00Z')-Date.parse(value.start!+'T00:00:00Z'))/86400000>=300&&
+ (Date.parse(value.end+'T00:00:00Z')-Date.parse(value.start!+'T00:00:00Z'))/86400000<=400&&
+ value.unit==='USD'&&value.form==='10-K'&&accession(value.accession));
+const samePeriod=(value:Annual,reference:Annual)=>value.year===reference.year&&value.end===reference.end&&value.start===reference.start;
+const filingUrl=(cik:string|undefined,accn:string,url:string)=>Boolean(cik&&/^\d{10}$/.test(cik)&&typeof url==='string'&&url.startsWith(`https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${accn.replaceAll('-','')}/`));
+function reviewedCrossFiling(company:SecCompany,reference:Annual,metric:SecMetric,value:Annual,asOf:string){
+ return company.filingComparisonReviews?.some(review=>review.status==='reviewed_against_filings'&&review.metric===metric.name&&
+  review.fiscalYear===reference.year&&review.periodStart===reference.start&&review.periodEnd===reference.end&&
+  review.revenueAccession===reference.accession&&review.metricAccession===value.accession&&
+  review.revenueValue===reference.value&&review.metricValue===value.value&&
+  review.revenueReportingScope==='entity_wide'&&review.metricReportingScope===metric.reportingScope&&review.operationsScope==='total_operations'&&
+  iso(review.reviewedAt)&&review.reviewedAt<=asOf&&review.reviewedAt>=value.filed&&review.reviewedAt>=reference.filed&&
+  typeof review.reviewer==='string'&&Boolean(review.reviewer.trim())&&typeof review.scopeNote==='string'&&Boolean(review.scopeNote.trim())&&
+  filingUrl(company.cik,reference.accession,review.revenueFilingUrl)&&filingUrl(company.cik,value.accession,review.metricFilingUrl))??false;
+}
+export function revenueFactIssue(metric:SecMetric|undefined,value:Annual|undefined,asOf:string):string|null{
+ if(!metric||metric.unit!=='USD'||metric.reportingScope!=='entity_wide'||!metric.tag)return 'Revenue source unit, concept, or reporting scope requires review';
+ if(!value||!usable(value,asOf))return 'Revenue filing provenance, period, unit, or assessment date requires review';
+ return null;
+}
+export function financialComparisonIssue(company:SecCompany,reference:Annual|undefined,metric:SecMetric|undefined,value:Annual|undefined,asOf:string):string|null{
+ const revenue=company.metrics.find(item=>item.name==='Revenue');
+ const revenueIssue=revenueFactIssue(revenue,reference,asOf);
+ if(!reference)return revenueIssue??'Revenue fact unavailable';
+ if(revenueIssue)return revenueIssue;
+ if(!metric||!value)return 'Matching annual source observation unavailable';
+ if(!samePeriod(value,reference))return 'Fiscal start or end does not match revenue';
+ if(!usable(value,asOf)||metric.unit!=='USD')return 'Annual source provenance, unit, review flags, or assessment date requires review';
+ const expectedTags:Record<string,string[]>={'Operating cash flow':['NetCashProvidedByUsedInOperatingActivities'],'Capital expenditures':['PaymentsToAcquirePropertyPlantAndEquipment'],'Net income':['NetIncomeLoss','ProfitLoss']};
+ if(expectedTags[metric.name]&&!expectedTags[metric.name].includes(metric.tag??''))return 'Financial source concept requires review';
+ if(metric.name==='Operating cash flow'&&metric.reportingScope!=='total_operations')return 'Operating cash-flow reporting scope requires review';
+ if(metric.name==='Capital expenditures'&&metric.reportingScope!=='unallocated_cash_purchases')return 'Cash-purchase reporting scope requires review';
+ if(metric.name==='Net income'&&!['consolidated','parent_attributable'].includes(metric.reportingScope??''))return 'Net-income reporting scope requires review';
+ if(value.accession!==reference.accession&&!reviewedCrossFiling(company,reference,metric,value,asOf))return 'Different filing accessions require documented reconciliation';
+ return null;
+}
+const matchYear=(company:SecCompany,metric:SecMetric|undefined,reference:Annual,asOf:string)=>{
  const value=recent(metric?.values||[]).find(x=>samePeriod(x,reference));
- return usable(value,asOf)?value!.value:null;
+ return financialComparisonIssue(company,reference,metric,value,asOf)===null?value!.value:null;
 };
 const cap=(n:number)=>Math.max(0,Math.min(100,n));
 const normalized=(x:number,lo:number,hi:number)=>cap((x-lo)/(hi-lo)*100);
 export function deriveRankingMetrics(company:SecCompany,pe:number|null=null,asOf=new Date().toISOString().slice(0,10)):RankMetrics{
  const m=new Map(company.metrics.map(x=>[x.name,x]));
- const rev=recent(m.get('Revenue')?.values||[]);
+ const revenueMetric=m.get('Revenue');
+ const rev=recent(revenueMetric?.values||[]);
  const current=rev[0];
- if(!current||!usable(current,asOf))return {year:null,growth:null,fcfMargin:null,profitMargin:null,pe:validPe(pe),fcf:null,revenue:null,capex:null};
+ if(revenueFactIssue(revenueMetric,current,asOf))return {year:null,growth:null,fcfMargin:null,profitMargin:null,pe:validPe(pe),fcf:null,revenue:null,capex:null};
  const year=current.year, revenue=current.value;
  const previous=rev.find(r=>r.year===year-1);
- const growth=previous&&usable(previous,asOf)&&previous.value>0?percent((revenue/previous.value-1)*100):null;
- const operating=matchYear(m.get('Operating cash flow'),current,asOf);
- const rawCapex=matchYear(m.get('Capital expenditures'),current,asOf);
+ const growth=previous&&!revenueFactIssue(revenueMetric,previous,asOf)&&previous.value>0?percent((revenue/previous.value-1)*100):null;
+ const operating=matchYear(company,m.get('Operating cash flow'),current,asOf);
+ const rawCapex=matchYear(company,m.get('Capital expenditures'),current,asOf);
  // SEC GAAP capex payments are normally nonnegative. Reject negative values
  // instead of silently applying the wrong cash flow sign.
  const capex=rawCapex!==null&&rawCapex>=0?rawCapex:null;
  const fcf=operating!==null&&capex!==null?operating-capex:null;
  const fcfMargin=revenue>0&&fcf!==null?percent(fcf/revenue*100):null;
- const net=matchYear(m.get('Net income'),current,asOf);
+ const net=matchYear(company,m.get('Net income'),current,asOf);
  const profitMargin=revenue>0&&net!==null?percent(net/revenue*100):null;
  return {year,growth,fcfMargin,profitMargin,pe:validPe(pe),fcf,revenue,capex};
 }
@@ -110,9 +151,9 @@ export function assessEmergingFcfStrength(company:SecCompany,asOf=new Date().toI
     years.push(year);
     
     // Match all required financial components for this specific fiscal year/period
-    if(!usable(yearData,asOf))return {status:'insufficient_evidence',years:[],margins:[]};
-    const operating = matchYear(m.get('Operating cash flow'), yearData,asOf);
-    const rawCapex = matchYear(m.get('Capital expenditures'), yearData,asOf);
+    if(revenueFactIssue(m.get('Revenue'),yearData,asOf))return {status:'insufficient_evidence',years:[],margins:[]};
+    const operating = matchYear(company,m.get('Operating cash flow'), yearData,asOf);
+    const rawCapex = matchYear(company,m.get('Capital expenditures'), yearData,asOf);
     const revenue = yearData.value;
     
     // Must have all components available for a valid calculation
@@ -175,6 +216,6 @@ export function scoreCompany(company:SecCompany,weights:RankWeights,manualPe:num
   const score=eligible?Math.round(observed.reduce((sum,p)=>sum+p.grade*weights[p.key],0)/total):null;
   return {ticker:company.ticker,name:company.name,year:metrics.year,source:company.source,metrics,score,coverage,count:observed.length,reasons,missing,annualFiled};
 }
-export function rankCompanies(data:SecCompany[],weights:RankWeights,pe:Record<string,number|null>={}):Ranked[]{
- return data.map(c=>scoreCompany(c,weights,pe[c.ticker]??null)).sort((a,b)=>(b.score??-1)-(a.score??-1)||b.coverage-a.coverage||a.ticker.localeCompare(b.ticker));
+export function rankCompanies(data:SecCompany[],weights:RankWeights,pe:Record<string,number|null>={},asOf=new Date().toISOString().slice(0,10)):Ranked[]{
+ return data.map(c=>scoreCompany(c,weights,pe[c.ticker]??null,asOf)).sort((a,b)=>(b.score??-1)-(a.score??-1)||b.coverage-a.coverage||a.ticker.localeCompare(b.ticker));
 }

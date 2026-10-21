@@ -1,12 +1,12 @@
 import {describe,expect,it} from 'vitest';
 import {assessConvictionReadiness} from './conviction-readiness';
 import type {MarketValuationClose,SecCompany} from './ranking-model';
-const annual=(year:number,value:number)=>({year,end:year+'-12-31',filed:(year+1)+'-02-15',value,form:'10-K',accession:'0000000000-26-000101'});
+const annual=(year:number,value:number)=>({year,start:year+'-01-01',end:year+'-12-31',filed:(year+1)+'-02-15',value,unit:'USD',form:'10-K',accession:'0000000000-'+String(year%100).padStart(2,'0')+'-000101',reviewIssues:[] as string[]});
 const sec=():SecCompany=>({ticker:'TEST',name:'Test Industries',retrievedAt:'2026-10-15T12:00:00Z',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK1234567890.json',metrics:[
- {name:'Revenue',values:[annual(2025,150),annual(2024,100)]},
- {name:'Operating cash flow',values:[annual(2025,38)]},
- {name:'Capital expenditures',values:[annual(2025,8)]},
- {name:'Net income',values:[annual(2025,30)]},
+ {name:'Revenue',tag:'Revenues',unit:'USD',reportingScope:'entity_wide',values:[annual(2025,150),annual(2024,100)]},
+ {name:'Operating cash flow',tag:'NetCashProvidedByUsedInOperatingActivities',unit:'USD',reportingScope:'total_operations',values:[annual(2025,38)]},
+ {name:'Capital expenditures',tag:'PaymentsToAcquirePropertyPlantAndEquipment',unit:'USD',reportingScope:'unallocated_cash_purchases',values:[annual(2025,8)]},
+ {name:'Net income',tag:'NetIncomeLoss',unit:'USD',reportingScope:'parent_attributable',values:[annual(2025,30)]},
  {name:'Diluted EPS',values:[annual(2025,5)]}
 ]});
 const close=():MarketValuationClose=>({ticker:'TEST',price:100,sessionDate:'2026-10-14',feed:'IEX',provider:'Alpaca',completedSession:true,splitValidation:'unverified'});

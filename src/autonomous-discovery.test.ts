@@ -10,8 +10,9 @@ import ResearchHome from './ResearchHome';
 import App from './App';
 import {SecondaryNavigation} from './WorkspaceNavigation';
 import type {SecCompany} from './ranking-model';
-const fy=(year:number,value:number)=>({year,end:year+'-12-31',filed:(year+1)+'-02-15',value,form:'10-K',accession:'0000000000-26-000100'});
-const company=():SecCompany=>({ticker:'XRAN',name:'Unfamiliar Industrial Company',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK1234567890.json',retrievedAt:'2026-10-15',metrics:[
+const fy=(year:number,value:number)=>({year,start:year+'-01-01',end:year+'-12-31',filed:(year+1)+'-02-15',value,unit:'USD',form:'10-K',accession:'0000000000-'+String(year%100).padStart(2,'0')+'-000100',reviewIssues:[] as string[]});
+const withProvenance=(sample:SecCompany):SecCompany=>{for(const metric of sample.metrics){metric.unit='USD';if(metric.name==='Revenue'){metric.tag=metric.tag||'Revenues';metric.reportingScope='entity_wide'}else if(metric.name==='Operating cash flow'){metric.tag='NetCashProvidedByUsedInOperatingActivities';metric.reportingScope='total_operations'}else if(metric.name==='Capital expenditures'){metric.tag='PaymentsToAcquirePropertyPlantAndEquipment';metric.reportingScope='unallocated_cash_purchases'}else if(metric.name==='Net income'){metric.tag='NetIncomeLoss';metric.reportingScope='parent_attributable'}}return sample};
+const company=():SecCompany=>withProvenance({ticker:'XRAN',name:'Unfamiliar Industrial Company',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK1234567890.json',retrievedAt:'2026-10-15',metrics:[
  {name:'Revenue',values:[fy(2025,150),fy(2024,100)]},
  {name:'Operating cash flow',values:[fy(2025,32)]},
  {name:'Capital expenditures',values:[fy(2025,6)]},
@@ -88,7 +89,7 @@ describe('Autonomous first-stage evidence screening',()=>{
    {name:'Capital expenditures',values:[rec(2025,224819000)]},
    {name:'Net income',values:[rec(2025,1054456000)]}
   ]};
-  const result=initialAutonomousScreen(data,'2026-10-15');
+  const result=initialAutonomousScreen(withProvenance(data),'2026-10-15');
   expect(result.growth).toBe(5.06);
   expect(result.fcfMargin).toBe(37.88);
   expect(result.status).toBe('failed_thresholds');
@@ -102,7 +103,7 @@ describe('Autonomous first-stage evidence screening',()=>{
    {name:'Capital expenditures',values:[rec(2025,224819000)]},
    {name:'Net income',values:[rec(2025,1054456000)]}
   ]};
-  const result=initialAutonomousScreen(data,'2026-10-15');
+  const result=initialAutonomousScreen(withProvenance(data),'2026-10-15');
   expect(result.fcfMargin).toBe(436.2);
   expect(result.status).toBe('accounting_review');
   expect(result.score).toBeNull();

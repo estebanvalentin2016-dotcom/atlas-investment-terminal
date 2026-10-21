@@ -6,13 +6,13 @@ import type {SecCompany} from './ranking-model';
 import type {readResearchContext} from './watchlist-research';
 
 const source='https://data.sec.gov/api/xbrl/companyfacts/CIK0000000001.json';
-const current={year:2025,start:'2025-01-01',end:'2025-12-31',filed:'2026-02-12',value:150000000,unit:'USD',form:'10-K',accession:'0000000001-26-000001',tag:'Revenues'};
+const current={year:2025,start:'2025-01-01',end:'2025-12-31',filed:'2026-02-12',value:150000000,unit:'USD',form:'10-K',accession:'0000000001-26-000001',tag:'Revenues',reviewIssues:[]};
 const prior={...current,year:2024,start:'2024-01-01',end:'2024-12-31',filed:'2025-02-12',value:100000000,accession:'0000000001-25-000001'};
 const company:SecCompany={ticker:'CASE',name:'Reported Evidence Fixture',source,retrievedAt:'2026-10-20T12:00:00.000Z',metrics:[
- {name:'Revenue',tag:'Revenues',values:[{...current,tag:undefined},prior]},
- {name:'Operating cash flow',values:[{...current,tag:'NetCashProvidedByUsedInOperatingActivities',value:24000000}]},
- {name:'Capital expenditures',values:[{...current,tag:'PaymentsToAcquirePropertyPlantAndEquipment',value:4000000}]},
- {name:'Net income',reportingScope:'consolidated',values:[{...current,tag:'ProfitLoss',value:12000000}]}
+ {name:'Revenue',tag:'Revenues',unit:'USD',reportingScope:'entity_wide',values:[{...current,tag:undefined},prior]},
+ {name:'Operating cash flow',tag:'NetCashProvidedByUsedInOperatingActivities',unit:'USD',reportingScope:'total_operations',values:[{...current,tag:'NetCashProvidedByUsedInOperatingActivities',value:24000000}]},
+ {name:'Capital expenditures',tag:'PaymentsToAcquirePropertyPlantAndEquipment',unit:'USD',reportingScope:'unallocated_cash_purchases',values:[{...current,tag:'PaymentsToAcquirePropertyPlantAndEquipment',value:4000000}]},
+ {name:'Net income',tag:'ProfitLoss',unit:'USD',reportingScope:'consolidated',values:[{...current,tag:'ProfitLoss',value:12000000}]}
 ]};
 
 afterEach(()=>vi.unstubAllGlobals());

@@ -1,4 +1,4 @@
-import {deriveRankingMetrics,scoreCompany,defaultRankWeights,type SecCompany,type SecMetric} from './ranking-model';
+import {deriveRankingMetrics,scoreCompany,defaultRankWeights,financialComparisonIssue,revenueFactIssue,type SecCompany,type SecMetric} from './ranking-model';
 export type ScreenVerdict='preliminary_pass'|'incomplete_financials'|'failed_thresholds'|'stale_financials'|'accounting_review';
 export type CoverageCause='absent_source_fact'|'unsupported_taxonomy'|'incompatible_fiscal_periods'|'missing_comparable_prior_year'|'unusable_value'|'source_presence_unknown'|'accounting_reconciliation_required'|'as_of_date_unverified';
 export type CoverageIssue={metric:string;cause:CoverageCause;detail:string};
@@ -29,36 +29,43 @@ export function diagnoseFinancialCoverage(company:SecCompany,asOf=new Date().toI
   return issue(name,'source_presence_unknown',`${name}: normalized annual evidence is unavailable; source-tag presence was not supplied.`);
  };
  if(!current)return [missingMetric('Revenue',revenue)];
- const revenueReview=review('Revenue',current);
+ const revenueProblem=revenueFactIssue(revenue,current,asOf);
+ const revenueReview=review('Revenue',current)??(revenueProblem?issue('Revenue','accounting_reconciliation_required',revenueProblem):null);
  if(revenueReview)return [revenueReview];
  if(current.value<=0)return [issue('Revenue','unusable_value','Revenue: the selected annual value is not positive, so ratios cannot be calculated.')];
  const issues:CoverageIssue[]=[];
  if(m.growth===null){
   const prior=revenue?.values.find(value=>value.year===current.year-1);
-  issues.push(prior?(review('Revenue growth',prior)??issue('Revenue growth','unusable_value','Revenue growth: the comparable prior-year revenue is not positive.')):
+  const priorProblem=revenueFactIssue(revenue,prior,asOf);
+  issues.push(prior?(review('Revenue growth',prior)??(priorProblem?issue('Revenue growth','accounting_reconciliation_required',priorProblem):issue('Revenue growth','unusable_value','Revenue growth: the comparable prior-year revenue is not positive.'))):
    issue('Revenue growth','missing_comparable_prior_year',`Revenue growth: no comparable FY ${current.year-1} observation exists for the selected revenue tag.`));
  }
  const aligned=(metric:SecMetric|undefined)=>metric?.values.find(value=>value.year===current.year&&value.end===current.end&&(!value.start||!current.start||value.start===current.start));
  const operating=byName.get('Operating cash flow');
  const capex=byName.get('Capital expenditures');
  const net=byName.get('Net income');
+ const comparisonReview=(name:string,metric:SecMetric|undefined,value:SecMetric['values'][number])=>{
+  const problem=financialComparisonIssue(company,current,metric,value,asOf);
+  return review(name,value)??(problem?issue(name,'accounting_reconciliation_required',problem):null);
+ };
  const operatingValue=aligned(operating);
  if(!operatingValue)issues.push(missingMetric('Operating cash flow',operating));
- else {const problem=review('Operating cash flow',operatingValue);if(problem)issues.push(problem)}
+ else {const problem=comparisonReview('Operating cash flow',operating,operatingValue);if(problem)issues.push(problem)}
  const capexValue=aligned(capex);
  if(!capexValue)issues.push(missingMetric('Capital expenditures',capex));
  else if(capexValue.value<0)issues.push(issue('Capital expenditures','unusable_value','Capital expenditures: the annual cash-outflow fact has an unsupported negative value.'));
- else {const problem=review('Capital expenditures',capexValue);if(problem)issues.push(problem)}
+ else {const problem=comparisonReview('Capital expenditures',capex,capexValue);if(problem)issues.push(problem)}
  const netValue=aligned(net);
  if(!netValue)issues.push(missingMetric('Net income',net));
- else {const problem=review('Net income',netValue);if(problem)issues.push(problem)}
+ else {const problem=comparisonReview('Net income',net,netValue);if(problem)issues.push(problem)}
  return issues;
 }
 
 export function initialAutonomousScreen(company:SecCompany,asOf:string):ScreenResult{
  const m=deriveRankingMetrics(company,null,asOf);
  const missingEvidence=diagnoseFinancialCoverage(company,asOf);
- const annual=company.metrics.find(x=>x.name==='Revenue')?.values.find(x=>x.year===m.year);
+ const revenueValues=company.metrics.find(x=>x.name==='Revenue')?.values;
+ const annual=revenueValues?.find(x=>x.year===m.year)??revenueValues?.[0];
  const filed=annual?.filed||null;
  const age=filed?Date.parse(asOf+'T00:00:00Z')-Date.parse(filed+'T00:00:00Z'):NaN;
  const recent=Number.isFinite(age)&&age>=0&&age<=550*DAY;

@@ -9,14 +9,14 @@ function memoryStorage(initial?:string):Storage{
  if(initial!==undefined)values.set(RESEARCH_HISTORY_KEY,initial);
  return {get length(){return values.size},clear(){values.clear()},getItem:key=>values.get(key)??null,key:index=>[...values.keys()][index]??null,removeItem:key=>{values.delete(key)},setItem:(key,value)=>{values.set(key,value)}};
 }
-const annual=(year:number,value:number)=>({year,end:`${year}-12-31`,filed:`${year+1}-02-15`,form:'10-K',accession:`0000000001-${String(year+1).slice(-2)}-000001`,value});
+const annual=(year:number,value:number)=>({year,start:`${year}-01-01`,end:`${year}-12-31`,filed:`${year+1}-02-15`,unit:'USD',form:'10-K',accession:`0000000001-${String(year+1).slice(-2)}-000001`,value,reviewIssues:[] as string[]});
 const company=(ticker='HIST'):SecCompany=>({
  ticker,name:ticker+' Industries',cik:'0000000001',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0000000001.json',retrievedAt:'2026-10-18T15:30:00.000Z',
  metrics:[
-  {name:'Revenue',values:[annual(2025,150),annual(2024,100),annual(2023,90)]},
-  {name:'Operating cash flow',values:[annual(2025,35),annual(2024,20),annual(2023,10)]},
-  {name:'Capital expenditures',values:[annual(2025,5),annual(2024,5),annual(2023,5)]},
-  {name:'Net income',values:[annual(2025,20)]}
+  {name:'Revenue',tag:'Revenues',unit:'USD',reportingScope:'entity_wide',values:[annual(2025,150),annual(2024,100),annual(2023,90)]},
+  {name:'Operating cash flow',tag:'NetCashProvidedByUsedInOperatingActivities',unit:'USD',reportingScope:'total_operations',values:[annual(2025,35),annual(2024,20),annual(2023,10)]},
+  {name:'Capital expenditures',tag:'PaymentsToAcquirePropertyPlantAndEquipment',unit:'USD',reportingScope:'unallocated_cash_purchases',values:[annual(2025,5),annual(2024,5),annual(2023,5)]},
+  {name:'Net income',tag:'NetIncomeLoss',unit:'USD',reportingScope:'parent_attributable',values:[annual(2025,20)]}
  ]
 });
 const assessed=(ticker='HIST'):ResearchHistoryAssessmentInput=>{
@@ -61,6 +61,14 @@ describe('durable browser-local research assessment history',()=>{
   expect(records).toHaveLength(1);
   expect(records[0]).toMatchObject({assessmentModelVersion:RESEARCH_HISTORY_MODEL_VERSION,completionStatus:'completed_scan',cik:'0000000001'});
   expect(records[0].source).toMatchObject({companyFactsUrl:assessment.company.source,companyFactsRetrievedAt:assessment.company.retrievedAt,fiscalPeriodEnd:'2025-12-31'});
+ });
+ it('uses the scan assessment date when completion crosses a UTC date boundary',()=>{
+  const input=assessed();
+  input.company.metrics.find(metric=>metric.name==='Revenue')!.values[0].filed='2026-10-19';
+  input.screen=initialAutonomousScreen(input.company,'2026-10-18');
+  const [record]=buildResearchHistoryRecords({completed:true,completedAt:'2026-10-19T01:00:00.000Z',assessmentDate:'2026-10-18',runId:'boundary-run',assessments:[input]});
+  expect(record.source.fiscalPeriodEnd).toBeNull();
+  expect(record.metrics.revenueGrowth).toBeNull();
  });
 
  it('attaches valuation and ranking only to the issuer with matching enrichment',()=>{

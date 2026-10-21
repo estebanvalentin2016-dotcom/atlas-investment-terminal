@@ -3,12 +3,12 @@ import {assessCatalystFundamentalBridge,type CandidateHeadline} from './catalyst
 import type {FilingEvidenceResult} from './FilingEvidence';
 import type {MarketValuationClose,SecCompany,Annual} from './ranking-model';
 const filingUrl='https://www.sec.gov/Archives/edgar/data/1234567/0001234567-26-000001.txt';
-const annual=(year:number,value:number):Annual=>({year,end:year+'-12-31',filed:(year+1)+'-02-15',value,form:'10-K',accession:'0001234567-26-000010'});
+const annual=(year:number,value:number):Annual=>({year,start:year+'-01-01',end:year+'-12-31',filed:(year+1)+'-02-15',value,unit:'USD',form:'10-K',accession:'0001234567-'+String(year%100).padStart(2,'0')+'-000010',reviewIssues:[]});
 const company=():SecCompany=>({ticker:'TEST',name:'Test Growth Inc',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0001234567.json',retrievedAt:'2026-10-16',metrics:[
- {name:'Revenue',values:[annual(2025,120_000_000),annual(2024,100_000_000)]},
- {name:'Operating cash flow',values:[annual(2025,30_000_000)]},
- {name:'Capital expenditures',values:[annual(2025,5_000_000)]},
- {name:'Net income',values:[annual(2025,18_000_000)]},
+ {name:'Revenue',tag:'Revenues',unit:'USD',reportingScope:'entity_wide',values:[annual(2025,120_000_000),annual(2024,100_000_000)]},
+ {name:'Operating cash flow',tag:'NetCashProvidedByUsedInOperatingActivities',unit:'USD',reportingScope:'total_operations',values:[annual(2025,30_000_000)]},
+ {name:'Capital expenditures',tag:'PaymentsToAcquirePropertyPlantAndEquipment',unit:'USD',reportingScope:'unallocated_cash_purchases',values:[annual(2025,5_000_000)]},
+ {name:'Net income',tag:'NetIncomeLoss',unit:'USD',reportingScope:'parent_attributable',values:[annual(2025,18_000_000)]},
  {name:'Diluted EPS',values:[annual(2025,4)]}
 ]});
 const quote=():MarketValuationClose=>({ticker:'TEST',provider:'Alpaca',feed:'IEX',price:100,sessionDate:'2026-10-14',completedSession:true});

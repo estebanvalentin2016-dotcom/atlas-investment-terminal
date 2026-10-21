@@ -3,12 +3,12 @@ import {draftIssuerThesis} from './automatic-thesis';
 import {assessPriceHistory} from './price-history-model';
 import {assessConvictionReadiness} from './conviction-readiness';
 import type {SecCompany,MarketValuationClose} from './ranking-model';
-const annual=(year:number,value:number)=>({year,end:year+'-12-31',filed:(year+1)+'-02-01',form:'10-K',accession:'0000123456-26-000001',value});
+const annual=(year:number,value:number)=>({year,start:year+'-01-01',end:year+'-12-31',filed:(year+1)+'-02-01',unit:'USD',form:'10-K',accession:'0000123456-'+String(year%100).padStart(2,'0')+'-000001',value,reviewIssues:[] as string[]});
 const c=():SecCompany=>({ticker:'UNSEEN',name:'Unknown Industries',retrievedAt:'2026-10-15',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0000123456.json',metrics:[
- {name:'Revenue',values:[annual(2025,150000000),annual(2024,100000000)]},
- {name:'Operating cash flow',values:[annual(2025,-3000000)]},
- {name:'Capital expenditures',values:[annual(2025,9000000)]},
- {name:'Net income',values:[annual(2025,-5000000)]},
+ {name:'Revenue',tag:'Revenues',unit:'USD',reportingScope:'entity_wide',values:[annual(2025,150000000),annual(2024,100000000)]},
+ {name:'Operating cash flow',tag:'NetCashProvidedByUsedInOperatingActivities',unit:'USD',reportingScope:'total_operations',values:[annual(2025,-3000000)]},
+ {name:'Capital expenditures',tag:'PaymentsToAcquirePropertyPlantAndEquipment',unit:'USD',reportingScope:'unallocated_cash_purchases',values:[annual(2025,9000000)]},
+ {name:'Net income',tag:'NetIncomeLoss',unit:'USD',reportingScope:'parent_attributable',values:[annual(2025,-5000000)]},
  {name:'Diluted EPS',values:[annual(2025,-2)]},
  {name:'Latest cash and cash equivalents',values:[{year:2026,end:'2026-06-30',filed:'2026-08-01',form:'10-Q',accession:'0000123456-26-000003',value:10000000}]}
 ]});

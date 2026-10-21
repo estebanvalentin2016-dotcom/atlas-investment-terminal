@@ -19,7 +19,7 @@ export type ConvictionAssessment={
 };
 const dateOk=(s:string)=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s+'T00:00:00Z'))&&new Date(s+'T00:00:00Z').toISOString().slice(0,10)===s;
 export function assessConvictionReadiness(company:SecCompany|null,price:MarketValuationClose|null,today:string):ConvictionAssessment{
- const metrics=company?deriveRankingMetrics(company):null;
+ const metrics=company?deriveRankingMetrics(company,null,today):null;
  const pe=company?annualPeFromSec(company,price):null;
  const financialDate=company?.metrics.find(x=>x.name==='Revenue')?.values.find(x=>x.year===metrics?.year)?.filed??null;
  const age=financialDate&&dateOk(today)&&dateOk(financialDate)?(Date.parse(today+'T00:00:00Z')-Date.parse(financialDate+'T00:00:00Z'))/86400000:null;

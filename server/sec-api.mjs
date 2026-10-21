@@ -235,7 +235,7 @@ export async function handleSecRequest(req,res){
     if(name==='Capital expenditures'&&annualValues(facts.facts?.['us-gaap']?.PaymentsToAcquireProductiveAssets).some(broad=>broad.start===value.start&&broad.end===value.end&&broad.accession===value.accession))reviewIssues.push('overlapping_capex_concepts');
     return {...value,reviewIssues};
    });
-   const reportingScope=name==='Net income'?(result.tag==='ProfitLoss'?'consolidated':'parent_attributable'):name==='Operating cash flow'?'total_operations':name==='Revenue'?'entity_wide':null;
+   const reportingScope=name==='Net income'?(result.tag==='ProfitLoss'?'consolidated':'parent_attributable'):name==='Operating cash flow'?'total_operations':name==='Revenue'?'entity_wide':name==='Capital expenditures'?'unallocated_cash_purchases':null;
    return {name,unit,...result,values,reportingScope,sourceFactPresent:supportedTags.some(tag=>Boolean(facts.facts?.['us-gaap']?.[tag])),excludedBroaderFact:name==='Capital expenditures'&&broaderCapex?{...broaderCapex,tag:'PaymentsToAcquireProductiveAssets'}:undefined};
   });
   const factTaxonomies={usGaap:Boolean(facts.facts?.['us-gaap']),ifrsFull:Boolean(facts.facts?.['ifrs-full'])};

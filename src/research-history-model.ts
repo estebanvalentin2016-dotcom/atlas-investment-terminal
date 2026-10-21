@@ -49,15 +49,18 @@ export function createResearchHistoryRunId(completedAt:string):string{
 export function buildResearchHistoryRecords(input:{
  completed:boolean;
  completedAt:string;
+ assessmentDate?:string;
  runId:string;
  assessments:ResearchHistoryAssessmentInput[];
  enrichments?:ResearchHistoryEnrichment[];
 }):ResearchHistoryRecordV1[]{
- if(!input.completed||!fullUtc(input.completedAt)||!input.runId.trim())return [];
+ if(!input.completed||!fullUtc(input.completedAt)||!input.runId.trim()||
+  (input.assessmentDate!==undefined&&(!/^\d{4}-\d{2}-\d{2}$/.test(input.assessmentDate)||input.assessmentDate>input.completedAt.slice(0,10))))return [];
+ const asOf=input.assessmentDate??input.completedAt.slice(0,10);
  const enriched=new Map((input.enrichments||[]).map(item=>[item.ticker,item]));
  return input.assessments.map((assessment,index)=>{
   const {company,screen,emerging}=assessment;
-  const metrics=deriveRankingMetrics(company);
+  const metrics=deriveRankingMetrics(company,null,asOf);
   const revenue=company.metrics.find(metric=>metric.name==='Revenue')?.values.find(value=>value.year===metrics.year);
   const extra=enriched.get(company.ticker);
   const valuation=extra?.valuation?.pe!==null&&extra?.valuation?.pe!==undefined&&extra.quote&&

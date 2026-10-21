@@ -67,7 +67,7 @@ const [cursor,setCursor]=useState(initialCursor);
         const company=await response.json() as SecCompany&{error?:string};
         if(!response.ok||!company.source?.startsWith('https://data.sec.gov/')||company.ticker!==ticker||!Array.isArray(company.metrics))throw Error(company.error||'SEC annual source incomplete');
         const screen=initialAutonomousScreen(company,today);
-        const emerging = assessEmergingFcfStrength(company);
+        const emerging = assessEmergingFcfStrength(company,today);
         records.push({company,screen,emerging});
        }catch(e){sourceIssues.push({ticker,reason:e instanceof Error?e.message:'SEC company facts unavailable'})}
       setProgress('Checked '+(records.length+sourceIssues.length)+' / '+(batchCount*BATCH)+' planned SEC companies · batch '+(batch+1)+' / '+batchCount);
@@ -109,7 +109,7 @@ const [cursor,setCursor]=useState(initialCursor);
     setQuotesChecked(i+1);
    }
    const valuationMap=Object.fromEntries(research.map(x=>[x.company.ticker,x.valuation?.pe??null]));
-   const fundamental=rankCompanies(research.map(x=>x.company),defaultRankWeights,valuationMap);
+   const fundamental=rankCompanies(research.map(x=>x.company),defaultRankWeights,valuationMap,today);
    const fundamentals=new Map(fundamental.map(x=>[x.ticker,x.score]));
    const rankings=new Map(fundamental.map(x=>[x.ticker,x]));
    for(const item of research)item.priority=combineResearchPriority(fundamentals.get(item.company.ticker)??null,item.trend);
@@ -124,7 +124,7 @@ const [cursor,setCursor]=useState(initialCursor);
     const scanCompletedAt=new Date().toISOString();
     const runId=createResearchHistoryRunId(scanCompletedAt);
     const historyRecords=buildResearchHistoryRecords({
-      completed:true,completedAt:scanCompletedAt,runId,assessments:records,
+      completed:true,completedAt:scanCompletedAt,assessmentDate:today,runId,assessments:records,
       enrichments:research.map(item=>({ticker:item.company.ticker,valuation:item.valuation,quote:item.quote,ranking:rankings.get(item.company.ticker)??null,priceIssue:item.priceIssue,historyIssue:item.historyIssue}))
     });
 

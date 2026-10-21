@@ -78,7 +78,7 @@ export function assessCatalystFundamentalBridge(args:{
  if(pe===null)gaps.push('Indicative current-price/SEC-FY EPS P/E unavailable. Missing does not mean cheap.');
  else if(pe>=40)gaps.push('FY P/E '+pe.toFixed(1)+'x exceeds provisional <40x valuation triage; not a fair-value assessment.');
  else gaps.push('FY P/E '+pe.toFixed(1)+'x is indicative only; forward earnings, share classes, debt and intrinsic value remain unverified.');
- const rank=secCurrent&&completedClose?scoreCompany(company!,defaultRankWeights,pe):null;
+ const rank=secCurrent&&completedClose?scoreCompany(company!,defaultRankWeights,pe,asOf):null;
  const financialScore=rank?.score??null;
  if(financialScore===null)gaps.push('The weighted source-dated fundamental score is not established.');
  const ready=!!topic&&issuerFiling&&cautions.length===0&&!hasAdverseEconomics&&screen?.status==='preliminary_pass'&&completedClose&&pe!==null&&pe<40&&financialScore!==null&&
