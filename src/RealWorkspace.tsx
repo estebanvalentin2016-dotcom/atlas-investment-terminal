@@ -1,10 +1,10 @@
 import {ArrowRight,Search} from 'lucide-react';
 import {readWorkspaceStorage,removeSavedCompany,selectComparison,WATCH_KEY as STORE,NOTES_KEY as NOTES,type CompanyEntry} from './watchlist-storage';
 import SavedResearchContext from './SavedResearchContext';
-import {readResearchContext} from './watchlist-research';
+import {latestResearch,readResearchContext} from './watchlist-research';
 import {useEffect,useRef,useState,type FormEvent} from 'react';
 import CompanyComparison from './CompanyComparison';
-import type {SecCompany} from './ranking-model';
+import type {Annual,SecCompany} from './ranking-model';
 import {reportedFinancialEvidence} from './reported-financial-evidence';
 import {industryComparabilityLimitations} from './industry-classification';
 import DiscoveryBriefingPanel from './DiscoveryBriefingPanel';
@@ -19,29 +19,43 @@ const dateTime=(value:string)=>{
  const date=new Date(value);
  return Number.isNaN(date.getTime())?'Unavailable':new Intl.DateTimeFormat('en-US',{year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZone:'UTC',timeZoneName:'short'}).format(date);
 };
+const factDetail=(fact:Annual|null,metricTag?:string|null)=>fact?`${fact.start?`${fact.start} to `:''}${fact.end} · ${fact.unit||'Unit unavailable'} · ${fact.form} filed ${fact.filed} · ${fact.tag||metricTag||'Concept unavailable'} · ${fact.accession}`:'No reconciled annual fact available';
 
 export function ReportedFundamentals({company}:{company:SecCompany}){
  const {metrics,revenue,operating,netIncome,productiveAssets,cashAfterProductiveAssets}=reportedFinancialEvidence(company);
  const netScope=company.metrics.find(metric=>metric.name==='Net income')?.reportingScope;
+ const tag=(name:string)=>company.metrics.find(metric=>metric.name===name)?.tag;
  const netLabel=netScope==='consolidated'?'SEC-reported consolidated net income (loss)':netScope==='parent_attributable'?'SEC-reported parent-attributable net income (loss)':'SEC-reported net income (scope unverified)';
  const scopeReview=company.metrics.some(metric=>['Operating cash flow','Capital expenditures','Net income'].includes(metric.name)&&metric.values.some(value=>value.end===revenue?.end&&value.reviewIssues?.includes('discontinued_operations_scope')));
  const review='Needs filing review';
  return <section className="atlas-research-section" aria-labelledby="reported-fundamentals">
   <div className="atlas-research-section-heading"><span>01</span><div><small>Reported fundamentals</small><h4 id="reported-fundamentals">What the annual filings support</h4></div></div>
   <dl className="atlas-research-metrics">
-   <div><dt>Annual revenue</dt><dd>{revenue?money(revenue.value):review}</dd></div>
-   <div><dt>Revenue growth</dt><dd className={tone(metrics.growth)}>{metrics.growth===null?review:change(metrics.growth)}</dd></div>
-   <div><dt>{netLabel}</dt><dd className={tone(netIncome?.value??null)}>{netIncome?money(netIncome.value):review}</dd></div>
-   <div><dt>ATLAS-derived net margin</dt><dd className={tone(metrics.profitMargin)}>{metrics.profitMargin===null?review:change(metrics.profitMargin)}</dd></div>
-   <div><dt>SEC-reported total operating cash flow</dt><dd className={tone(operating?.value??null)}>{operating?money(operating.value):review}</dd></div>
-   {productiveAssets&&<div><dt>SEC-reported property, equipment and intangible-asset purchases</dt><dd>{money(productiveAssets.value)}</dd></div>}
-   {cashAfterProductiveAssets!==null&&<div><dt>ATLAS subtraction: cash after those reported purchases</dt><dd className={tone(cashAfterProductiveAssets)}>{money(cashAfterProductiveAssets)}</dd></div>}
-   {metrics.fcf!==null&&<div><dt>ATLAS-derived PP&amp;E-only cash flow</dt><dd className={tone(metrics.fcf)}>{money(metrics.fcf)}</dd></div>}
-   {metrics.fcfMargin!==null&&<div><dt>ATLAS-derived PP&amp;E-only FCF margin</dt><dd className={tone(metrics.fcfMargin)}>{change(metrics.fcfMargin)}</dd></div>}
-   {metrics.fcf===null&&!productiveAssets&&<div><dt>Screening cash-spending basis</dt><dd>{review}</dd></div>}
+   <div><dt>Annual revenue</dt><dd>{revenue?money(revenue.value):review}</dd><small>{factDetail(revenue,tag('Revenue'))}</small></div>
+   <div><dt>Revenue growth</dt><dd className={tone(metrics.growth)}>{metrics.growth===null?review:change(metrics.growth)}</dd><small>ATLAS-derived from comparable annual SEC revenue facts</small></div>
+   <div><dt>{netLabel}</dt><dd className={tone(netIncome?.value??null)}>{netIncome?money(netIncome.value):review}</dd><small>{factDetail(netIncome,tag('Net income'))}</small></div>
+   <div><dt>ATLAS-derived net margin</dt><dd className={tone(metrics.profitMargin)}>{metrics.profitMargin===null?review:change(metrics.profitMargin)}</dd><small>Derived only when revenue and earnings scope can be reconciled</small></div>
+   <div><dt>SEC-reported total operating cash flow</dt><dd className={tone(operating?.value??null)}>{operating?money(operating.value):review}</dd><small>{factDetail(operating,tag('Operating cash flow'))}</small></div>
+   {productiveAssets&&<div><dt>SEC-reported property, equipment and intangible-asset purchases</dt><dd>{money(productiveAssets.value)}</dd><small>{factDetail(productiveAssets,tag('Capital expenditures'))}</small></div>}
+   {cashAfterProductiveAssets!==null&&<div><dt>ATLAS subtraction: cash after those reported purchases</dt><dd className={tone(cashAfterProductiveAssets)}>{money(cashAfterProductiveAssets)}</dd><small>Operating cash flow less the reported broader purchase line; not screening FCF</small></div>}
+   {metrics.fcf!==null&&<div><dt>ATLAS-derived PP&amp;E-only cash flow</dt><dd className={tone(metrics.fcf)}>{money(metrics.fcf)}</dd><small>Operating cash flow less matched PP&amp;E cash purchases</small></div>}
+   {metrics.fcfMargin!==null&&<div><dt>ATLAS-derived PP&amp;E-only FCF margin</dt><dd className={tone(metrics.fcfMargin)}>{change(metrics.fcfMargin)}</dd><small>Derived from matched annual revenue and PP&amp;E-only cash flow</small></div>}
+   {metrics.fcf===null&&!productiveAssets&&<div><dt>Screening cash-spending basis</dt><dd>{review}</dd><small>No comparable supported PP&amp;E cash-purchase fact</small></div>}
   </dl>
   <p className="atlas-research-method"><strong>{revenue?`Fiscal year ${revenue.year}, ended ${revenue.end}.`:'Fiscal-year revenue needs filing review.'}</strong> ATLAS screening FCF uses operating cash flow less the narrower SEC PP&amp;E cash-purchases concept; separately reported software spending is not included. {scopeReview?'This filing reports discontinued operations. Total-company cash flow or net income is shown as a reported fact, but incompatible derived margins are withheld pending scope reconciliation. ':''}{productiveAssets?`The issuer also reported a broader property, equipment and intangible-asset purchase line (SEC tag ${productiveAssets.tag}, accession ${productiveAssets.accession}). Cash after those purchases is shown separately; it is not substituted into the existing FCF screen.`:'When the required SEC concepts or comparable periods cannot be reconciled, ATLAS does not infer a value.'} <a href={company.source} target="_blank" rel="noopener noreferrer">Inspect SEC tagged facts ↗</a></p>
  </section>;
+}
+
+export function ResearchCaseQuestions(){
+ return <section className="atlas-research-cases" aria-label="Bullish and bearish research questions">
+  <div className="atlas-research-case"><span>Bull case · unassessed here</span><h4>What could support the opportunity?</h4><p>No structured, company-specific bullish argument is assessed here. Review any saved investor draft separately and test its assumptions against reported facts.</p></div>
+  <div className="atlas-research-case atlas-research-case-bear"><span>Bear case · unassessed here</span><h4>What could challenge the opportunity?</h4><p>No structured, company-specific bearish argument is assessed here. Examine contradictory evidence and what would invalidate an investor thesis.</p></div>
+ </section>;
+}
+
+export function SavedResearchHandoff({ticker,context}:{ticker:string;context:ReturnType<typeof readResearchContext>}){
+ const savedConclusion=latestResearch(ticker,context.summaries,context.theses);
+ return <section className="atlas-research-saved-handoff"><span>Saved research / browser-local</span><h4>{savedConclusion?savedConclusion.kind:'No saved assessment here yet'}</h4>{savedConclusion?<><p>{savedConclusion.headline}</p><p>{savedConclusion.text}</p><small>Saved {dateTime(savedConclusion.date)} · {savedConclusion.verdict}. {savedConclusion.kind==='Saved thesis draft'?'Investor-authored draft; its original filing evidence was not saved with it.':'Saved research summary; its source link is a live SEC dataset, not a frozen evidence snapshot.'}</small>{savedConclusion.source&&<a href={savedConclusion.source} target="_blank" rel="noopener noreferrer">Open saved SEC source <ArrowRight size={14}/></a>}</>:<p>Write a research note below or use Conviction Lab to save a dated thesis draft. Discovery screening history is not an investor thesis.</p>}{context.issues.map((issue,index)=><p role="status" key={index}>{issue}</p>)}</section>;
 }
 
 export function createRequestSequence(){
@@ -141,12 +155,13 @@ export default function RealWorkspace({mode,defaultTicker='BLK',onView,onConvict
    {!busy&&!company&&!error&&<section className="atlas-research-state"><span>Investigation workspace</span><strong>Choose an SEC-listed company to begin.</strong><p>The workspace will preserve unavailable evidence instead of replacing it with estimates.</p></section>}
    {company&&<>
     <header className="atlas-research-company">
-     <div><span>{company.ticker} · SEC issuer {company.cik}</span><h3>{company.name}</h3><p>Evidence retrieved {dateTime(company.retrievedAt)}. Financial statements may lag current market conditions.</p></div>
-     <button type="button" onClick={()=>toggle({ticker:company.ticker,name:company.name})}>{saved?'Saved · remove':'Save to watchlist +'}</button>
+     <div className="atlas-research-company-identity"><span>Company intelligence / SEC issuer {company.cik}</span><h3>{company.name}</h3><p className="atlas-research-company-ticker">{company.ticker} <span>·</span> Evidence retrieved {dateTime(company.retrievedAt)}</p><p>Examine the reported evidence, challenge both sides of the case, and record what remains uncertain. Financial statements may lag current market conditions.</p></div>
+     <div className="atlas-research-company-action"><span>Research posture</span><strong>Investigation, not conviction</strong><p>No investment recommendation is established by this financial record.</p><button type="button" onClick={()=>toggle({ticker:company.ticker,name:company.name})}>{saved?'Saved · remove':'Save to watchlist +'}</button></div>
     </header>
 
     <div className="atlas-research-flow">
      <main>
+      <ResearchCaseQuestions/>
       <ReportedFundamentals company={company}/>
 
       <section className="atlas-research-section" aria-labelledby="research-conclusion">
@@ -157,9 +172,11 @@ export default function RealWorkspace({mode,defaultTicker='BLK',onView,onConvict
      </main>
 
      <aside className="atlas-research-evidence-rail" aria-label="Valuation, limitations, and source evidence">
+      <SavedResearchHandoff ticker={company.ticker} context={context}/>
       <section><span>02 · Valuation boundary</span><h4>No valuation conclusion is produced here.</h4><p>The SEC Company Facts response does not include a verified current market price. Use valuation and conviction workflows before interpreting financial quality as opportunity.</p></section>
       <section><span>03 · Business-specific limitations</span><h4>{company.classification?.status==='reported'?`SEC SIC ${company.classification.code} · ${company.classification.description}`:'Industry classification unavailable'}</h4>{limitations.length?limitations.map((item,index)=><p key={index}>{item}</p>):<p>No specialized-financial warning applies from the reported SIC metadata. Company-specific comparability and accounting still require review.</p>}</section>
       <section><span>04 · Source evidence</span><h4>SEC Company Facts</h4><p>Retrieved {dateTime(company.retrievedAt)} for CIK {company.cik}. Open the primary dataset to verify tags, filing dates, periods, and units.</p><a href={company.source} target="_blank" rel="noopener noreferrer">Read SEC company financial facts <ArrowRight size={14}/></a></section>
+      <section><span>Macroeconomic context / unassessed</span><h4>No company-specific macro effect has been established.</h4><p>CPI, FOMC, and employment releases are not linked to this issuer's investment case here. An event alone is not evidence of company impact.</p></section>
      </aside>
     </div>
    </>}
