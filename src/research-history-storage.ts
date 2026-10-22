@@ -1,4 +1,4 @@
-import {RESEARCH_HISTORY_MODEL_VERSION,type ResearchHistoryRecordV1} from './research-history-model';
+import {RESEARCH_HISTORY_MODEL_VERSION,PREVIOUS_RESEARCH_HISTORY_MODEL_VERSION,type ResearchHistoryRecordV1} from './research-history-model';
 
 export const RESEARCH_HISTORY_KEY='atlas.research.assessment-history.v1';
 // Retain the newest 1,200 individual issuer assessments across all completed
@@ -27,7 +27,7 @@ const classificationValid=(value:unknown)=>{
 function validRecord(value:unknown):value is ResearchHistoryRecordV1{
  if(!value||typeof value!=='object')return false;
  const x=value as ResearchHistoryRecordV1;
- if(x.version!==1||x.assessmentModelVersion!==RESEARCH_HISTORY_MODEL_VERSION||x.completionStatus!=='completed_scan'||x.historicalProof!=='browser_local_not_tamper_proof')return false;
+ if(x.version!==1||![RESEARCH_HISTORY_MODEL_VERSION,PREVIOUS_RESEARCH_HISTORY_MODEL_VERSION].includes(x.assessmentModelVersion as typeof RESEARCH_HISTORY_MODEL_VERSION)||x.completionStatus!=='completed_scan'||x.historicalProof!=='browser_local_not_tamper_proof')return false;
  if(typeof x.recordId!=='string'||!x.recordId||typeof x.runId!=='string'||!x.runId||!utc(x.assessedAt)||!/^[A-Z0-9.-]{1,12}$/.test(x.ticker)||typeof x.companyName!=='string'||!x.companyName)return false;
  if(x.cik!==null&&(typeof x.cik!=='string'||!/^\d{10}$/.test(x.cik)))return false;
  if(!x.screen||!['preliminary_pass','incomplete_financials','failed_thresholds','stale_financials','accounting_review'].includes(x.screen.verdict)||!strings(x.screen.reasons)||!dayOrNull(x.screen.annualFiled)||!finiteOrNull(x.screen.preliminaryScore)||(x.screen.preliminaryScore!==null&&(x.screen.preliminaryScore<0||x.screen.preliminaryScore>100)))return false;

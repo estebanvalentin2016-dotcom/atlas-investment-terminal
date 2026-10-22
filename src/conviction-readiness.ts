@@ -3,7 +3,7 @@ import {deriveSurvivalEvidence} from './survival-evidence';
 import {deriveMarketCapEvidence} from './market-cap-evidence';
 import {deriveFinancingAutomation} from './financing-automation';
 import {deriveOperatingScenarios} from './operating-scenarios';
-import {isBankIssuer} from './sector-risk-brief';
+import {assessFinancialMethodologyEligibility} from './financial-methodology-eligibility';
 
 export type ReadinessStatus='verified'|'missing'|'unavailable';
 export type ConvictionRequirement={key:string;label:string;status:ReadinessStatus;detail:string;progress:'verified'|'partially_sourced'|'engine_pending'|'source_unavailable'};
@@ -20,27 +20,29 @@ export type ConvictionAssessment={
 const dateOk=(s:string)=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s+'T00:00:00Z'))&&new Date(s+'T00:00:00Z').toISOString().slice(0,10)===s;
 export function assessConvictionReadiness(company:SecCompany|null,price:MarketValuationClose|null,today:string):ConvictionAssessment{
  const metrics=company?deriveRankingMetrics(company,null,today):null;
+ const methodology=company?assessFinancialMethodologyEligibility(company,today):null;
+ const ordinary=methodology?.status==='provisional_operating';
  const pe=company?annualPeFromSec(company,price):null;
  const financialDate=company?.metrics.find(x=>x.name==='Revenue')?.values.find(x=>x.year===metrics?.year)?.filed??null;
  const age=financialDate&&dateOk(today)&&dateOk(financialDate)?(Date.parse(today+'T00:00:00Z')-Date.parse(financialDate+'T00:00:00Z'))/86400000:null;
  const current=age!==null&&age>=0&&age<=550;
- const observedFcf=metrics?.fcf??null;
+ const observedFcf=ordinary?metrics?.fcf??null:null;
  const quoteAge=price&&dateOk(today)&&dateOk(price.sessionDate)?(Date.parse(today+'T00:00:00Z')-Date.parse(price.sessionDate+'T00:00:00Z'))/86400000:null;
  const recentClose=!!price&&price.completedSession===true&&price.feed==='IEX'&&Number.isFinite(price.price)&&price.price>0&&quoteAge!==null&&quoteAge>=0&&quoteAge<=10;
  const growth=current?metrics?.growth??null:null;
- const annualFcf=current?metrics?.fcf??null:null;
- const bank=!!company&&isBankIssuer(company.name);
- const fundingRisk:FundingRiskEvidence=bank?{
-  status:'unknown',headline:'Bank capital and credit quality require sector-specific analysis',
-  detail:'Operating-company free-cash-flow burn and ordinary current-ratio checks are not meaningful standalone bank solvency measures. ATLAS must establish regulatory capital, deposit stability and asset quality before reaching a funding or valuation conclusion.'
+ const annualFcf=current&&ordinary?metrics?.fcf??null:null;
+ const bank=methodology?.status==='financial_institution';
+ const fundingRisk:FundingRiskEvidence=!ordinary?{
+  status:'unknown',headline:bank?'Bank capital and credit quality require sector-specific analysis':'Ordinary-company cash-flow assessment withheld',
+  detail:methodology?.reason??'Issuer methodology eligibility has not been established.'
  }:annualFcf===null?
   {status:'unknown',headline:'Funding needs not established',detail:'Missing comparable annual cash-flow after capital expenditures. No funding conclusion is possible.'}:
   annualFcf<0?{
    status:growth!==null&&growth>0?'growth_with_negative_fcf':'negative_fcf',
    headline:growth!==null&&growth>0?'Growth with negative free cash flow':'Negative annual free cash flow',
-   detail:'Negative reported annual FCF after capex; reconcile expansion capex, operating cash consumption, working capital, available cash, debt maturities and potential share issuance. It does not prove distress or productive reinvestment.'
+   detail:'Negative ATLAS-derived FCF after reported PP&E cash purchases; reconcile expansion spending, operating cash consumption, working capital, available cash, debt maturities and potential share issuance. It does not prove distress or productive reinvestment.'
   }:
-  {status:'nonnegative_fcf',headline:'Nonnegative reported annual free cash flow',detail:'Nonnegative annual FCF does not establish cash runway, fully funded growth or an attractive equity valuation.'};
+  {status:'nonnegative_fcf',headline:'Nonnegative ATLAS-derived PP&E-only FCF',detail:'This non-GAAP calculation does not establish cash freely available to shareholders, fully funded growth or an attractive equity valuation.'};
  const capital=deriveMarketCapEvidence(company,recentClose?price:null,today);
  const survival=company?deriveSurvivalEvidence(company,recentClose?price!.sessionDate:today):null;
  const operating=company?deriveOperatingScenarios(company,today):null;
@@ -51,7 +53,7 @@ export function assessConvictionReadiness(company:SecCompany|null,price:MarketVa
   {key:'sec-identity',progress:company?.source?.startsWith('https://data.sec.gov/')?'verified':'source_unavailable',label:'Real public-company SEC financial source',status:company?.source?.startsWith('https://data.sec.gov/')?'verified':'missing',detail:company?'Source: '+company.source:'No SEC financial statement loaded'},
   {key:'market-price',progress:recentClose?'verified':'source_unavailable',label:'Recent completed stock-price reference',status:recentClose?'verified':'missing',detail:recentClose?price!.sessionDate+' completed IEX close · $'+price!.price.toFixed(2):'Recent completed price unavailable; not a live quote'},
   {key:'financial-history',progress:current?'verified':'source_unavailable',label:'Recent annual company financials',status:current?'verified':'missing',detail:current?'Fiscal '+metrics?.year+' · filed '+financialDate:'Recent comparable annual statements not established'},
-  {key:'cash-flow',progress:current&&observedFcf!==null?'verified':'source_unavailable',label:bank?'Historical operating cash-flow arithmetic (not bank health)':'Operating FCF after capital expenditure',status:current&&observedFcf!==null?'verified':'missing',detail:observedFcf!==null?'Derived SEC FY FCF · $'+observedFcf.toLocaleString('en-US'):'Need both same-period operating cash flow and capex'},
+  {key:'cash-flow',progress:current&&observedFcf!==null?'verified':'source_unavailable',label:'Ordinary-company PP&E-only cash-flow assessment',status:current&&observedFcf!==null?'verified':'missing',detail:observedFcf!==null?'ATLAS-derived FCF (operating cash flow less reported PP&E cash purchases) · $'+observedFcf.toLocaleString('en-US'):'Withheld: '+(methodology?.reason??'Need both same-period operating cash flow and PP&E cash purchases')},
   {key:'market-cap',progress:capital.estimate!==null?'partially_sourced':'engine_pending',label:'Verified current market cap, share count and liquidity',status:'missing',detail:capital.estimate!==null?'Indicative only: SEC DEI shares as of '+capital.shares?.end+' (filed '+capital.shares?.filed+') x completed IEX close '+capital.priceDate+' = $'+capital.estimate.toLocaleString('en-US')+'. IEX 20-session turnover: '+(capital.iex20?'$'+capital.iex20.avgDailyIexDollarVolume.toLocaleString('en-US'):'unavailable')+'. Share classes, splits, float and consolidated liquidity remain unverified.':'No date-compatible SEC DEI shares and completed price available for an indicative market cap. '+capital.notes.join(' ')+' Current share classes, corporate actions, free float and consolidated liquidity are still unverified.'},
   {key:'survival',progress:survival&&(survival.cash||survival.weightedDilutedShares||survival.currentDebt||survival.noncurrentDebt||survival.shortBorrowings)?'partially_sourced':'engine_pending',label:bank?'Bank capital, deposits, credit and share-count risk':'Cash runway, debt maturity, funding and dilution risk',status:'missing',detail:bank?'Bank-specific capital and credit sources are required. Generic cash/debt component fields may not represent deposit liabilities or regulatory funding. '+survivalNote+financingNote:survivalNote+financingNote},
   {key:'scenarios',progress:operating?.status==='partial'?'partially_sourced':'engine_pending',label:bank?'Bank-specific valuation scenarios (generic model withheld)':'Four dilution-aware valuation scenarios with sensitivity',status:'missing',detail:operating?.status==='partial'?'ATLAS generated four five-year SEC-anchored revenue and FCF operating stress sensitivities. These are not forecasts. No per-share fair values, exit multiples, net debt, future issuance or downside returns are justified because financing and capital-structure inputs remain unresolved.':'Four-case operating inputs unavailable: '+(operating?.reasons.join(' ')??'issuer not loaded')+' Five-year per-share valuation remains unbuilt.'},
@@ -66,7 +68,7 @@ export function assessConvictionReadiness(company:SecCompany|null,price:MarketVa
   summary:'A fundamental candidate is not yet a defensible investment recommendation. Price-sensitive, source-backed return scenarios and the risk evidence remain incomplete.',
   verifiedCount:requirements.filter(x=>x.status==='verified').length,
   totalCount:requirements.length,
-  observed:{revenueGrowthPct:current?metrics?.growth??null:null,freeCashFlow:current?metrics?.fcf??null:null,fcfMarginPct:current?metrics?.fcfMargin??null:null,netMarginPct:current?metrics?.profitMargin??null:null,fyPe:pe?.pe??null,asOfDate:recentClose?price!.sessionDate:null,fiscalYear:current?metrics?.year??null:null},
+  observed:{revenueGrowthPct:current?metrics?.growth??null:null,freeCashFlow:current&&ordinary?metrics?.fcf??null:null,fcfMarginPct:current&&ordinary?metrics?.fcfMargin??null:null,netMarginPct:current?metrics?.profitMargin??null:null,fyPe:pe?.pe??null,asOfDate:recentClose?price!.sessionDate:null,fiscalYear:current?metrics?.year??null:null},
   requirements
  };
 }

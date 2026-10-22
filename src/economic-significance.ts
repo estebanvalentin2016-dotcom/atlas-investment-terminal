@@ -3,6 +3,8 @@
 // investment valuation, implied growth forecast or causal stock-price move.
 import type {FilingEvidenceResult} from './FilingEvidence';
 import type {SecCompany,Annual} from './ranking-model';
+import {deriveRankingMetrics} from './ranking-model';
+import {assessFinancialMethodologyEligibility} from './financial-methodology-eligibility';
 
 export type OperatingDirection='improvement'|'deterioration'|'descriptive';
 export type EconomicSignal={
@@ -30,12 +32,9 @@ function annualContext(company:SecCompany|null,ticker:string,asOf:string):Econom
  const current=list[0];
  if(!current||(Date.parse(asOf+'T00:00:00Z')-Date.parse(current.filed+'T00:00:00Z'))>550*86400000)return null;
  const previous=list.find(x=>x.year===current.year-1&&x.value>0);
- const metric=(name:string)=>{
-  const rows=(company.metrics.find(m=>m.name===name)?.values??[]).filter(x=>validAnnual(x,asOf)&&x.end===current.end).sort((a,b)=>b.filed.localeCompare(a.filed));
-  return rows[0]?.value??null;
- };
- const operating=metric('Operating cash flow'),capex=metric('Capital expenditures');
- const fcf=operating!==null&&capex!==null&&capex>=0?operating-capex:null;
+ const comparable=assessFinancialMethodologyEligibility(company,asOf).status==='provisional_operating';
+ const derived=deriveRankingMetrics(company,null,asOf);
+ const fcf=comparable&&derived.year===current.year?derived.fcf:null;
  return {fiscalYear:current.year,filed:current.filed,revenue:current.value,
   reportedGrowthPct:previous?round((current.value/previous.value-1)*100):null,
   fcf,fcfMarginPct:fcf===null?null:round(fcf/current.value*100)};
@@ -77,6 +76,7 @@ export function assessEconomicSignificance(args:{ticker:string;filingUrl:string;
  if(incompleteSource)limitations.unshift('Only selected or partial SEC source coverage was available; other exhibits and contextual disclosures may change interpretation.');
  if(!annual)limitations.push('Recent, issuer-wide, filed SEC fiscal revenue and same-year cash-flow context were not all established.');
  else limitations.push('The annual SEC revenue baseline is FY '+annual.fiscalYear+' filed '+annual.filed+'; it does NOT necessarily cover the same reporting period as the 8-K.');
+ if(company&&annual){const methodology=assessFinancialMethodologyEligibility(company,asOf);if(methodology.status!=='provisional_operating')limitations.push('Ordinary-company FCF comparison withheld: '+methodology.reason);}
  const basic={annual,incompleteSource,verifiedEarningsSurprise:false as const,independentNewsCorroboration:false as const,verifiedMateriality:false as const,fairValueImpact:false as const,limitations};
  if(!review||review.url!==filingUrl||review.sourceStatus==='unavailable'||!review.evidence||!validDate(asOf)){
   return {...basic,status:'source_unavailable',signals:[],sensitivity:null,explanation:'No usable accession-matched SEC evidence. ATLAS cannot measure an economic change.'};
@@ -88,7 +88,7 @@ export function assessEconomicSignificance(args:{ticker:string;filingUrl:string;
  const positive=unique.some(s=>s.direction==='improvement');
  const negative=unique.some(s=>s.direction==='deterioration')||(review.evidence.cautions??[]).length>0;
  const status:EconomicSignificance['status']=negative?'adverse_or_mixed':positive?'quantified_improvement':unique.length?'descriptive_only':'unquantified';
- const sensitivity=annual&&annual.revenue>0?{onePointAnnualFcf:round(annual.revenue*0.01),threePointAnnualFcf:round(annual.revenue*0.03)}:null;
+ const sensitivity=annual&&annual.fcf!==null&&annual.revenue>0?{onePointAnnualFcf:round(annual.revenue*0.01),threePointAnnualFcf:round(annual.revenue*0.03)}:null;
  const explanation=status==='quantified_improvement'?'A positive percentage change was explicitly reported in the SEC filing, but its period, recurring nature, market surprise and impact on valuation are not yet established.':
   status==='adverse_or_mixed'?'Adverse reported operating language or cash outflows are present; positive metrics must not override downside evidence.':
   status==='descriptive_only'?'Some SEC-reported figures are available, but no supported positive percent change or forward profit uplift is established.':

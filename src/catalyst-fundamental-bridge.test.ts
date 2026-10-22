@@ -4,7 +4,7 @@ import type {FilingEvidenceResult} from './FilingEvidence';
 import type {MarketValuationClose,SecCompany,Annual} from './ranking-model';
 const filingUrl='https://www.sec.gov/Archives/edgar/data/1234567/0001234567-26-000001.txt';
 const annual=(year:number,value:number):Annual=>({year,start:year+'-01-01',end:year+'-12-31',filed:(year+1)+'-02-15',value,unit:'USD',form:'10-K',accession:'0001234567-'+String(year%100).padStart(2,'0')+'-000010',reviewIssues:[]});
-const company=():SecCompany=>({ticker:'TEST',name:'Test Growth Inc',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0001234567.json',retrievedAt:'2026-10-16',metrics:[
+const company=():SecCompany=>({ticker:'TEST',name:'Test Growth Inc',cik:'0001234567',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0001234567.json',retrievedAt:'2026-10-16',classification:{status:'reported',system:'SEC SIC',code:'3531',description:'Construction Machinery',source:'https://data.sec.gov/submissions/CIK0001234567.json',retrievedAt:'2026-10-15T12:00:00.000Z'},metrics:[
  {name:'Revenue',tag:'Revenues',unit:'USD',reportingScope:'entity_wide',values:[annual(2025,120_000_000),annual(2024,100_000_000)]},
  {name:'Operating cash flow',tag:'NetCashProvidedByUsedInOperatingActivities',unit:'USD',reportingScope:'total_operations',values:[annual(2025,30_000_000)]},
  {name:'Capital expenditures',tag:'PaymentsToAcquirePropertyPlantAndEquipment',unit:'USD',reportingScope:'unallocated_cash_purchases',values:[annual(2025,5_000_000)]},

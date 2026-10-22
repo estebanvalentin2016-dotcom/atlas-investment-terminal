@@ -1,6 +1,7 @@
 // Dated SEC annual balance-sheet observations. This is NOT a credit model,
 // a complete debt schedule or a dilution-adjusted share valuation.
 import type {Annual,SecCompany,SecMetric} from './ranking-model';
+import {assessFinancialMethodologyEligibility,PP_AND_E_FCF_DISCLOSURE} from './financial-methodology-eligibility';
 
 export type SourcedFigure={value:number;fiscalEnd:string;filed:string;tag:string|null;accession:string|null};
 export type SurvivalEvidence={
@@ -43,7 +44,8 @@ export function deriveSurvivalEvidence(company:SecCompany,asOf:string):SurvivalE
  // Historical SEC restatements received later cannot leak into old snapshots.
  const opCash=observation(metrics.get('Operating cash flow'),end,asOf,true);
  const capex=observation(metrics.get('Capital expenditures'),end,asOf);
- const fcf=opCash&&capex?opCash.value-capex.value:null;
+ const methodology=assessFinancialMethodologyEligibility(company,asOf);
+ const fcf=methodology.status==='provisional_operating'&&opCash&&capex?opCash.value-capex.value:null;
  const simpleCashToBurnYears=cash&&fcf!==null&&fcf<0?round(cash.value/-fcf):null;
  const missing:string[]=[];
  if(!cash)missing.push('Same-period unrestricted cash and cash equivalents');
@@ -52,6 +54,8 @@ export function deriveSurvivalEvidence(company:SecCompany,asOf:string):SurvivalE
  if(weightedShareChangePct===null)missing.push('Comparable preceding-year diluted share count');
  if(fcf===null)missing.push('Same-year cash flow after capital expenditure');
  const notes=[
+  PP_AND_E_FCF_DISCLOSURE,
+  ...(methodology.status==='provisional_operating'?[]:['Ordinary-company FCF and cash-to-burn comparison withheld: '+methodology.reason]),
   'Debt components are displayed separately: missing tags never mean zero debt, and their sum is not complete total liabilities.',
   'Weighted-average diluted shares are NOT the currently outstanding shares. Their year-over-year change is only a proxy for dilution; stock splits, buybacks and share classes may distort it.',
   'Cash divided by negative historical FCF, if displayed, is a mechanical sensitivity, NOT a forecast of cash runway or access to financing.',

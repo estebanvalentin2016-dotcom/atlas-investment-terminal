@@ -12,7 +12,7 @@ import {SecondaryNavigation} from './WorkspaceNavigation';
 import type {SecCompany} from './ranking-model';
 const fy=(year:number,value:number)=>({year,start:year+'-01-01',end:year+'-12-31',filed:(year+1)+'-02-15',value,unit:'USD',form:'10-K',accession:'0000000000-'+String(year%100).padStart(2,'0')+'-000100',reviewIssues:[] as string[]});
 const withProvenance=(sample:SecCompany):SecCompany=>{for(const metric of sample.metrics){metric.unit='USD';if(metric.name==='Revenue'){metric.tag=metric.tag||'Revenues';metric.reportingScope='entity_wide'}else if(metric.name==='Operating cash flow'){metric.tag='NetCashProvidedByUsedInOperatingActivities';metric.reportingScope='total_operations'}else if(metric.name==='Capital expenditures'){metric.tag='PaymentsToAcquirePropertyPlantAndEquipment';metric.reportingScope='unallocated_cash_purchases'}else if(metric.name==='Net income'){metric.tag='NetIncomeLoss';metric.reportingScope='parent_attributable'}}return sample};
-const company=():SecCompany=>withProvenance({ticker:'XRAN',name:'Unfamiliar Industrial Company',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK1234567890.json',retrievedAt:'2026-10-15',metrics:[
+const company=():SecCompany=>withProvenance({ticker:'XRAN',name:'Unfamiliar Industrial Company',cik:'1234567890',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK1234567890.json',retrievedAt:'2026-10-15',classification:{status:'reported',system:'SEC SIC',code:'3531',description:'Construction Machinery',source:'https://data.sec.gov/submissions/CIK1234567890.json',retrievedAt:'2026-10-15T12:00:00.000Z'},metrics:[
  {name:'Revenue',values:[fy(2025,150),fy(2024,100)]},
  {name:'Operating cash flow',values:[fy(2025,32)]},
  {name:'Capital expenditures',values:[fy(2025,6)]},

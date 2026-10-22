@@ -4,7 +4,7 @@ import {assessPriceHistory} from './price-history-model';
 import {assessConvictionReadiness} from './conviction-readiness';
 import type {SecCompany,MarketValuationClose} from './ranking-model';
 const annual=(year:number,value:number)=>({year,start:year+'-01-01',end:year+'-12-31',filed:(year+1)+'-02-01',unit:'USD',form:'10-K',accession:'0000123456-'+String(year%100).padStart(2,'0')+'-000001',value,reviewIssues:[] as string[]});
-const c=():SecCompany=>({ticker:'UNSEEN',name:'Unknown Industries',retrievedAt:'2026-10-15',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0000123456.json',metrics:[
+const c=():SecCompany=>({ticker:'UNSEEN',name:'Unknown Industries',cik:'0000123456',retrievedAt:'2026-10-15',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0000123456.json',classification:{status:'reported',system:'SEC SIC',code:'3531',description:'Synthetic industrial fixture',source:'https://data.sec.gov/submissions/CIK0000123456.json',retrievedAt:'2026-10-15T00:00:00.000Z'},metrics:[
  {name:'Revenue',tag:'Revenues',unit:'USD',reportingScope:'entity_wide',values:[annual(2025,150000000),annual(2024,100000000)]},
  {name:'Operating cash flow',tag:'NetCashProvidedByUsedInOperatingActivities',unit:'USD',reportingScope:'total_operations',values:[annual(2025,-3000000)]},
  {name:'Capital expenditures',tag:'PaymentsToAcquirePropertyPlantAndEquipment',unit:'USD',reportingScope:'unallocated_cash_purchases',values:[annual(2025,9000000)]},

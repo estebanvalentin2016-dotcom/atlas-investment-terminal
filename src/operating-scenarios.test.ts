@@ -7,7 +7,7 @@ import {assessConvictionReadiness} from './conviction-readiness';
 import type {SecCompany,MarketValuationClose} from './ranking-model';
 const record=(year:number,value:number,filed=(year+1)+'-02-15')=>
  ({year,end:year+'-12-31',filed,value,form:'10-K',accession:'0000123456-26-000100'});
-const company=():SecCompany=>({ticker:'TEST',name:'Test Co',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0000123456.json',retrievedAt:'2026-10-15',metrics:[
+const company=():SecCompany=>({ticker:'TEST',name:'Test Co',cik:'0000123456',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0000123456.json',retrievedAt:'2026-10-15',classification:{status:'reported',system:'SEC SIC',code:'3531',description:'Construction Machinery',source:'https://data.sec.gov/submissions/CIK0000123456.json',retrievedAt:'2026-10-15T12:00:00.000Z'},metrics:[
  {name:'Revenue',tag:'Revenues',quality:'selected_standard_revenue_tag',values:[record(2025,150000000),record(2024,100000000)]},
  {name:'Operating cash flow',values:[record(2025,38000000)]},
  {name:'Capital expenditures',values:[record(2025,8000000)]},

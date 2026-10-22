@@ -75,9 +75,8 @@ describe('SEC-backed financial coverage fixtures',()=>{
     if(row.capex!==null)expect(capex.values[0]).toMatchObject({value:row.capex,start:row.start,end:row.end,accession:row.accession,tag:'PaymentsToAcquirePropertyPlantAndEquipment',unit:'USD'});
     const metrics=deriveRankingMetrics(company);
     expect(metrics.capex).toBe(row.ticker==='AMD'?null:row.capex);
-    vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-19T12:00:00Z'));
-    const screen=initialAutonomousScreen(company,'2026-10-19');
-    vi.useRealTimers();
+    const assessmentDate=company.classification?.retrievedAt.slice(0,10)??'2026-10-19';
+    const screen=initialAutonomousScreen(company,assessmentDate);
     expect(screen.status).toBe(row.ticker==='CRWD'?'preliminary_pass':'incomplete_financials');
     if(row.ticker==='NVDA'){
      expect(metrics.fcf).toBeNull();

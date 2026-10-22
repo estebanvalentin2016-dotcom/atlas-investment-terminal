@@ -9,7 +9,7 @@ import {deriveOperatingScenarios} from './operating-scenarios';
 import type {SecCompany,MarketValuationClose} from './ranking-model';
 const filing=(year:number,v:number)=>({year,end:year+'-12-31',filed:(year+1)+'-02-27',form:'10-K',accession:'0000714395-26-000101',value:v});
 const q=(value:number,end='2026-06-30')=>({year:2026,end,filed:'2026-08-06',form:'10-Q',accession:'0000714395-26-000085',value});
-const bank=():SecCompany=>({ticker:'GABC',name:'German American Bancorp, Inc.',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0000714395.json',retrievedAt:'2026-10-16T00:00:00Z',metrics:[
+const bank=():SecCompany=>({ticker:'GABC',name:'German American Bancorp, Inc.',cik:'0000714395',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0000714395.json',retrievedAt:'2026-10-16T00:00:00Z',classification:{status:'reported',system:'SEC SIC',code:'6022',description:'State Commercial Banks',source:'https://data.sec.gov/submissions/CIK0000714395.json',retrievedAt:'2026-10-16T00:00:00.000Z'},metrics:[
  {name:'Revenue',values:[filing(2025,487400000),filing(2024,353700000)]},
  {name:'Operating cash flow',values:[filing(2025,156000000)]},
  {name:'Capital expenditures',values:[filing(2025,1999000)]},
@@ -59,7 +59,7 @@ describe('Bank-specific automated investment research context',()=>{
   const b=bank();
   const scenarios=deriveOperatingScenarios(b,'2026-10-16');
   expect(scenarios.status).toBe('blocked');
-  expect(scenarios.reasons.join(' ')).toContain('Bank-sector valuation');
+  expect(scenarios.reasons.join(' ')).toContain('SEC SIC 6022');
   const assessed=assessConvictionReadiness(b,quote,'2026-10-16');
   expect(assessed.fundingRisk.status).toBe('unknown');
   expect(assessed.fundingRisk.headline).toContain('Bank capital');

@@ -165,7 +165,7 @@ export default function MonthlyPicksDashboard({onConviction,onOpportunity,headin
        <strong>{assessment.status==='provisional_alignment'?'Provisional combined research candidate':assessment.status==='caution'?'Filing caution: no bullish promotion':'Not yet a cross-validated bullish candidate'}</strong>
        <div className="atlas-picks-bridge-metrics">
         <div><span>Annual SEC growth</span><strong>{assessment.screen?.growth===null||assessment.screen?.growth===undefined?'Unknown':assessment.screen.growth.toFixed(1)+'%'}</strong></div>
-        <div><span>FCF margin</span><strong>{assessment.screen?.fcfMargin===null||assessment.screen?.fcfMargin===undefined?'Unknown':assessment.screen.fcfMargin.toFixed(1)+'%'}</strong></div>
+        <div><span>PP&amp;E-only FCF margin</span><strong>{assessment.screen?.status!=='preliminary_pass'?'Withheld':assessment.screen.fcfMargin===null?'Unknown':assessment.screen.fcfMargin.toFixed(1)+'%'}</strong></div>
         <div><span>Indicative FY P/E</span><strong>{assessment.fyPe===null?'Unknown':assessment.fyPe.toFixed(1)+'×'}</strong></div>
         <div><span>Fundamental priority</span><strong>{assessment.financialScore===null?'Unranked':assessment.financialScore+'/100'}</strong></div>
        </div>

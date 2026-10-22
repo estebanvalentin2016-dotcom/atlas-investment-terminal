@@ -2,7 +2,7 @@
 // forecasts, equity value, price targets or investment recommendations.
 // Presets are explicitly illustrative; they carry no assigned probabilities.
 import type {Annual,SecCompany} from './ranking-model';
-import {isBankIssuer} from './sector-risk-brief';
+import {assessFinancialMethodologyEligibility} from './financial-methodology-eligibility';
 
 export type ScenarioCase='Bear'|'Base sensitivity'|'Bull'|'Remote moonshot';
 export type OperatingScenario={name:ScenarioCase;annualRevenueGrowthPct:number;fy5FcfMarginPct:number;fy5Revenue:number;fy5Fcf:number;years:{year:number;revenue:number;fcf:number}[]};
@@ -20,8 +20,9 @@ export function deriveOperatingScenarios(company:SecCompany,asOf:string):Operati
  const reasons:string[]=[];
  const blank:OperatingScenarioEvidence={status:'blocked',source:company.source,fiscalEnd:null,filed:null,initialRevenue:null,
   observedRevenueGrowthPct:null,observedFcfMarginPct:null,rows:[],reasons,caution};
- if(isBankIssuer(company.name)){
-  reasons.push('Bank-sector valuation is not modeled by mechanical revenue × FCF margin. ATLAS must evaluate net interest earnings, deposit mix, loan losses, CET1, book value and dilution before computing per-share cases.');
+ const methodology=assessFinancialMethodologyEligibility(company,asOf);
+ if(methodology.status!=='provisional_operating'){
+  reasons.push('Ordinary-company FCF sensitivity withheld: '+methodology.reason);
   return blank;
  }
  if(!dateOk(asOf)||!company.source?.startsWith('https://data.sec.gov/')){reasons.push('SEC issuer provenance or as-of date unavailable.');return blank;}

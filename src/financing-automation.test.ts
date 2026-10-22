@@ -10,7 +10,7 @@ const filed=(val:number,end='2026-06-30',filed='2026-08-08'):Annual=>
  ({year:Number(end.slice(0,4)),end,filed,value:val,form:'10-Q',accession:'0000123456-26-000001'});
 const annual=(value:number):Annual=>({year:2025,end:'2025-12-31',filed:'2026-02-15',value,form:'10-K',accession:'0000123456-26-000002'});
 const item=(name:string,values:Annual[]):SecMetric=>({name,values});
-const company=():SecCompany=>({ticker:'TEST',name:'Test Industry',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0000123456.json',retrievedAt:'2026-10-15',metrics:[
+const company=():SecCompany=>({ticker:'TEST',name:'Test Industry',cik:'0000123456',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0000123456.json',retrievedAt:'2026-10-15',classification:{status:'reported',system:'SEC SIC',code:'3531',description:'Synthetic industrial fixture',source:'https://data.sec.gov/submissions/CIK0000123456.json',retrievedAt:'2026-10-15T12:00:00.000Z'},metrics:[
  item('Revenue',[annual(20000000),{...annual(18000000),year:2024,end:'2024-12-31',filed:'2025-02-15'}]),
  item('Operating cash flow',[annual(3000000)]),
  item('Capital expenditures',[annual(5000000)]),

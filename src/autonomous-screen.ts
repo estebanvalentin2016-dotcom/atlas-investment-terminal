@@ -1,4 +1,5 @@
 import {deriveRankingMetrics,scoreCompany,defaultRankWeights,financialComparisonIssue,revenueFactIssue,type SecCompany,type SecMetric} from './ranking-model';
+import {assessFinancialMethodologyEligibility} from './financial-methodology-eligibility';
 export type ScreenVerdict='preliminary_pass'|'incomplete_financials'|'failed_thresholds'|'stale_financials'|'accounting_review';
 export type CoverageCause='absent_source_fact'|'unsupported_taxonomy'|'incompatible_fiscal_periods'|'missing_comparable_prior_year'|'unusable_value'|'source_presence_unknown'|'accounting_reconciliation_required'|'as_of_date_unverified';
 export type CoverageIssue={metric:string;cause:CoverageCause;detail:string};
@@ -63,6 +64,7 @@ export function diagnoseFinancialCoverage(company:SecCompany,asOf=new Date().toI
 
 export function initialAutonomousScreen(company:SecCompany,asOf:string):ScreenResult{
  const m=deriveRankingMetrics(company,null,asOf);
+ const methodology=assessFinancialMethodologyEligibility(company,asOf);
  const missingEvidence=diagnoseFinancialCoverage(company,asOf);
  const revenueValues=company.metrics.find(x=>x.name==='Revenue')?.values;
  const annual=revenueValues?.find(x=>x.year===m.year)??revenueValues?.[0];
@@ -83,6 +85,7 @@ export function initialAutonomousScreen(company:SecCompany,asOf:string):ScreenRe
  const reasons=observedCriterionFailures;
  if(reasons.length)return {...base,status:'failed_thresholds',reasons};
  if(company.metrics.find(x=>x.name==='Revenue')?.quality==='alternative_revenue_concepts')return {...base,status:'accounting_review',reasons:['Conflicting smaller SEC revenue tags could represent business segments; confirm consolidated amounts against the annual 10-K']};
+ if(methodology.status!=='provisional_operating')return {...base,status:'accounting_review',reasons:['Ordinary-company FCF screening withheld: '+methodology.reason]};
  const score=scoreCompany(company,{...defaultRankWeights,pe:0},null,asOf).score;
  if(score===null)return {...base,status:'incomplete_financials',reasons:['Insufficient or stale scored SEC fundamentals']};
  return {...base,status:'preliminary_pass',score,reasons:['Annual revenue growth ≥10%','Nonnegative FCF margin','Net margin ≥−10%']};

@@ -1,5 +1,6 @@
 import {useMemo,useState} from 'react';
 import {annualPeFromSec,defaultRankWeights,rankCompanies,type RankWeights,type SecCompany,type AnnualPe,type MarketValuationClose} from './ranking-model';
+import {PP_AND_E_FCF_DISCLOSURE} from './financial-methodology-eligibility';
 const factors:{key:keyof RankWeights;label:string;help:string}[]=[
  {key:'growth',label:'Revenue growth',help:'Latest reported FY versus the preceding FY'},
  {key:'fcf',label:'Free cash flow margin',help:'(Operating cash flow − capital expenditure) ÷ sales'},
@@ -68,11 +69,12 @@ export default function InvestmentRankings(){
     <div className="atlas-ranking-row-head"><div><span className="atlas-rank-number">{entry.score===null?'—':'#'+(ranked.findIndex(x=>x.ticker===entry.ticker)+1)}</span><div><strong>{entry.ticker}</strong><p>{entry.name} · fiscal {entry.year??'unknown'} · filed {entry.annualFiled??'unknown'}</p></div></div><div><strong className="atlas-rank-score">{entry.score===null?'Unranked':entry.score+'/100'}</strong><small>{entry.coverage}% weighted coverage</small></div></div>
     <div className="atlas-ranking-metrics">
      <div><span>Revenue growth</span><strong className={entry.metrics.growth!==null?(entry.metrics.growth>=0?'atlas-tone-positive':'atlas-tone-negative'):''}>{displayPct(entry.metrics.growth)}</strong></div>
-     <div><span>FCF margin</span><strong className={entry.metrics.fcfMargin!==null?(entry.metrics.fcfMargin>=0?'atlas-tone-positive':'atlas-tone-negative'):''}>{displayPct(entry.metrics.fcfMargin)}</strong></div>
+     <div><span>PP&amp;E-only FCF margin</span><strong className={entry.score!==null&&entry.metrics.fcfMargin!==null?(entry.metrics.fcfMargin>=0?'atlas-tone-positive':'atlas-tone-negative'):''}>{entry.missing.some(item=>item.startsWith('Ordinary-company methodology withheld:'))?'Withheld':displayPct(entry.metrics.fcfMargin)}</strong></div>
      <div><span>Net margin</span><strong>{displayPct(entry.metrics.profitMargin)}</strong></div>
      <div><span>Auto FY P/E</span><strong>{annualPe[entry.ticker]?.pe!==null&&annualPe[entry.ticker]?.pe!==undefined?annualPe[entry.ticker].pe!.toFixed(1)+'×':'N/A'}</strong><small>{annualPe[entry.ticker]?.priceDate||'No price session'} · {annualPe[entry.ticker]?.epsEnd?'EPS FY ended '+annualPe[entry.ticker].epsEnd:'EPS unavailable'}</small></div>
     </div>
-    <p><strong>Free cash flow:</strong> {fmt(entry.metrics.fcf)} · <strong>FY revenue:</strong> {fmt(entry.metrics.revenue)}</p>
+    <p><strong>ATLAS-derived PP&amp;E-only FCF:</strong> {entry.missing.some(item=>item.startsWith('Ordinary-company methodology withheld:'))?'Withheld':fmt(entry.metrics.fcf)} · <strong>FY revenue:</strong> {fmt(entry.metrics.revenue)}</p>
+    <p className="chart-note">{PP_AND_E_FCF_DISCLOSURE}</p>
     {annualPe[entry.ticker]?.reason&&<p className="chart-note"><strong>FY P/E check:</strong> {annualPe[entry.ticker].reason}</p>}
     {entry.missing.length>0&&<p className="atlas-rank-missing"><strong>Missing:</strong> {entry.missing.join(', ')}</p>}
     <details className="atlas-details"><summary>Why this score? Show data and caveats</summary>

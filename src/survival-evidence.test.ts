@@ -6,7 +6,7 @@ import SurvivalEvidencePanel from './SurvivalEvidencePanel';
 import {assessConvictionReadiness} from './conviction-readiness';
 import type {SecCompany,MarketValuationClose} from './ranking-model';
 const period=(year:number,value:number,filing?:string)=>({year,end:year+'-12-31',filed:filing??(year+1)+'-02-15',form:'10-K',accession:'0000000000-26-000001',value});
-const sample=():SecCompany=>({ticker:'UNSEEN',name:'Unknown Public Manufacturer',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0001234567.json',retrievedAt:'2026-10-15',metrics:[
+const sample=():SecCompany=>({ticker:'UNSEEN',name:'Unknown Public Manufacturer',cik:'0001234567',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0001234567.json',retrievedAt:'2026-10-15',classification:{status:'reported',system:'SEC SIC',code:'3531',description:'Synthetic manufacturing fixture',source:'https://data.sec.gov/submissions/CIK0001234567.json',retrievedAt:'2026-10-14T12:00:00.000Z'},metrics:[
  {name:'Revenue',values:[period(2025,100000000),period(2024,80000000)]},
  {name:'Operating cash flow',values:[period(2025,15000000)]},
  {name:'Capital expenditures',values:[period(2025,5000000)]},

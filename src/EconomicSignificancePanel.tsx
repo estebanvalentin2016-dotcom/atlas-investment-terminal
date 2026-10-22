@@ -1,6 +1,7 @@
 import type {SecCompany} from './ranking-model';
 import type {FilingEvidenceResult} from './FilingEvidence';
 import {assessEconomicSignificance} from './economic-significance';
+import {PP_AND_E_FCF_DISCLOSURE} from './financial-methodology-eligibility';
 
 const money=(n:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',notation:'compact',maximumFractionDigits:2}).format(n);
 const pct=(n:number)=>(n>0?'+':'')+n.toFixed(1)+'%';
@@ -29,7 +30,7 @@ export default function EconomicSignificancePanel({ticker,filingUrl,asOf,review,
     <a href={signal.sourceUrl} target="_blank" rel="noopener noreferrer">Inspect SEC passage ↗</a>
    </div>)}
   </div>:<p className="chart-note"><strong>No verified magnitude extracted.</strong> An earnings-related 8-K or positive news headline is not, by itself, a quantified improvement.</p>}
-  {a.annual&&<p className="chart-note"><strong>Separate annual reference:</strong> FY {a.annual.fiscalYear} SEC revenue {money(a.annual.revenue)}{a.annual.reportedGrowthPct!==null?' · annual revenue growth '+pct(a.annual.reportedGrowthPct):''}{a.annual.fcfMarginPct!==null?' · annual FCF margin '+pct(a.annual.fcfMarginPct):''}. Filed {a.annual.filed}. These figures may describe a different period from this 8-K.</p>}
+  {a.annual&&<p className="chart-note"><strong>Separate annual reference:</strong> FY {a.annual.fiscalYear} SEC revenue {money(a.annual.revenue)}{a.annual.reportedGrowthPct!==null?' · annual revenue growth '+pct(a.annual.reportedGrowthPct):''}{a.annual.fcfMarginPct!==null?' · ATLAS-derived PP&E-only FCF margin '+pct(a.annual.fcfMarginPct):''}. Filed {a.annual.filed}. These figures may describe a different period from this 8-K. {a.annual.fcfMarginPct!==null&&PP_AND_E_FCF_DISCLOSURE}</p>}
   {a.sensitivity&&<div className="atlas-economic-sensitivity">
    <strong>Translate operating economics into dollars</strong>
    <p className="chart-note">At the reported annual revenue scale, a hypothetical 1- or 3-percentage-point change in after-capex FCF margin changes annual FCF by the amounts below, assuming unchanged revenue.</p>

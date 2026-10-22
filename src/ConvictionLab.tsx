@@ -2,6 +2,7 @@ import {createConvictionActionBrief} from './conviction-action-brief';
 import {saveResearchSummary} from './watchlist-research';
 import {useState,type FormEvent} from 'react';
 import {assessConvictionReadiness,type ConvictionAssessment} from './conviction-readiness';
+import {PP_AND_E_FCF_DISCLOSURE} from './financial-methodology-eligibility';
 import SurvivalEvidencePanel from './SurvivalEvidencePanel';
 import MarketCapEvidencePanel from './MarketCapEvidencePanel';
 import FinancingAutomationPanel from './FinancingAutomationPanel';
@@ -100,8 +101,9 @@ export default function ConvictionLab({initialTicker='BLK'}:{initialTicker?:stri
     <summary>See historical SEC financials, scenario assumptions, trading, cash and financing evidence</summary>
    <div className="atlas-key-return">
     <div><span className="atlas-glance-label">SEC revenue growth</span><strong className={"atlas-glance-value "+(assessment.observed.revenueGrowthPct===null?"":assessment.observed.revenueGrowthPct>=0?"atlas-tone-positive":"atlas-tone-negative")}>{pct(assessment.observed.revenueGrowthPct)}</strong><small>FY {assessment.observed.fiscalYear??'unknown'}</small></div>
-    <div><span className="atlas-glance-label">Free cash flow after capex</span><strong className={"atlas-glance-value "+(assessment.observed.freeCashFlow===null?"":assessment.observed.freeCashFlow>=0?"atlas-tone-positive":"atlas-tone-negative")}>{currency(assessment.observed.freeCashFlow)}</strong><small>Company SEC fiscal period</small></div>
-    <div><span className="atlas-glance-label">FCF margin</span><strong className={"atlas-glance-value "+(assessment.observed.fcfMarginPct===null?"":assessment.observed.fcfMarginPct>=0?"atlas-tone-positive":"atlas-tone-negative")}>{pct(assessment.observed.fcfMarginPct)}</strong><small>Reported operating cash flow less capex ÷ sales</small></div>
+    <div><span className="atlas-glance-label">ATLAS-derived PP&amp;E-only FCF</span><strong className={"atlas-glance-value "+(assessment.observed.freeCashFlow===null?"":assessment.observed.freeCashFlow>=0?"atlas-tone-positive":"atlas-tone-negative")}>{currency(assessment.observed.freeCashFlow)}</strong><small>Company SEC fiscal period</small></div>
+    <div><span className="atlas-glance-label">PP&amp;E-only FCF margin</span><strong className={"atlas-glance-value "+(assessment.observed.fcfMarginPct===null?"":assessment.observed.fcfMarginPct>=0?"atlas-tone-positive":"atlas-tone-negative")}>{pct(assessment.observed.fcfMarginPct)}</strong><small>ATLAS-derived, not a GAAP-reported metric</small></div>
+    <p className="chart-note">{PP_AND_E_FCF_DISCLOSURE}</p>
     <div><span className="atlas-glance-label">Indicative annual P/E</span><strong className="atlas-glance-value">{assessment.observed.fyPe===null?'N/A':assessment.observed.fyPe.toFixed(1)+'×'}</strong><small>{assessment.observed.asOfDate??'Quote missing'} · not TTM or forward</small></div>
    </div>
    {assessment.fundingRisk.status!=='unknown'&&<section className={'atlas-conviction-funding '+(assessment.fundingRisk.status==='nonnegative_fcf'?'atlas-funding-neutral':'atlas-funding-alert')}>

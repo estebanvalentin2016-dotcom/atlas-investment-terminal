@@ -1,7 +1,7 @@
 import {describe,expect,it,vi} from 'vitest';
 import {initialAutonomousScreen} from './autonomous-screen';
 import {assessEmergingFcfStrength,defaultRankWeights,scoreCompany,type SecCompany} from './ranking-model';
-import {buildResearchHistoryRecords,RESEARCH_HISTORY_MODEL_VERSION,type ResearchHistoryAssessmentInput,type ResearchHistoryRecordV1} from './research-history-model';
+import {buildResearchHistoryRecords,RESEARCH_HISTORY_MODEL_VERSION,PREVIOUS_RESEARCH_HISTORY_MODEL_VERSION,type ResearchHistoryAssessmentInput,type ResearchHistoryRecordV1} from './research-history-model';
 import {appendResearchHistory,MAX_RESEARCH_HISTORY_RECORDS,readResearchHistory,RESEARCH_HISTORY_KEY} from './research-history-storage';
 
 function memoryStorage(initial?:string):Storage{
@@ -26,6 +26,20 @@ const assessed=(ticker='HIST'):ResearchHistoryAssessmentInput=>{
 const build=(runId='run-1',ticker='HIST')=>buildResearchHistoryRecords({completed:true,completedAt:'2026-10-18T16:00:00.000Z',runId,assessments:[assessed(ticker)]});
 
 describe('durable browser-local research assessment history',()=>{
+ it('retains pre-safeguard historical assessments without rewriting their recorded verdict',()=>{
+  const storage=memoryStorage();
+  const old=build('legacy-run')[0];
+  old.assessmentModelVersion=PREVIOUS_RESEARCH_HISTORY_MODEL_VERSION;
+  old.screen.verdict='preliminary_pass';
+  old.screen.preliminaryScore=72;
+  storage.setItem(RESEARCH_HISTORY_KEY,JSON.stringify([old]));
+  expect(appendResearchHistory(storage,build('current-run')).status).toBe('saved');
+  const read=readResearchHistory(storage);
+  expect(read.status).toBe('ok');
+  expect(read.records[0].assessmentModelVersion).toBe(PREVIOUS_RESEARCH_HISTORY_MODEL_VERSION);
+  expect(read.records[0].screen).toMatchObject({verdict:'preliminary_pass',preliminaryScore:72});
+  expect(read.records[1].assessmentModelVersion).toBe(RESEARCH_HISTORY_MODEL_VERSION);
+ });
  it('appends completed runs and preserves multiple assessments for the same ticker',()=>{
   const storage=memoryStorage();
   expect(appendResearchHistory(storage,build('run-1')).status).toBe('saved');

@@ -7,11 +7,11 @@ import type {SecCompany,Annual} from './ranking-model';
 import type {FilingEvidenceResult} from './FilingEvidence';
 const source='https://www.sec.gov/Archives/edgar/data/1234567/0001234567-26-000001.txt';
 const direct='https://www.sec.gov/Archives/edgar/data/1234567/000123456726000001/ex991.htm';
-const a=(year:number,v:number,filed=(year+1)+'-02-15'):Annual=>({year,end:year+'-12-31',filed,value:v,form:'10-K',accession:'0000000000-26-000001'});
-const company=():SecCompany=>({ticker:'TEST',name:'Test Co',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0001234567.json',retrievedAt:'2026-10-16',metrics:[
- {name:'Revenue',values:[a(2025,1_500_000_000),a(2024,1_200_000_000)]},
- {name:'Operating cash flow',values:[a(2025,300_000_000)]},
- {name:'Capital expenditures',values:[a(2025,100_000_000)]}
+const a=(year:number,v:number,filed=(year+1)+'-02-15'):Annual=>({year,start:year+'-01-01',end:year+'-12-31',filed,value:v,unit:'USD',form:'10-K',accession:'0000000000-26-000001',reviewIssues:[]});
+const company=():SecCompany=>({ticker:'TEST',name:'Test Co',cik:'0001234567',source:'https://data.sec.gov/api/xbrl/companyfacts/CIK0001234567.json',retrievedAt:'2026-10-16',classification:{status:'reported',system:'SEC SIC',code:'3531',description:'Construction Machinery',source:'https://data.sec.gov/submissions/CIK0001234567.json',retrievedAt:'2026-10-15T12:00:00.000Z'},metrics:[
+ {name:'Revenue',unit:'USD',tag:'Revenues',reportingScope:'entity_wide',values:[a(2025,1_500_000_000),a(2024,1_200_000_000)]},
+ {name:'Operating cash flow',unit:'USD',tag:'NetCashProvidedByUsedInOperatingActivities',reportingScope:'total_operations',values:[a(2025,300_000_000)]},
+ {name:'Capital expenditures',unit:'USD',tag:'PaymentsToAcquirePropertyPlantAndEquipment',reportingScope:'unallocated_cash_purchases',values:[a(2025,100_000_000)]}
 ]});
 const review=(figures:{label:string;reportedValue:string}[]):FilingEvidenceResult=>({
  url:source,sourceStatus:'partial_text',reviewMethod:'selected_documents',note:'Selected filing and exhibits',sourceProblems:[],

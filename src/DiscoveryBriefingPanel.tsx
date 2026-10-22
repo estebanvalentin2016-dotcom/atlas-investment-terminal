@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import type {DiscoveryBriefingSnapshot} from './discovery-briefing-model';
+import {PP_AND_E_FCF_DISCLOSURE} from './financial-methodology-eligibility';
 import {readDiscoveryBriefing} from './discovery-briefing-storage';
 
 type DiscoveryLead=DiscoveryBriefingSnapshot['leads'][number];
@@ -87,6 +88,6 @@ export default function DiscoveryBriefingPanel({storage,variant='full',onSelect}
       <strong>No preliminary leads met the saved scan criteria.</strong>
       <p className="chart-note">The scan examined real issuers and did not manufacture a candidate. Run Autonomous Discovery again to examine another SEC-index batch.</p>
     </div>}
-    <p className="atlas-discovery-caution"><strong>Research boundary:</strong> These are preliminary financial-screening results, not verified investment conviction or investment recommendations. FCF margin is a mechanical screening input, not proof of investment quality; for insurers and other specialized financial businesses, ordinary FCF screening may not be decision-useful without sector-specific analysis.</p>
+    <p className="atlas-discovery-caution"><strong>Research boundary:</strong> Saved leads reflect the screening model at scan time; current methodology eligibility has not been rechecked here. These are not investment recommendations. {PP_AND_E_FCF_DISCLOSURE}</p>
   </section>;
 }

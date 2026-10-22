@@ -1,6 +1,7 @@
 import {ArrowRight, CircleAlert, Clock3, ShieldCheck} from 'lucide-react';
 import {useState} from 'react';
 import type {DiscoveryBriefingSnapshot} from './discovery-briefing-model';
+import {PP_AND_E_FCF_DISCLOSURE} from './financial-methodology-eligibility';
 import {readDiscoveryBriefing} from './discovery-briefing-storage';
 
 type DiscoveryLead=DiscoveryBriefingSnapshot['leads'][number];
@@ -134,6 +135,6 @@ export default function ResearchHomeBriefing({storage,onResearch,onConviction,on
    </div>
   </section>}
 
-  <p className="atlas-home-boundary"><strong>Research boundary.</strong> A preliminary screening pass is not verified investment conviction or an investment recommendation. FCF margin is a mechanical input; for insurers and other specialized financial businesses, ordinary FCF screening is not proof of investment quality.</p>
+  <p className="atlas-home-boundary"><strong>Research boundary.</strong> This saved assessment reflects the scan-time model; current methodology eligibility has not been rechecked here. A preliminary pass is not verified investment conviction or an investment recommendation. Ordinary FCF screening is not proof of investment quality for insurers and other specialized financial businesses. {PP_AND_E_FCF_DISCLOSURE}</p>
  </section>;
 }

@@ -1,5 +1,6 @@
 // Transparent first-stage SEC research ranking. Not a statistically validated
 // return model. Missing inputs never earn points and are ALWAYS disclosed.
+import {assessFinancialMethodologyEligibility} from './financial-methodology-eligibility';
 export type Annual={year:number;start?:string|null;end:string;filed:string;value:number;unit?:string;form:string;accession:string;tag?:string;reviewIssues?:string[]};
 export type SecMetric={name:string;unit?:string;values:Annual[];tag?:string|null;reportingScope?:string|null;quality?:string;selectionNote?:string;alternativeTags?:string[];sourceFactPresent?:boolean;excludedBroaderFact?:Annual};
 // An exceptional cross-filing comparison requires a reviewed record tied to
@@ -107,6 +108,8 @@ export type FcfStrengthAssessment = {
 };
 
 export function assessEmergingFcfStrength(company:SecCompany,asOf=new Date().toISOString().slice(0,10)): FcfStrengthAssessment{
+  if(assessFinancialMethodologyEligibility(company,asOf).status!=='provisional_operating')
+    return {status:'insufficient_evidence',years:[],margins:[]};
   const m=new Map(company.metrics.map(x=>[x.name,x]));
   const rev=recent(m.get('Revenue')?.values||[]);
   
@@ -190,6 +193,7 @@ export function assessEmergingFcfStrength(company:SecCompany,asOf=new Date().toI
 }
 export function scoreCompany(company:SecCompany,weights:RankWeights,manualPe:number|null=null,asOf=new Date().toISOString().slice(0,10)):Ranked{
   const metrics=deriveRankingMetrics(company,manualPe,asOf);
+  const methodology=assessFinancialMethodologyEligibility(company,asOf);
   const annualFiled=company.metrics.find(m=>m.name==='Revenue')?.values.find(v=>v.year===metrics.year)?.filed??null;
   const age=annualFiled?Date.parse(asOf+'T00:00:00Z')-Date.parse(annualFiled+'T00:00:00Z'):NaN;
   const stale=!Number.isFinite(age)||age>550*86400000||age<0;
@@ -211,7 +215,8 @@ export function scoreCompany(company:SecCompany,weights:RankWeights,manualPe:num
   const hasCore=observed.filter(p=>p.key!=='pe').length>=2;
   const suspicious=metrics.fcfMargin!==null&&metrics.fcfMargin>100;
   if(suspicious)missing.push('FCF exceeds annual revenue — verify issuer accounting concepts and one-off cash flows');
-  const eligible=total>0&&coverage>=60&&hasCore&&metrics.year!==null&&!stale&&!suspicious;
+  if(methodology.status!=='provisional_operating')missing.push('Ordinary-company methodology withheld: '+methodology.reason);
+  const eligible=methodology.status==='provisional_operating'&&total>0&&coverage>=60&&hasCore&&metrics.year!==null&&!stale&&!suspicious;
   // Missing factors get ZERO weighted credit, not a perfect score.
   const score=eligible?Math.round(observed.reduce((sum,p)=>sum+p.grade*weights[p.key],0)/total):null;
   return {ticker:company.ticker,name:company.name,year:metrics.year,source:company.source,metrics,score,coverage,count:observed.length,reasons,missing,annualFiled};

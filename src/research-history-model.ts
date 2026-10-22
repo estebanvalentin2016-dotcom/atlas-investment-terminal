@@ -1,11 +1,13 @@
 import type {ScreenResult} from './autonomous-screen';
 import {appendIndustryComparabilityLimitations} from './industry-classification';
 import {deriveRankingMetrics,type AnnualPe,type FcfStrengthAssessment,type MarketValuationClose,type Ranked,type SecCompany,type SecIndustryClassification} from './ranking-model';
+import {assessFinancialMethodologyEligibility,PP_AND_E_FCF_DISCLOSURE} from './financial-methodology-eligibility';
 
-export const RESEARCH_HISTORY_MODEL_VERSION='autonomous-financial-screen-v1' as const;
+export const RESEARCH_HISTORY_MODEL_VERSION='autonomous-financial-screen-v2' as const;
+export const PREVIOUS_RESEARCH_HISTORY_MODEL_VERSION='autonomous-financial-screen-v1' as const;
 export type ResearchHistoryRecordV1={
  version:1;
- assessmentModelVersion:typeof RESEARCH_HISTORY_MODEL_VERSION;
+ assessmentModelVersion:typeof RESEARCH_HISTORY_MODEL_VERSION|typeof PREVIOUS_RESEARCH_HISTORY_MODEL_VERSION;
  recordId:string;
  runId:string;
  assessedAt:string;
@@ -72,6 +74,9 @@ export function buildResearchHistoryRecords(input:{
   if(!extra)observedLimitations.push('Valuation and long-term price enrichment were not performed for this issuer in the bounded completed scan.');
   if(ranking?.missing.length)observedLimitations.push(...ranking.missing.map(item=>'Ranking evidence missing: '+item));
   const limitations=appendIndustryComparabilityLimitations(observedLimitations.length?observedLimitations:null,company.classification)||[];
+  const methodology=assessFinancialMethodologyEligibility(company,asOf);
+  limitations.push(PP_AND_E_FCF_DISCLOSURE);
+  if(methodology.status!=='provisional_operating')limitations.push('Ordinary-company FCF assessment withheld: '+methodology.reason);
   return {
    version:1,
    assessmentModelVersion:RESEARCH_HISTORY_MODEL_VERSION,
