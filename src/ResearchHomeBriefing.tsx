@@ -7,6 +7,7 @@ import {readDiscoveryBriefing} from './discovery-briefing-storage';
 type DiscoveryLead=DiscoveryBriefingSnapshot['leads'][number];
 type Props={
  storage?:Storage|null;
+ currentBriefing?:DiscoveryBriefingSnapshot|null;
  onResearch?:(ticker:string)=>void;
  onConviction?:(ticker:string)=>void;
  onDiscovery?:()=>void;
@@ -41,11 +42,12 @@ function Metric({name,value,tone='atlas-tone-neutral'}:{name:string;value:string
  return <div className="atlas-home-evidence-item"><span>{name}</span><strong className={tone}>{value}</strong></div>;
 }
 
-export default function ResearchHomeBriefing({storage,onResearch,onConviction,onDiscovery,onWatchlist}:Props){
- const [briefing]=useState(()=>{
+export default function ResearchHomeBriefing({storage,currentBriefing,onResearch,onConviction,onDiscovery,onWatchlist}:Props){
+ const [storedBriefing]=useState(()=>{
   const available=browserStorage(storage);
   return available?readDiscoveryBriefing(available):null;
  });
+ const briefing=currentBriefing??storedBriefing;
 
  if(!briefing)return <section className="atlas-home-empty" aria-label="No saved Autonomous Discovery briefing">
   <span className="atlas-home-kicker">Autonomous Discovery · no saved scan</span>

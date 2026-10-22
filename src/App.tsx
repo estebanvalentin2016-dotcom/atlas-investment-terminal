@@ -8,6 +8,7 @@ import RealWorkspace from './RealWorkspace';
 import InvestmentRankings from './InvestmentRankings';
 import ResearchHome from './ResearchHome';
 import AutonomousDiscovery from './AutonomousDiscovery';
+import {autonomousDiscoveryController} from './autonomous-discovery-controller';
 import ConvictionLab from './ConvictionLab';
 import InstitutionalDiscovery from './InstitutionalDiscovery';
 import InstitutionalConsensus from './InstitutionalConsensus';
@@ -69,8 +70,8 @@ export default function App(){
  <div className={'workspace-notice '+(isDemoPage(page)?'workspace-notice-demo':'')}><ShieldAlert size={16}/><span>{isDemoPage(page)?'Fictional companies and hypothetical outcomes. Separate from real investment research.':'Research, not investment advice. Missing evidence stays unknown; saved research is not live monitoring.'}</span><button className="text-link" onClick={()=>navigate('Methodology')}>Research standards</button></div>
  {page==='Methodology'&&<WorkspaceMethodology/>}
  {page==='Demo Notes'&&<DemoNotes watch={watch} toggle={toggleWatch} onModel={ticker=>{setSelected(ticker);navigate('Valuation Lab')}}/>}
- {page==='Research Home'&&<ResearchHome navigate={next=>{setPage(next);setMenuOpen(false)}} onResearch={ticker=>{setRealTicker(ticker);setPage('Company Research');setMenuOpen(false)}} onConviction={ticker=>{setConvictionTicker(ticker);setPage('Conviction Lab');setMenuOpen(false)}}/>}
- {page==='Autonomous Discovery'&&<AutonomousDiscovery onResearch={ticker=>{setRealTicker(ticker);setPage('Company Research')}} onConviction={ticker=>{setConvictionTicker(ticker);setPage('Conviction Lab')}}/>}
+ {page==='Research Home'&&<ResearchHome controller={autonomousDiscoveryController} navigate={next=>{setPage(next);setMenuOpen(false)}} onResearch={ticker=>{setRealTicker(ticker);setPage('Company Research');setMenuOpen(false)}} onConviction={ticker=>{setConvictionTicker(ticker);setPage('Conviction Lab');setMenuOpen(false)}}/>}
+ {page==='Autonomous Discovery'&&<AutonomousDiscovery controller={autonomousDiscoveryController} onResearch={ticker=>{setRealTicker(ticker);setPage('Company Research')}} onConviction={ticker=>{setConvictionTicker(ticker);setPage('Conviction Lab')}}/>}
  {page==='Conviction Lab'&&<ConvictionLab key={convictionTicker} initialTicker={convictionTicker}/>}
  {page==='Institutional Discovery'&&<InstitutionalDiscovery/>}
  {page==='Institutional Consensus'&&<InstitutionalConsensus onInvestigate={ticker=>{setRealTicker(ticker);setPage('Company Research')}}/>}

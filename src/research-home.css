@@ -21,6 +21,18 @@
   color: var(--atlas-text-primary);
 }
 
+.atlas-home-scan-status {
+  margin: 0 0 32px;
+  color: var(--atlas-text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.atlas-home-scan-status strong {
+  color: var(--atlas-text-primary);
+  font-weight: 600;
+}
+
 .atlas-home-intelligence,
 .atlas-home-empty {
   min-width: 0;
