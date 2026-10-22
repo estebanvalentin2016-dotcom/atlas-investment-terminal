@@ -3,6 +3,7 @@ import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {distinctIssuers,retainPickLeads,thisMonth,selectIssuerReviewBatch,type PickLead} from './picks-research';
 import ResearchHome from './ResearchHome';
+import MonthlyPicksDashboard from './MonthlyPicksDashboard';
 import InvestmentOutcomeSimulator from './InvestmentOutcomeSimulator';
 const a=(ticker:string,filed:string,form='8-K'):PickLead=>({ticker,name:'Issuer '+ticker,filed,form,kind:'8-K (unreviewed)',url:'https://www.sec.gov/Archives/edgar/data/1234/'+ticker+'-2026.txt'});
 describe('Source-dated filing-led home and rolling SEC research ledger',()=>{
@@ -45,18 +46,20 @@ describe('Source-dated filing-led home and rolling SEC research ledger',()=>{
  it('opens the real-home source research workflow instead of a fictional top-picks claim',()=>{
   const html=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{}}));
   expect(html).toContain('Recent catalysts and SEC filing intelligence');
-  expect(html).toContain('RESEARCH BRIEF');
   expect(html).toContain('Separate evidence paths.');
   expect(html).toContain('may reach a different provisional conclusion');
   expect(html).not.toContain('Explore $500 dollar scenarios');
   expect(html).toContain('Review saved research');
   expect(html).toContain('<details class="atlas-home-secondary-intelligence">');
   expect(html.indexOf('No evidence-backed lead')).toBeLessThan(html.indexOf('Recent catalysts and SEC filing intelligence'));
-  expect(html).toContain('This month');
-  expect(html).toContain('Last 90 days');
-  expect(html).toContain('does not backfill a complete three-month SEC universe');
-  expect(html).toContain('How ATLAS orders this research queue');
-  expect(html).toContain('ATLAS is reviewing this batch');
+  expect(html).not.toContain('atlas-picks-workbench');
+  const queue=renderToStaticMarkup(createElement(MonthlyPicksDashboard,{heading:'Recent catalysts and SEC filing intelligence',showScenarioActions:false}));
+  expect(queue).toContain('RESEARCH BRIEF');
+  expect(queue).toContain('This month');
+  expect(queue).toContain('Last 90 days');
+  expect(queue).toContain('does not backfill a complete three-month SEC universe');
+  expect(queue).toContain('How ATLAS orders this research queue');
+  expect(queue).toContain('ATLAS is reviewing this batch');
   expect(html).toContain('Run Autonomous Discovery');
  });
  it('renders an amount slider that starts with $500 and a holding period without implying returns are assured',()=>{
