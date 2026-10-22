@@ -3,7 +3,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import AutonomousDiscovery from './AutonomousDiscovery';
 import ResearchHome from './ResearchHome';
-import {createAutonomousDiscoveryController} from './autonomous-discovery-controller';
+import {AUTO_72_COMPLETION_KEY,AUTO_72_FRESH_MS,createAutonomousDiscoveryController} from './autonomous-discovery-controller';
 import {KEY as BRIEFING_KEY} from './discovery-briefing-storage';
 import {KEY as PASSES_KEY} from './autonomous-pass-ledger';
 import {RESEARCH_HISTORY_KEY} from './research-history-storage';
@@ -30,6 +30,7 @@ const company=(ticker:string)=>({
  ]
 });
 const page=(cursor:number,completedCycle=false)=>({total:72,start:cursor,nextCursor:cursor+1,completedCycle,rows:[{ticker:`X${cursor}`,name:`X${cursor} Industries`,cik:1234567890}],indexUrl:'https://www.sec.gov/files/company_tickers.json',retrievedAt:'2026-10-15T12:00:00.000Z',seedTickersUsed:false,scope:'SEC index'});
+const fullPage=(cursor:number)=>({total:1000,start:cursor,nextCursor:cursor+24,completedCycle:false,rows:Array.from({length:24},(_,index)=>({ticker:`X${cursor+index}`,name:`X${cursor+index} Industries`,cik:1234567890})),indexUrl:'https://www.sec.gov/files/company_tickers.json',retrievedAt:'2026-10-15T12:00:00.000Z',seedTickersUsed:false,scope:'SEC index'});
 const json=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status});
 const waitFor=async(predicate:()=>boolean)=>{for(let i=0;i<50&&!predicate();i++)await new Promise(resolve=>setTimeout(resolve,0));expect(predicate()).toBe(true)};
 
@@ -60,7 +61,7 @@ describe('persistent Autonomous Discovery controller',()=>{
    return json({error:'Price source unavailable'},503);
   }) as unknown as typeof fetch;
   const controller=createAutonomousDiscoveryController({fetcher});
-  expect(renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},controller}))).toContain('No scan running');
+  expect(renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},controller}))).toContain('Preparing an SEC discovery scan');
   expect(urls).toHaveLength(0); // Home never starts a scan.
   expect(renderToStaticMarkup(createElement(AutonomousDiscovery,{controller}))).toContain('Discover Opportunities');
   let notifications=0;
@@ -70,8 +71,8 @@ describe('persistent Autonomous Discovery controller',()=>{
   await waitFor(()=>urls.some(url=>url.startsWith('/api/sec/company')));
   leaveDiscovery(); // Discovery view unmounts; execution remains in the app controller.
   const homeDuring=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},controller}));
-  expect(homeDuring).toContain('Discovery scan:');
-  expect(homeDuring).toContain('Enumerating SEC company batch 1 of 1');
+  expect(homeDuring).toContain('Discovery:');
+  expect(homeDuring).toContain('Checking SEC issuers');
   expect(controller.getSnapshot().busy).toBe(true);
   releaseCompany();await run;
   expect(notifications).toBeGreaterThan(0);
@@ -82,7 +83,7 @@ describe('persistent Autonomous Discovery controller',()=>{
   const homeAfter=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},controller}));
   const discoveryAfter=renderToStaticMarkup(createElement(AutonomousDiscovery,{controller}));
   expect(homeAfter).toContain('1 real issuer was examined');
-  expect(homeAfter).toContain('Discovery scan:');
+  expect(homeAfter).toContain('Scan complete');
   expect(discoveryAfter).toContain('X0 · X0 Industries');
   expect(discoveryAfter).toContain('Discover more companies');
  });
@@ -125,6 +126,111 @@ describe('persistent Autonomous Discovery controller',()=>{
   expect(browserStorage.getItem(BRIEFING_KEY)).toBeNull();
   expect(browserStorage.getItem(PASSES_KEY)).toBeNull();
   expect(browserStorage.getItem(RESEARCH_HISTORY_KEY)).toBeNull();
-  expect(renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},controller}))).toContain('Unavailable · SEC access unavailable');
+  const home=renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},controller}));
+  expect(home).toContain('Discovery could not finish. No new briefing was saved.');
+  expect(home).toContain('Retry the 72-company scan');
+ });
+
+ it('automatically starts one 72-entry run, then reuses its saved briefing for 24 hours',async()=>{
+  const browserStorage=storage();vi.stubGlobal('localStorage',browserStorage);
+  const startedAt=new Date('2026-10-22T18:00:00.000Z');
+  const urls:string[]=[];
+  const fetcher=vi.fn(async(input:RequestInfo|URL)=>{
+   const url=String(input);urls.push(url);
+   if(url.startsWith('/api/autonomous/universe'))return json(fullPage(Number(new URL(url,'http://localhost').searchParams.get('cursor'))));
+   if(url.startsWith('/api/sec/company'))return json(company(new URL(url,'http://localhost').searchParams.get('ticker')!));
+   return json({error:'Price source unavailable'},503);
+  }) as unknown as typeof fetch;
+  const controller=createAutonomousDiscoveryController({fetcher,now:()=>startedAt});
+  expect(urls).toHaveLength(0); // Initial Home render does not wait for or start I/O.
+  const first=controller.startAutomaticallyIfEligible();
+  expect(first).not.toBeNull();
+  expect(controller.startAutomaticallyIfEligible()).toBe(first); // Strict Mode re-entry.
+  expect(controller.getSnapshot()).toMatchObject({busy:true,batchCount:3,activeBatchCount:3});
+  expect(renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},controller}))).toContain('Research is underway');
+  await first;
+  expect(urls.filter(url=>url.startsWith('/api/autonomous/universe'))).toEqual([
+   '/api/autonomous/universe?cursor=0&limit=24',
+   '/api/autonomous/universe?cursor=24&limit=24',
+   '/api/autonomous/universe?cursor=48&limit=24'
+  ]);
+  expect(urls.filter(url=>url.startsWith('/api/sec/company'))).toHaveLength(72);
+  expect(controller.getSnapshot()).toMatchObject({done:true,busy:false,checkedIssuers:72,scannedBatches:3});
+  expect(controller.getSnapshot().briefing?.issuersExamined).toBe(72);
+  const marker=JSON.parse(browserStorage.getItem(AUTO_72_COMPLETION_KEY)!);
+  expect(marker).toMatchObject({version:1,requestedBatches:3,enumerated:72,issuersExamined:72});
+  expect(browserStorage.getItem(BRIEFING_KEY)).not.toBeNull();
+
+  const reuseFetcher=vi.fn() as unknown as typeof fetch;
+  const reopened=createAutonomousDiscoveryController({fetcher:reuseFetcher,now:()=>new Date(startedAt.getTime()+AUTO_72_FRESH_MS-1)});
+  expect(reopened.startAutomaticallyIfEligible()).toBeNull();
+  expect(reopened.getSnapshot().briefing?.scanCompletedAt).toBe(marker.scanCompletedAt);
+  expect(renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},controller:reopened}))).toContain('Recent scan available');
+  expect(reuseFetcher).not.toHaveBeenCalled();
+ });
+
+ it('treats expired, malformed, or mismatched freshness metadata as ineligible',async()=>{
+  const browserStorage=storage();vi.stubGlobal('localStorage',browserStorage);
+  const timestamp='2026-10-20T18:00:00.000Z';
+  browserStorage.setItem(BRIEFING_KEY,JSON.stringify({version:1,scanCompletedAt:timestamp,issuersExamined:72,leads:[]}));
+  browserStorage.setItem(AUTO_72_COMPLETION_KEY,'{bad json');
+  const fetcher=vi.fn(async()=>json({error:'SEC unavailable'},503)) as unknown as typeof fetch;
+  const controller=createAutonomousDiscoveryController({fetcher,now:()=>new Date('2026-10-22T18:00:00.000Z')});
+  await controller.startAutomaticallyIfEligible();
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(controller.getSnapshot().briefing?.scanCompletedAt).toBe(timestamp);
+  expect(controller.getSnapshot()).toMatchObject({done:false,error:'SEC unavailable'});
+  expect(browserStorage.getItem(BRIEFING_KEY)).toContain(timestamp);
+
+  browserStorage.setItem(AUTO_72_COMPLETION_KEY,JSON.stringify({version:1,requestedBatches:3,enumerated:72,scanCompletedAt:timestamp,issuersExamined:72}));
+  const expired=createAutonomousDiscoveryController({fetcher,now:()=>new Date(Date.parse(timestamp)+AUTO_72_FRESH_MS)});
+  await expired.startAutomaticallyIfEligible();
+  expect(fetcher).toHaveBeenCalledTimes(2);
+ });
+
+ it('preserves the prior completed briefing on failure and allows an explicit 72-entry retry',async()=>{
+  const browserStorage=storage();vi.stubGlobal('localStorage',browserStorage);
+  const previous='2026-10-20T18:00:00.000Z';
+  const previousBriefing=JSON.stringify({version:1,scanCompletedAt:previous,issuersExamined:24,leads:[]});
+  browserStorage.setItem(BRIEFING_KEY,previousBriefing);
+  let failFirst=true;
+  const fetcher=vi.fn(async(input:RequestInfo|URL)=>{
+   const url=String(input);
+   if(url.startsWith('/api/autonomous/universe')){
+    if(failFirst){failFirst=false;return json({error:'SEC temporarily unavailable'},503)}
+    return json(fullPage(Number(new URL(url,'http://localhost').searchParams.get('cursor'))));
+   }
+   if(url.startsWith('/api/sec/company'))return json(company(new URL(url,'http://localhost').searchParams.get('ticker')!));
+   return json({error:'Price source unavailable'},503);
+  }) as unknown as typeof fetch;
+  const controller=createAutonomousDiscoveryController({fetcher,now:()=>new Date('2026-10-22T18:00:00.000Z')});
+  await controller.startAutomaticallyIfEligible();
+  expect(controller.getSnapshot()).toMatchObject({done:false,busy:false,error:'SEC temporarily unavailable'});
+  expect(controller.getSnapshot().briefing?.scanCompletedAt).toBe(previous);
+  expect(browserStorage.getItem(BRIEFING_KEY)).toBe(previousBriefing);
+  expect(browserStorage.getItem(AUTO_72_COMPLETION_KEY)).toBeNull();
+  expect(renderToStaticMarkup(createElement(ResearchHome,{navigate:()=>{},controller}))).toContain('Retry the 72-company scan');
+  await controller.retryAutomatic();
+  expect(controller.getSnapshot()).toMatchObject({done:true,busy:false,error:'',checkedIssuers:72});
+  expect(controller.getSnapshot().briefing?.scanCompletedAt).toBe('2026-10-22T18:00:00.000Z');
+  expect(browserStorage.getItem(AUTO_72_COMPLETION_KEY)).not.toBeNull();
+ });
+
+ it('does not publish a partial three-batch scan when a later SEC index request fails',async()=>{
+  const browserStorage=storage();vi.stubGlobal('localStorage',browserStorage);
+  const prior=JSON.stringify({version:1,scanCompletedAt:'2026-10-20T18:00:00.000Z',issuersExamined:24,leads:[]});
+  browserStorage.setItem(BRIEFING_KEY,prior);
+  const fetcher=vi.fn(async(input:RequestInfo|URL)=>{
+   const url=String(input);
+   if(url.startsWith('/api/autonomous/universe'))return url.includes('cursor=24')?json({error:'SEC index unavailable'},503):json(fullPage(0));
+   if(url.startsWith('/api/sec/company'))return json(company(new URL(url,'http://localhost').searchParams.get('ticker')!));
+   return json({error:'Price source unavailable'},503);
+  }) as unknown as typeof fetch;
+  const controller=createAutonomousDiscoveryController({fetcher});
+  await controller.startAutomaticallyIfEligible();
+  expect(controller.getSnapshot()).toMatchObject({done:false,busy:false,scannedBatches:1,checkedIssuers:24,error:'SEC index unavailable'});
+  expect(browserStorage.getItem(BRIEFING_KEY)).toBe(prior);
+  expect(browserStorage.getItem(AUTO_72_COMPLETION_KEY)).toBeNull();
+  expect(browserStorage.getItem(RESEARCH_HISTORY_KEY)).toBeNull();
  });
 });

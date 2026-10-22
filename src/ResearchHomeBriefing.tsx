@@ -8,6 +8,7 @@ type DiscoveryLead=DiscoveryBriefingSnapshot['leads'][number];
 type Props={
  storage?:Storage|null;
  currentBriefing?:DiscoveryBriefingSnapshot|null;
+ scanBusy?:boolean;
  onResearch?:(ticker:string)=>void;
  onConviction?:(ticker:string)=>void;
  onDiscovery?:()=>void;
@@ -42,12 +43,18 @@ function Metric({name,value,tone='atlas-tone-neutral'}:{name:string;value:string
  return <div className="atlas-home-evidence-item"><span>{name}</span><strong className={tone}>{value}</strong></div>;
 }
 
-export default function ResearchHomeBriefing({storage,currentBriefing,onResearch,onConviction,onDiscovery,onWatchlist}:Props){
+export default function ResearchHomeBriefing({storage,currentBriefing,scanBusy=false,onResearch,onConviction,onDiscovery,onWatchlist}:Props){
  const [storedBriefing]=useState(()=>{
   const available=browserStorage(storage);
   return available?readDiscoveryBriefing(available):null;
  });
  const briefing=currentBriefing??storedBriefing;
+
+ if(!briefing&&scanBusy)return <section className="atlas-home-empty" aria-label="Autonomous Discovery in progress">
+  <span className="atlas-home-kicker">Autonomous Discovery · reviewing SEC evidence</span>
+  <h2>Research is underway.<br/><em>Evidence comes first.</em></h2>
+  <p>ATLAS is checking a bounded set of SEC issuers. A preliminary lead will appear here only if the completed scan supports one.</p>
+ </section>;
 
  if(!briefing)return <section className="atlas-home-empty" aria-label="No saved Autonomous Discovery briefing">
   <span className="atlas-home-kicker">Autonomous Discovery · no saved scan</span>

@@ -3,7 +3,7 @@ import {initialAutonomousScreen,type ScreenResult} from './autonomous-screen';
 import {writeSavedPasses} from './autonomous-pass-ledger';
 import {flagIndicativeFyValuation} from './valuation-triage';
 import {buildDiscoveryBriefing,type DiscoveryBriefingInput,type DiscoveryBriefingSnapshot} from './discovery-briefing-model';
-import {writeDiscoveryBriefing} from './discovery-briefing-storage';
+import {readDiscoveryBriefing,writeDiscoveryBriefing} from './discovery-briefing-storage';
 import {assessPriceHistory,combineResearchPriority,type HistoricalPriceResponse,type PriceHistoryAssessment} from './price-history-model';
 import {appendIndustryComparabilityLimitations} from './industry-classification';
 import {buildResearchHistoryRecords,createResearchHistoryRunId} from './research-history-model';
@@ -15,23 +15,43 @@ export type Candidate={company:SecCompany;screen:ScreenResult;valuation:AnnualPe
 export type RecordEntry={company:SecCompany;screen:ScreenResult;emerging:FcfStrengthAssessment};
 export const DISCOVERY_BATCH_SIZE=24;
 const BATCH=DISCOVERY_BATCH_SIZE,CURSOR_KEY='atlas.autonomous.sec.cursor.v1';
+export const AUTO_72_COMPLETION_KEY='atlas.autonomous.auto72-completion.v1';
+// Reuse a finished 72-entry scan for 24 hours in this browser profile.
+export const AUTO_72_FRESH_MS=24*60*60*1000;
 const initialCursor=()=>{try{const n=Number(localStorage.getItem(CURSOR_KEY)||0);return Number.isSafeInteger(n)&&n>=0?n:0}catch{return 0}};
-export const easternDate=()=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const x=Object.fromEntries(p.filter(k=>k.type!=='literal').map(k=>[k.type,k.value]));return x.year+'-'+x.month+'-'+x.day};
+export const easternDate=(date=new Date())=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);const x=Object.fromEntries(p.filter(k=>k.type!=='literal').map(k=>[k.type,k.value]));return x.year+'-'+x.month+'-'+x.day};
+
+// This sidecar records only a fully enumerated three-batch run. The version 1
+// briefing and research-history storage contracts remain unchanged.
+function savedBriefingAndFreshness(now:Date){
+ try{
+  const storage=globalThis.localStorage;
+  const briefing=readDiscoveryBriefing(storage);
+  let marker:{version?:unknown;scanCompletedAt?:unknown;issuersExamined?:unknown;requestedBatches?:unknown;enumerated?:unknown}|null=null;
+  try{marker=JSON.parse(storage.getItem(AUTO_72_COMPLETION_KEY)||'null')}catch{/* Ignore malformed freshness metadata. */}
+  const elapsed=briefing?now.getTime()-Date.parse(briefing.scanCompletedAt):NaN;
+  const fresh=Boolean(briefing&&marker?.version===1&&marker.requestedBatches===3&&marker.enumerated===3*BATCH&&marker.scanCompletedAt===briefing.scanCompletedAt&&marker.issuersExamined===briefing.issuersExamined&&Number.isFinite(elapsed)&&elapsed>=0&&elapsed<AUTO_72_FRESH_MS);
+  return {briefing,fresh};
+ }catch{return {briefing:null,fresh:false}}
+}
 
 export type DiscoveryRunState={
  cursor:number;universe:UniversePage|null;batchCount:1|3;scannedBatches:number;
  allListed:Listed[];screened:ScreenResult[];failed:{ticker:string;reason:string}[];
  researchRecords:RecordEntry[];candidates:Candidate[];briefing:DiscoveryBriefingSnapshot|null;
  busy:boolean;error:string;progress:string;done:boolean;quotesChecked:number;
+ activeBatchCount:1|3;checkedIssuers:number;reviewingLeads:boolean;
 };
 export type DiscoveryController=ReturnType<typeof createAutonomousDiscoveryController>;
 
 // One controller is created by App; views subscribe without owning execution.
-export function createAutonomousDiscoveryController(options?:{fetcher?:typeof fetch}){
+export function createAutonomousDiscoveryController(options?:{fetcher?:typeof fetch;now?:()=>Date}){
  let state:DiscoveryRunState={
   cursor:initialCursor(),universe:null,batchCount:1,scannedBatches:0,allListed:[],screened:[],
-  failed:[],researchRecords:[],candidates:[],briefing:null,busy:false,error:'',progress:'',done:false,quotesChecked:0
+  failed:[],researchRecords:[],candidates:[],briefing:null,busy:false,error:'',progress:'',done:false,quotesChecked:0,
+  activeBatchCount:1,checkedIssuers:0,reviewingLeads:false
  };
+ const now=options?.now??(()=>new Date());
  const listeners=new Set<()=>void>();
  const getSnapshot=()=>state;
  const subscribe=(listener:()=>void)=>{listeners.add(listener);return()=>{listeners.delete(listener)}};
@@ -52,22 +72,34 @@ export function createAutonomousDiscoveryController(options?:{fetcher?:typeof fe
  const setQuotesChecked=(quotesChecked:number)=>update({quotesChecked});
  const request=(url:string)=>(options?.fetcher??fetch)(url);
  let activeRun:Promise<void>|null=null;
+ let startupAttempted=false;
  const setBatchCount=(value:number)=>{if(!state.busy&&(value===1||value===3))update({batchCount:value})};
  const resetCursor=()=>{if(state.busy)return;setCursor(0);try{localStorage.setItem(CURSOR_KEY,'0')}catch{}setProgress('SEC index scan cursor reset. The next scan starts at index position 0.')};
+ const startAutomaticallyIfEligible=()=>{
+  if(startupAttempted)return activeRun;
+  startupAttempted=true; // React Strict Mode must not initiate a second scan.
+  if(activeRun)return activeRun;
+  const saved=savedBriefingAndFreshness(now());
+  if(saved.briefing)update({briefing:saved.briefing});
+  if(saved.fresh)return null;
+  update({batchCount:3});
+  return start();
+ };
+ const retryAutomatic=()=>{if(activeRun)return activeRun;update({batchCount:3});return start()};
  const start=()=>{
   if(activeRun)return activeRun;
   const {cursor,batchCount}=state;
   const pending=Promise.resolve().then(()=>run(cursor,batchCount));
   activeRun=pending;
-  setBusy(true);
+  update({busy:true,activeBatchCount:batchCount});
   void pending.then(()=>{activeRun=null},()=>{activeRun=null});
   return pending;
  };
  async function run(cursor:number,batchCount:number){
-  update({done:false,universe:null,screened:[],candidates:[],failed:[],researchRecords:[],error:'',quotesChecked:0,scannedBatches:0,allListed:[]});
+  update({done:false,universe:null,screened:[],candidates:[],failed:[],researchRecords:[],error:'',quotesChecked:0,scannedBatches:0,allListed:[],activeBatchCount:batchCount as 1|3,checkedIssuers:0,reviewingLeads:false});
   setProgress('Enumerating actual companies from the SEC ticker index…');
   try{
-   const today=easternDate(),records:RecordEntry[]=[],sourceIssues:{ticker:string;reason:string}[]=[];
+   const today=easternDate(now()),records:RecordEntry[]=[],sourceIssues:{ticker:string;reason:string}[]=[];
    const listed:Listed[]=[];
    let firstPage:UniversePage|null=null,nextCursor=cursor,completed=0;
    // A single explicit scan can walk several consecutive SEC index batches.
@@ -91,7 +123,8 @@ export function createAutonomousDiscoveryController(options?:{fetcher?:typeof fe
         const emerging = assessEmergingFcfStrength(company,today);
         records.push({company,screen,emerging});
        }catch(e){sourceIssues.push({ticker,reason:e instanceof Error?e.message:'SEC company facts unavailable'})}
-      setProgress('Checked '+(records.length+sourceIssues.length)+' / '+(batchCount*BATCH)+' planned SEC companies · batch '+(batch+1)+' / '+batchCount);
+      const checked=records.length+sourceIssues.length;
+      update({checkedIssuers:checked,progress:'Checked '+checked+' / '+(batchCount*BATCH)+' planned SEC companies · batch '+(batch+1)+' / '+batchCount});
      }));
     }
     nextCursor=page.nextCursor;completed++;
@@ -99,7 +132,9 @@ export function createAutonomousDiscoveryController(options?:{fetcher?:typeof fe
     if(page.completedCycle)break;
    }
    if(!firstPage)throw Error('No SEC index batch was returned');
+   if(!listed.length||records.length===0&&sourceIssues.length>0)throw Error('SEC financial sources were unavailable for this issuer batch; no completed briefing was saved');
    setUniverse(firstPage);setAllListed(listed);
+   update({reviewingLeads:true});
    const passes=records.filter(x=>x.screen.status==='preliminary_pass')
     .sort((a,b)=>(b.screen.score??-1)-(a.screen.score??-1)||a.company.ticker.localeCompare(b.company.ticker));
     setScreened(records.map(x=>x.screen));setFailed(sourceIssues);setResearchRecords(records);
@@ -140,7 +175,7 @@ export function createAutonomousDiscoveryController(options?:{fetcher?:typeof fe
     (b.priority.priceWeighted?1:0)-(a.priority.priceWeighted?1:0)||
     a.company.ticker.localeCompare(b.company.ticker));
     setCandidates(research);
-    const scanCompletedAt=new Date().toISOString();
+    const scanCompletedAt=now().toISOString();
     const runId=createResearchHistoryRunId(scanCompletedAt);
     const historyRecords=buildResearchHistoryRecords({
       completed:true,completedAt:scanCompletedAt,assessmentDate:today,runId,assessments:records,
@@ -187,6 +222,14 @@ export function createAutonomousDiscoveryController(options?:{fetcher?:typeof fe
       ?' Browser-local history saved '+historyResult.saved+' issuer assessment(s)'+(historyResult.dropped?' and evicted '+historyResult.dropped+' oldest record(s) under the 1,200-record retention cap.':'.')
       :' Browser-local assessment history was not saved ('+historyResult.status+'); the completed scan remains available in this session.';
     setProgress('Completed provisional SEC screening and price research. Price history is weighted at 20% only when comparable 1Y and 3Y observations exist; valuations remain unverified.'+historyNote);
+    if(batchCount===3&&completed===3&&listed.length===3*BATCH){
+     try{
+      const storage=globalThis.localStorage;
+      if(readDiscoveryBriefing(storage)?.scanCompletedAt===scanCompletedAt){
+       storage.setItem(AUTO_72_COMPLETION_KEY,JSON.stringify({version:1,scanCompletedAt,issuersExamined:records.length,requestedBatches:3,enumerated:listed.length}));
+      }
+     }catch{/* Storage unavailable: the completed run remains in this session. */}
+    }
     setDone(true);
     setCursor(nextCursor);
     try{localStorage.setItem(CURSOR_KEY,String(nextCursor))}catch{}
@@ -196,7 +239,7 @@ export function createAutonomousDiscoveryController(options?:{fetcher?:typeof fe
    }finally{setBusy(false)}
  }
 
- return {getSnapshot,subscribe,start,setBatchCount,resetCursor};
+ return {getSnapshot,subscribe,start,startAutomaticallyIfEligible,retryAutomatic,setBatchCount,resetCursor};
 }
 
 export const autonomousDiscoveryController=createAutonomousDiscoveryController();
